@@ -1,0 +1,105 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<h1 style="margin-bottom:10px;">
+    Dashboard
+</h1>
+
+<p style="color:#64748b;margin-bottom:30px;">
+    Live stock at every stage of workflow
+</p>
+
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:30px;">
+
+    <div class="card">
+
+        <div style="font-size:13px;color:#64748b;margin-bottom:10px;">
+            CASTING STOCK
+        </div>
+
+        <div style="font-size:40px;font-weight:bold;">
+            {{ casting_pcs }}
+        </div>
+
+        <div style="margin-top:10px;color:#64748b;">
+            {{ casting_weight }} kg
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <div style="font-size:13px;color:#64748b;margin-bottom:10px;">
+            MACHINING STOCK
+        </div>
+
+        <div style="font-size:40px;font-weight:bold;">
+            {{ machining_pcs }}
+        </div>
+
+        <div style="margin-top:10px;color:#64748b;">
+            {{ machining_weight }} kg
+        </div>
+
+    </div>
+
+</div>
+
+<div class="card">
+
+    <h2 style="margin-bottom:20px;">
+        Casting Stock by Item
+    </h2>
+
+    <table>
+
+        <tr>
+
+            <th>
+                Code
+            </th>
+
+            <th>
+                Item
+            </th>
+
+            <th>
+                Pieces
+            </th>
+
+            <th>
+                Weight
+            </th>
+
+        </tr>
+
+        {% for row in item_stock %}
+
+        <tr>
+
+            <td>
+                {{ row.item.code }}
+            </td>
+
+            <td>
+                {{ row.item.name }}
+            </td>
+
+            <td>
+                {{ row.pcs }}
+            </td>
+
+            <td>
+                {{ row.weight }}
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+</div>
+
+{% endblock %}

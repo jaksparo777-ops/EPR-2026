@@ -1,0 +1,65 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<h1 style="margin-bottom:10px;">
+    Casting Stock
+</h1>
+
+<p style="color:#64748b;margin-bottom:30px;">
+    Current stock available in casting warehouse
+</p>
+
+<div class="card">
+
+    <table>
+
+        <tr>
+
+            <th>
+                Code
+            </th>
+
+            <th>
+                Item
+            </th>
+
+            <th>
+                Quantity
+            </th>
+
+            <th>
+                Weight
+            </th>
+
+        </tr>
+
+        {% for row in stock_data %}
+
+        <tr>
+
+            <td>
+                {{ row.item.code }}
+            </td>
+
+            <td>
+                {{ row.item.name }}
+            </td>
+
+            <td>
+                {{ row.quantity }}
+            </td>
+
+            <td>
+                {{ row.weight }}
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+</div>
+
+{% endblock %}

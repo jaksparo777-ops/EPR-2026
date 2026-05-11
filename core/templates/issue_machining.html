@@ -1,0 +1,241 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<h1 style="margin-bottom:10px;">
+    Issue To Machining
+</h1>
+
+<p style="color:#64748b;margin-bottom:30px;">
+    Send casting stock to machining workers
+</p>
+
+<div style="display:grid;grid-template-columns:380px 1fr;gap:20px;">
+
+    <div class="card">
+
+        <h2 style="margin-bottom:20px;">
+            New Issue
+        </h2>
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+            <div style="margin-bottom:18px;">
+
+                <label>
+                    Worker
+                </label>
+
+                <br><br>
+
+                <select
+                    name="worker"
+                    required
+                >
+
+                    {% for worker in workers %}
+
+                    <option value="{{ worker.id }}">
+
+                        {{ worker.name }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+            <div style="margin-bottom:18px;">
+
+                <label>
+                    Item
+                </label>
+
+                <br><br>
+
+                <select
+                    name="item"
+                    id="itemSelect"
+                    required
+                >
+
+                    {% for item in items %}
+
+                    <option
+                        value="{{ item.id }}"
+                        data-weight="{{ item.weight_per_piece }}"
+                    >
+
+                        {{ item.code }} - {{ item.name }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+            <div style="display:flex;gap:10px;margin-bottom:18px;">
+
+                <div>
+
+                    <label>
+                        Pieces
+                    </label>
+
+                    <br><br>
+
+                    <input
+                        type="number"
+                        name="quantity"
+                        id="piecesInput"
+                        value="0"
+                        required
+                    >
+
+                </div>
+
+                <div>
+
+                    <label>
+                        Weight
+                    </label>
+
+                    <br><br>
+
+                    <input
+                        type="number"
+                        step="0.001"
+                        name="weight"
+                        id="weightInput"
+                        value="0"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+            <button type="submit">
+
+                Issue Stock
+
+            </button>
+
+        </form>
+
+    </div>
+
+    <div class="card">
+
+        <h2 style="margin-bottom:20px;">
+            Recent Issues
+        </h2>
+
+        <table>
+
+            <tr>
+
+                <th>
+                    Date
+                </th>
+
+                <th>
+                    Worker
+                </th>
+
+                <th>
+                    Item
+                </th>
+
+                <th>
+                    Pcs
+                </th>
+
+                <th>
+                    Weight
+                </th>
+
+            </tr>
+
+            {% for row in entries %}
+
+            <tr>
+
+                <td>
+                    {{ row.created_at|date:"d/m/Y" }}
+                </td>
+
+                <td>
+                    {{ row.worker.name }}
+                </td>
+
+                <td>
+                    {{ row.item.code }} - {{ row.item.name }}
+                </td>
+
+                <td>
+                    {{ row.quantity }}
+                </td>
+
+                <td>
+                    {{ row.weight }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+</div>
+
+<script>
+
+    const itemSelect = document.getElementById('itemSelect')
+
+    const pcsInput = document.getElementById('piecesInput')
+
+    const weightInput = document.getElementById('weightInput')
+
+    function calculateWeight(){
+
+        const selectedOption =
+            itemSelect.options[itemSelect.selectedIndex]
+
+        const weightPerPiece =
+            parseFloat(
+                selectedOption.getAttribute('data-weight')
+            ) || 0
+
+        const pcs =
+            parseFloat(pcsInput.value) || 0
+
+        const totalWeight =
+            pcs * weightPerPiece
+
+        weightInput.value =
+            totalWeight.toFixed(3)
+
+    }
+
+    itemSelect.addEventListener(
+        'change',
+        calculateWeight
+    )
+
+    pcsInput.addEventListener(
+        'input',
+        calculateWeight
+    )
+
+</script>
+
+{% endblock %}
