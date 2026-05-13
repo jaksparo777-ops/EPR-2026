@@ -2,100 +2,530 @@
 
 {% block content %}
 
-<h1 style="margin-bottom:10px;">
+<style>
+
+.dashboard-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(4,1fr);
+
+    gap:14px;
+
+    margin-bottom:18px;
+
+}
+
+.dashboard-card{
+
+    background:white;
+
+    border-radius:16px;
+
+    padding:18px;
+
+    border:1px solid #e2e8f0;
+
+}
+
+.dashboard-icon{
+
+    width:34px;
+
+    height:34px;
+
+    border-radius:10px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    margin-bottom:14px;
+
+    font-size:18px;
+
+}
+
+.orange{
+    background:#fff7ed;
+    color:#ea580c;
+}
+
+.blue{
+    background:#eff6ff;
+    color:#2563eb;
+}
+
+.purple{
+    background:#faf5ff;
+    color:#9333ea;
+}
+
+.green{
+    background:#f0fdf4;
+    color:#16a34a;
+}
+
+.card-label{
+
+    font-size:12px;
+
+    color:#64748b;
+
+    margin-bottom:8px;
+
+    font-weight:600;
+
+}
+
+.card-number{
+
+    font-size:42px;
+
+    font-weight:700;
+
+    line-height:1;
+
+}
+
+.card-unit{
+
+    font-size:14px;
+
+    color:#64748b;
+
+    margin-left:4px;
+
+}
+
+.card-weight{
+
+    margin-top:8px;
+
+    color:#64748b;
+
+    font-size:14px;
+
+}
+
+.summary-grid{
+
+    display:grid;
+
+    grid-template-columns:1fr 1fr;
+
+    gap:14px;
+
+    margin-bottom:18px;
+
+}
+
+.summary-card{
+
+    background:white;
+
+    border-radius:16px;
+
+    padding:18px;
+
+    border:1px solid #e2e8f0;
+
+}
+
+.summary-header{
+
+    font-weight:700;
+
+    margin-bottom:20px;
+
+    color:#1e293b;
+
+}
+
+.summary-stats{
+
+    display:grid;
+
+    grid-template-columns:repeat(3,1fr);
+
+    gap:10px;
+
+}
+
+.summary-label{
+
+    font-size:12px;
+
+    color:#64748b;
+
+    margin-bottom:8px;
+
+}
+
+.summary-value{
+
+    font-size:34px;
+
+    font-weight:700;
+
+}
+
+.stock-card{
+
+    background:white;
+
+    border-radius:16px;
+
+    padding:18px;
+
+    border:1px solid #e2e8f0;
+
+}
+
+.stock-header{
+
+    font-weight:700;
+
+    margin-bottom:18px;
+
+}
+
+</style>
+
+
+
+<!-- HEADER -->
+
+<h1 style="
+font-size:42px;
+margin-bottom:8px;
+">
     Dashboard
 </h1>
 
-<p style="color:#64748b;margin-bottom:30px;">
-    Live stock at every stage of workflow
+<p style="
+color:#64748b;
+margin-bottom:25px;
+">
+    Live stock at every stage of the workflow
 </p>
 
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:30px;">
 
-    <div class="card">
 
-        <div style="font-size:13px;color:#64748b;margin-bottom:10px;">
+<!-- TOP CARDS -->
+ <div class="dashboard-grid">
+
+<a href="/casting-stock/"
+   style="
+   text-decoration:none;
+   color:inherit;
+   ">
+
+<!-- CASTING -->
+
+<div class="dashboard-card"
+     style="
+     cursor:pointer;
+     transition:0.2s;
+     ">
+
+        <div class="dashboard-icon orange">
+            🔥
+        </div>
+
+        <div class="card-label">
             CASTING STOCK
         </div>
 
-        <div style="font-size:40px;font-weight:bold;">
-            {{ casting_pcs }}
+        <div>
+
+            <span class="card-number">
+
+                {{ casting_stock }}
+
+            </span>
+
+            <span class="card-unit">
+                pcs
+            </span>
+
         </div>
 
-        <div style="margin-top:10px;color:#64748b;">
+        <div class="card-weight">
+
             {{ casting_weight }} kg
+
+        </div>
+
+    </div>
+</a>
+
+
+    <!-- MACHINING -->
+
+    <a href="/machining-stock/"
+   style="
+   text-decoration:none;
+   color:inherit;
+   ">
+
+<div class="dashboard-card"
+     style="
+     cursor:pointer;
+     transition:0.2s;
+     ">
+
+        <div class="dashboard-icon blue">
+            🛠
+        </div>
+
+        <div class="card-label">
+            MACHINING STOCK
+        </div>
+
+        <div>
+
+            <span class="card-number">
+
+                {{ machining_stock }}
+
+            </span>
+
+            <span class="card-unit">
+                pcs
+            </span>
+
+        </div>
+
+        <div class="card-weight">
+
+            {{ machining_weight }} kg
+
+        </div>
+
+    </div>
+</a>
+
+    <!-- POLISHING -->
+
+    <div class="dashboard-card">
+
+        <div class="dashboard-icon purple">
+            ✨
+        </div>
+
+        <div class="card-label">
+            POLISHING STOCK
+        </div>
+
+        <div>
+
+            <span class="card-number">
+    {{ polishing_stock }}
+</span>
+
+            <span class="card-unit">
+                pcs
+            </span>
+
+        </div>
+
+        <div class="card-weight">
+            {{ polishing_weight }} kg
         </div>
 
     </div>
 
-    <div class="card">
 
-        <div style="font-size:13px;color:#64748b;margin-bottom:10px;">
-            MACHINING STOCK
+
+    <!-- READY -->
+
+    <div class="dashboard-card">
+
+        <div class="dashboard-icon green">
+            📦
         </div>
 
-        <div style="font-size:40px;font-weight:bold;">
-            {{ machining_pcs }}
+        <div class="card-label">
+            READY TO DISPATCH
         </div>
 
-        <div style="margin-top:10px;color:#64748b;">
-            {{ machining_weight }} kg
+        <div>
+
+            <span class="card-number">
+
+                {{ ready_stock }}
+
+            </span>
+
+            <span class="card-unit">
+                pcs
+            </span>
+
+        </div>
+
+        <div class="card-weight">
+
+            {{ ready_weight }} kg
+
         </div>
 
     </div>
 
 </div>
 
-<div class="card">
 
-    <h2 style="margin-bottom:20px;">
-        Casting Stock by Item
-    </h2>
+
+<!-- SUMMARY -->
+
+<div class="summary-grid">
+
+    <!-- TODAY CASTING -->
+
+    <div class="summary-card">
+
+        <div class="summary-header">
+            🔥 Today's Casting
+        </div>
+
+        <div class="summary-stats">
+
+            <div>
+
+                <div class="summary-label">
+                    HEATS
+                </div>
+
+                <div class="summary-value">
+
+                    {{ today_heats }}
+
+                </div>
+
+            </div>
+
+            <div>
+
+                <div class="summary-label">
+                    PIECES
+                </div>
+
+                <div class="summary-value">
+
+                    {{ today_pieces }}
+
+                </div>
+
+            </div>
+
+            <div>
+
+                <div class="summary-label">
+                    WEIGHT (KG)
+                </div>
+
+                <div class="summary-value">
+
+                    {{ today_weight }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- TODAY DISPATCH -->
+
+    <div class="summary-card">
+
+        <div class="summary-header">
+            🚚 Today's Dispatch
+        </div>
+
+        <div class="summary-stats">
+
+            <div>
+
+                <div class="summary-label">
+                    PIECES
+                </div>
+
+                <div class="summary-value">
+                    {{ dispatch_pieces }}
+                </div>
+
+            </div>
+
+            <div>
+
+                <div class="summary-label">
+                    CARTONS
+                </div>
+
+                <div class="summary-value">
+                    {{ dispatch_cartons }}
+                </div>
+
+            </div>
+
+            <div>
+
+                <div class="summary-label">
+                    WEIGHT (KG)
+                </div>
+
+                <div class="summary-value">
+                    {{ dispatch_weight }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- STOCK TABLE -->
+
+<div class="stock-card">
+
+    <div class="stock-header">
+        📦 Ready Stock by Item
+    </div>
 
     <table>
 
+            <tr>
+                <th>Item Code</th>
+                <th>Item Name</th>
+                <th>Cartons</th>
+                <th>Pieces</th>
+                <th>Weight (KG)</th>
+            </tr>
+
+        {% for row in stock_rows %}
         <tr>
-
-            <th>
-                Code
-            </th>
-
-            <th>
-                Item
-            </th>
-
-            <th>
-                Pieces
-            </th>
-
-            <th>
-                Weight
-            </th>
-
+            <td style="font-weight:bold;">{{ row.item.code }}</td>
+            <td>{{ row.item.name }}</td>
+            <td style="color:#16a34a; font-weight:bold;">{{ row.cartons|default:"0" }}</td>
+            <td>{{ row.pieces }}</td>
+            <td>{{ row.weight }}</td>
         </tr>
-
-        {% for row in item_stock %}
-
+        {% empty %}
         <tr>
-
-            <td>
-                {{ row.item.code }}
+            <td colspan="5" style="text-align:center; padding:30px; color:#64748b;">
+                No items in ready stock.
             </td>
-
-            <td>
-                {{ row.item.name }}
-            </td>
-
-            <td>
-                {{ row.pcs }}
-            </td>
-
-            <td>
-                {{ row.weight }}
-            </td>
-
         </tr>
-
         {% endfor %}
 
     </table>

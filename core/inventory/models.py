@@ -5,6 +5,25 @@ from django.db import models
 # ITEM MASTER
 # =========================================
 
+# =========================================
+# ITEM MASTER
+# =========================================
+
+class ProcessType(models.TextChoices):
+    MACHINING = "machining", "Machining"
+    POLISHING = "polishing", "Polishing"
+    PACKAGING = "packaging", "Packaging"
+
+class TransactionType(models.TextChoices):
+    CASTING_ENTRY = "casting_entry", "Casting Entry"
+    MACHINING_OUT = "machining_out", "Machining Issue"
+    MACHINING_IN = "machining_in", "Machining Receive"
+    POLISHING_OUT = "polishing_out", "Polishing Issue"
+    POLISHING_IN = "polishing_in", "Polishing Receive"
+    PACKAGING_IN = "packaging_in", "Packaging Receive"
+    DISPATCH_OUT = "dispatch_out", "Dispatch Out"
+
+
 class Item(models.Model):
 
     CATEGORY_CHOICES = [
@@ -15,11 +34,24 @@ class Item(models.Model):
         ("OTHER", "Other"),
     ]
 
-    PROCESS_CHOICES = [
-        ("machining", "Machining"),
-        ("polishing", "Polishing"),
-        ("packaging", "Packaging"),
+    MATERIAL_CHOICES = [
+        ("BRASS", "Brass"),
+        ("SS", "Stainless Steel"),
+        ("CI", "Cast Iron"),
+        ("ALUMINIUM", "Aluminium"),
     ]
+
+    client = models.ForeignKey(
+
+        "Client",
+
+        on_delete=models.SET_NULL,
+
+        blank=True,
+
+        null=True
+
+    )
 
     code = models.CharField(
         max_length=50,
@@ -34,6 +66,13 @@ class Item(models.Model):
         max_length=50,
         choices=CATEGORY_CHOICES,
         default="OTHER"
+    )
+
+    material = models.CharField(
+        max_length=50,
+        choices=MATERIAL_CHOICES,
+        blank=True,
+        null=True
     )
 
     variant = models.CharField(
@@ -62,13 +101,30 @@ class Item(models.Model):
 
     process = models.CharField(
         max_length=50,
-        choices=PROCESS_CHOICES,
+        choices=ProcessType.choices,
         blank=True,
         null=True
     )
 
+    machining_required = models.BooleanField(
+        default=True
+    )
+
+    polishing_required = models.BooleanField(
+        default=True
+    )
+
+    packing_required = models.BooleanField(
+        default=True
+    )
+
     rate_per_piece = models.FloatField(
         default=0
+    )
+
+    notes = models.TextField(
+        blank=True,
+        null=True
     )
 
     active = models.BooleanField(
@@ -82,8 +138,6 @@ class Item(models.Model):
     def __str__(self):
 
         return f"{self.code} - {self.name}"
-
-
 # =========================================
 # CLIENT MASTER
 # =========================================
@@ -124,20 +178,14 @@ class Client(models.Model):
 # =========================================
 
 class Worker(models.Model):
-
-    PROCESS_CHOICES = [
-        ("machining", "Machining"),
-        ("polishing", "Polishing"),
-        ("packaging", "Packaging"),
-    ]
-
+    
     name = models.CharField(
         max_length=100
     )
 
     process = models.CharField(
         max_length=50,
-        choices=PROCESS_CHOICES
+        choices=ProcessType.choices
     )
 
     phone = models.CharField(
@@ -158,7 +206,43 @@ class Worker(models.Model):
 
         return self.name
 
+# =========================================
+# JOB WORKER MASTER
+# =========================================
 
+class JobWorker(models.Model):
+
+    name = models.CharField(
+        max_length=100
+    )
+
+    process = models.CharField(
+        max_length=50,
+        choices=ProcessType.choices
+    )
+
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True
+    )
+
+    address = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    active = models.BooleanField(
+        default=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+
+        return self.name
 # =========================================
 # WAREHOUSE MASTER
 # =========================================
@@ -189,22 +273,6 @@ class Warehouse(models.Model):
 
 class StockTransaction(models.Model):
 
-    TRANSACTION_TYPES = [
-
-        ("casting_entry", "Casting Entry"),
-
-        ("machining_issue", "Machining Issue"),
-
-        ("machining_receive", "Machining Receive"),
-
-        ("polishing_issue", "Polishing Issue"),
-
-        ("polishing_receive", "Polishing Receive"),
-
-        ("dispatch", "Dispatch"),
-
-    ]
-
     item = models.ForeignKey(
         Item,
         on_delete=models.CASCADE
@@ -212,7 +280,7 @@ class StockTransaction(models.Model):
 
     transaction_type = models.CharField(
         max_length=50,
-        choices=TRANSACTION_TYPES
+        choices=TransactionType.choices
     )
 
     from_warehouse = models.ForeignKey(
@@ -237,7 +305,12 @@ class StockTransaction(models.Model):
         blank=True,
         null=True
     )
-
+    job_worker = models.ForeignKey(
+        JobWorker,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True
+    )
     client = models.ForeignKey(
         Client,
         on_delete=models.SET_NULL,

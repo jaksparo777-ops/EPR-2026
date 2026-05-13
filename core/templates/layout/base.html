@@ -1,7 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>
         Foundry ERP
@@ -13,99 +18,327 @@
             margin:0;
             padding:0;
             box-sizing:border-box;
-            font-family:Arial;
+            font-family:Inter,sans-serif;
         }
 
         body{
             background:#f1f5f9;
         }
 
-        .container{
+        .layout{
             display:flex;
         }
 
         .sidebar{
-            width:240px;
-            min-height:100vh;
-            background:#0f172a;
-            padding:30px 20px;
+
+            width:250px;
+            height:100vh;
+
+            background:#071426;
+
+            color:white;
+
+            position:fixed;
+
+            left:0;
+            top:0;
+
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+
+            border-right:1px solid rgba(255,255,255,0.08);
+
+            overflow-y:auto;
+
         }
 
-        .logo{
-            color:white;
-            font-size:32px;
+        .logo-section{
+
+            padding:22px 20px;
+
+            border-bottom:1px solid rgba(255,255,255,0.08);
+
+            display:flex;
+
+            align-items:center;
+
+            gap:12px;
+
+        }
+
+        .logo-box{
+
+            width:34px;
+            height:34px;
+
+            background:#f6b23e;
+
+            color:#111827;
+
+            border-radius:8px;
+
+            display:flex;
+
+            align-items:center;
+            justify-content:center;
+
             font-weight:bold;
-            margin-bottom:40px;
+
+            font-size:18px;
+
         }
 
-        .sidebar a{
-            display:block;
-            color:white;
+        .logo-title{
+            font-size:18px;
+            font-weight:700;
+        }
+
+        .logo-subtitle{
+            font-size:12px;
+            color:#94a3b8;
+            margin-top:2px;
+        }
+
+        .menu{
+            padding:18px 12px;
+        }
+
+        .menu a{
+
+            display:flex;
+
+            align-items:center;
+
+            gap:12px;
+
             text-decoration:none;
-            padding:14px 16px;
-            margin-bottom:10px;
-            border-radius:10px;
+
+            color:#d1d5db;
+
+            padding:12px 14px;
+
+            border-radius:12px;
+
+            margin-bottom:6px;
+
+            font-size:14px;
+
             transition:0.2s;
+
         }
 
-        .sidebar a:hover{
-            background:#1e293b;
+        .menu a:hover{
+            background:rgba(255,255,255,0.05);
+            color:white;
+        }
+
+        .menu a.active{
+
+            background:#f6b23e;
+
+            color:#111827;
+
+            font-weight:600;
+
         }
 
         .content{
-            flex:1;
+
+            margin-left:250px;
+
+            width:calc(100% - 250px);
+
             padding:30px;
+
+        }
+
+        .sidebar-footer{
+
+            padding:18px;
+
+            border-top:1px solid rgba(255,255,255,0.08);
+
+        }
+
+        .user-email{
+
+            font-size:13px;
+
+            color:#cbd5e1;
+
+            margin-bottom:10px;
+
+        }
+
+        .admin-badge{
+
+            display:inline-block;
+
+            background:#1e3a5f;
+
+            color:#dbeafe;
+
+            padding:4px 10px;
+
+            border-radius:6px;
+
+            font-size:11px;
+
+            font-weight:600;
+
+            margin-bottom:18px;
+
+        }
+
+        .logout{
+
+            color:#cbd5e1;
+
+            text-decoration:none;
+
+            font-size:14px;
+
         }
 
         .card{
+
             background:white;
-            padding:25px;
+
             border-radius:16px;
-            margin-bottom:20px;
-            box-shadow:0 2px 10px rgba(0,0,0,0.05);
+
+            padding:24px;
+
+            box-shadow:
+            0 1px 3px rgba(0,0,0,0.08);
+
         }
 
-        button{
-            background:#0f172a;
-            color:white;
-            border:none;
-            padding:12px 25px;
-            border-radius:10px;
-            cursor:pointer;
-            font-weight:bold;
+        table{
+
+            width:100%;
+
+            border-collapse:collapse;
+
         }
 
-        button:hover{
-            opacity:0.9;
+        table th{
+
+            background:#f8fafc;
+
+            padding:14px;
+
+            text-align:left;
+
+            font-size:13px;
+
+            color:#64748b;
+
+        }
+
+        table td{
+
+            padding:14px;
+
+            border-top:1px solid #e2e8f0;
+
+            font-size:14px;
+
         }
 
         input,
         select,
         textarea{
+
+            width:100%;
+
             padding:12px;
+
             border:1px solid #cbd5e1;
+
             border-radius:10px;
-            width:100%;
+
+            outline:none;
+
         }
 
-        textarea{
-            resize:vertical;
+        button{
+
+            background:#0f172a;
+
+            color:white;
+
+            border:none;
+
+            padding:12px 20px;
+
+            border-radius:10px;
+
+            cursor:pointer;
+
         }
 
-        table{
-            width:100%;
-            border-collapse:collapse;
+        .toast-container{
+            position:fixed;
+            right:20px;
+            bottom:20px;
+            display:flex;
+            flex-direction:column;
+            gap:12px;
+            z-index:9999;
+            pointer-events:none;
         }
 
-        table th{
-            background:#e2e8f0;
+        .toast{
+            min-width:280px;
+            max-width:380px;
+            padding:14px 18px;
+            border-radius:14px;
+            font-size:14px;
+            color:#fff;
+            box-shadow:0 16px 40px rgba(15,23,42,0.16);
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:12px;
+            pointer-events:auto;
+            opacity:0;
+            transform:translateY(20px);
+            animation:toast-in 0.3s ease forwards;
         }
 
-        table th,
-        table td{
-            padding:14px;
-            border-bottom:1px solid #e2e8f0;
-            text-align:left;
+        .toast-success{
+            background:#16a34a;
+        }
+
+        .toast-error{
+            background:#b91c1c;
+        }
+
+        .toast-info{
+            background:#2563eb;
+        }
+
+        .toast-close{
+            background:rgba(255,255,255,0.18);
+            border:none;
+            color:#fff;
+            width:28px;
+            height:28px;
+            border-radius:50%;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:14px;
+            line-height:1;
+        }
+
+        @keyframes toast-in{
+            to {
+                opacity:1;
+                transform:translateY(0);
+            }
         }
 
     </style>
@@ -114,48 +347,189 @@
 
 <body>
 
-    <div class="container">
+<div class="layout">
 
-        <div class="sidebar">
+    <!-- SIDEBAR -->
 
-            <div class="logo">
-                Foundry ERP
+    <div class="sidebar">
+
+        <div>
+
+            <!-- LOGO -->
+
+            <div class="logo-section">
+
+                <div class="logo-box">
+                    F
+                </div>
+
+                <div>
+
+                    <div class="logo-title">
+                        Foundry ERP
+                    </div>
+
+                    <div class="logo-subtitle">
+                        Casting → Dispatch
+                    </div>
+
+                </div>
+
             </div>
 
-            <a href="/">
-                Dashboard
-            </a>
 
-            <a href="/casting/">
-                Casting Entry
-            </a>
 
-            <a href="/casting-stock/">
-                Casting Stock
-            </a>
+            <!-- MENU -->
 
-            <a href="/issue-machining/">
-                Issue To Machining
-            </a>
+            <div class="menu">
 
-            <a href="/machining-stock/">
-                Machining Stock
-            </a>
+                <a href="{% url 'dashboard' %}"
+                   class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
 
-            <a href="/master-data/">
-                Master Data
-            </a>
+                    📊 Dashboard
+
+                </a>
+
+
+
+                <a href="{% url 'casting_entry' %}"
+                   class="{% if request.resolver_match.url_name == 'casting_entry' %}active{% endif %}">
+
+                    🔥 Casting
+
+                </a>
+
+
+
+                <a href="{% url 'machining_entry' %}"
+                   class="{% if request.resolver_match.url_name == 'machining_entry' %}active{% endif %}">
+
+                    🛠 Machining
+
+                </a>
+
+
+
+                <a href="{% url 'polishing_entry' %}"
+                   class="{% if request.resolver_match.url_name == 'polishing_entry' %}active{% endif %}">
+
+                    ✨ Polishing
+
+                </a>
+
+
+
+                <a href="{% url 'packaging' %}"
+                   class="{% if request.resolver_match.url_name == 'packaging' %}active{% endif %}">
+
+                    📦 Packaging
+
+                </a>
+
+
+
+                <a href="{% url 'casting_stock' %}"
+                   class="{% if request.resolver_match.url_name == 'casting_stock' %}active{% endif %}">
+                    📈 Casting Stock
+                </a>
+
+                <a href="{% url 'machining_stock' %}"
+                   class="{% if request.resolver_match.url_name == 'machining_stock' %}active{% endif %}">
+                    📉 Machining Stock
+                </a>
+
+                <a href="{% url 'dispatch' %}"
+                   class="{% if request.resolver_match.url_name == 'dispatch' %}active{% endif %}">
+                    🚚 Dispatch & Sales
+                </a>
+
+
+
+                <a href="{% url 'master_data' %}"
+                   class="{% if request.resolver_match.url_name == 'master_data' %}active{% endif %}">
+
+                    ⚙ Master Data
+
+                </a>
+
+
+
+                <a href="#">
+                    👥 Users
+                </a>
+
+            </div>
 
         </div>
 
-        <div class="content">
 
-            {% block content %}
-            {% endblock %}
+
+        <!-- FOOTER -->
+
+        <div class="sidebar-footer">
+
+            <div class="user-email">
+                admin@foundryerp.com
+            </div>
+
+            <div class="admin-badge">
+                ADMIN
+            </div>
+
+            <br>
+
+            <a href="#"
+               class="logout">
+                ⎋ Sign out
+            </a>
 
         </div>
 
     </div>
+
+
+
+    <!-- PAGE CONTENT -->
+
+    <div class="content">
+
+        {% if messages %}
+            <div class="toast-container">
+                {% for message in messages %}
+                    <div class="toast toast-{{ message.tags }}" role="alert">
+                        <span>{{ message }}</span>
+                        <button type="button" class="toast-close" aria-label="Dismiss">×</button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const toasts = document.querySelectorAll('.toast');
+
+        toasts.forEach(toast => {
+            const close = toast.querySelector('.toast-close');
+            const timeout = setTimeout(() => {
+                toast.style.opacity = 0;
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+
+            close.addEventListener('click', () => {
+                clearTimeout(timeout);
+                toast.style.opacity = 0;
+                setTimeout(() => toast.remove(), 300);
+            });
+        });
+    });
+</script>
 
 </body>
 

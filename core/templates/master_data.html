@@ -74,6 +74,56 @@
         font-weight:bold;
     }
 
+    .drawer-backdrop{
+        position:fixed;
+        inset:0;
+        background:rgba(15, 23, 42, 0.35);
+        opacity:0;
+        visibility:hidden;
+        transition:opacity 0.2s ease;
+        z-index:30;
+    }
+
+    .drawer-backdrop.active{
+        opacity:1;
+        visibility:visible;
+    }
+
+    .drawer-panel{
+        position:fixed;
+        top:0;
+        right:-420px;
+        width:420px;
+        max-width:100%;
+        height:100%;
+        background:white;
+        box-shadow:-20px 0 60px rgba(15, 23, 42, 0.12);
+        padding:28px;
+        overflow-y:auto;
+        transition:right 0.25s ease;
+        z-index:40;
+    }
+
+    .drawer-panel.active{
+        right:0;
+    }
+
+    .drawer-header{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:24px;
+    }
+
+    .drawer-close{
+        width:34px;
+        height:34px;
+        border:none;
+        background:#f1f5f9;
+        border-radius:12px;
+        cursor:pointer;
+    }
+
 </style>
 
 <h1 style="margin-bottom:10px;">
@@ -121,11 +171,43 @@
 
     <div class="grid-layout">
 
-        <div class="card">
+    <div class="card">
 
-            <h2 style="margin-bottom:25px;">
-                Add Item
-            </h2>
+            <div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:25px;
+">
+
+    <div>
+
+        <h2 style="margin-bottom:5px;">
+            {% if edit_item_data %}Edit{% else %}Add{% endif %} Item Master
+        </h2>
+
+        <p style="
+        color:#64748b;
+        font-size:13px;
+        ">
+            {% if edit_item_data %}Update existing{% else %}Configure new{% endif %} ERP production item
+        </p>
+
+    </div>
+
+    <div style="
+    background:#0f172a;
+    color:white;
+    padding:8px 14px;
+    border-radius:8px;
+    font-size:12px;
+    ">
+
+        ERP CONTROL
+
+    </div>
+
+</div>
 
             <form method="POST">
 
@@ -136,190 +218,414 @@
                     name="form_type"
                     value="item"
                 >
+<div style="
+padding:18px;
+border:1px solid #e2e8f0;
+border-radius:12px;
+margin-bottom:20px;
+">
 
-                <div class="form-group">
+    <h3 style="
+    margin-bottom:18px;
+    font-size:16px;
+    ">
+        Basic Information
+    </h3>
 
-                    <label>CODE</label>
+    <div class="two-column">
 
-                    <input
-                        type="text"
-                        name="code"
-                        required
-                    >
+        <div class="form-group">
 
-                </div>
+            <label>ITEM CODE</label>
 
-                <div class="form-group">
+            <input
+                type="text"
+                name="code"
+                value="{{ edit_item_data.code }}"
+                required
+            >
 
-                    <label>NAME</label>
+        </div>
 
-                    <input
-                        type="text"
-                        name="name"
-                        required
-                    >
+        <div class="form-group">
 
-                </div>
+            <label>ITEM NAME</label>
 
-                <div class="form-group">
+            <input
+                type="text"
+                name="name"
+                value="{{ edit_item_data.name }}"
+                required
+            >
 
-                    <label>CATEGORY</label>
+        </div>
 
-                    <select name="category">
+    </div>
 
-                        <option value="BRASS">Brass</option>
-                        <option value="MORTAR">Mortar</option>
-                        <option value="PESTLE">Pestle</option>
-                        <option value="CHOPPING">Chopping Board</option>
-                        <option value="OTHER">Other</option>
+    <div class="two-column">
 
-                    </select>
+        <div class="form-group">
 
-                </div>
+            <label>CLIENT</label>
 
-                <div class="form-group">
+<input
+    list="client-list"
+    name="custom_client"
+    value="{% if edit_item_data and edit_item_data.client %}{{ edit_item_data.client.name }}{% endif %}"
+    placeholder="Select or type client"
+>
 
-                    <label>VARIANT</label>
+<datalist id="client-list">
 
-                    <input
-                        type="text"
-                        name="variant"
-                    >
+    {% for client in clients %}
 
-                </div>
+    <option value="{{ client.name }}">
 
-                <div class="form-group">
+    {% endfor %}
 
-                    <label>TYPE</label>
+</datalist>
+            </div>
 
-                    <input
-                        type="text"
-                        name="item_type"
-                    >
+        </div>
 
-                </div>
+        <div class="form-group">
 
-                <div class="three-column">
+            <label>MATERIAL</label>
 
-                    <div class="form-group">
+<input
+    list="material-list"
+    name="custom_material"
+    value="{{ edit_item_data.material }}"
+    placeholder="Select or type material"
+>
 
-                        <label>WT/PC</label>
+<datalist id="material-list">
 
-                        <input
-                            type="number"
-                            step="0.001"
-                            name="weight_per_piece"
-                        >
+    <option value="Brass">
 
-                    </div>
+    <option value="Stainless Steel">
 
-                    <div class="form-group">
+    <option value="Cast Iron">
 
-                        <label>LOT</label>
+    <option value="Aluminium">
 
-                        <input
-                            type="number"
-                            name="lot_size"
-                        >
+</datalist>
+            </div>
 
-                    </div>
+        </div>
 
-                    <div class="form-group">
+    </div>
 
-                        <label>LOT+BOX</label>
+    <div class="two-column">
 
-                        <input
-                            type="number"
-                            name="lot_with_box"
-                        >
+        <div class="form-group">
 
-                    </div>
+            <label>CATEGORY</label>
 
-                </div>
+            <select name="category">
 
-                <div class="divider"></div>
+                <option value="BRASS" {% if edit_item_data.category == 'BRASS' %}selected{% endif %}>
+                    Brass
+                </option>
 
-                <div class="small-heading">
-                    JOB WORKER RATE
-                </div>
+                <option value="MORTAR" {% if edit_item_data.category == 'MORTAR' %}selected{% endif %}>
+                    Mortar
+                </option>
 
-                <div class="form-group">
+                <option value="PESTLE" {% if edit_item_data.category == 'PESTLE' %}selected{% endif %}>
+                    Pestle
+                </option>
 
-                    <label>JOB WORKER</label>
+                <option value="CHOPPING" {% if edit_item_data.category == 'CHOPPING' %}selected{% endif %}>
+                    Chopping Board
+                </option>
 
-                    <select name="job_worker">
+                <option value="OTHER" {% if edit_item_data.category == 'OTHER' or not edit_item_data %}selected{% endif %}>
+                    Other
+                </option>
 
-                        <option value="">
-                            Select Worker
-                        </option>
+            </select>
 
-                        {% for worker in workers %}
+        </div>
 
-                        <option value="{{ worker.id }}">
+        <div class="form-group">
 
-                            {{ worker.name }}
+            <label>VARIANT</label>
 
-                        </option>
+            <input
+                type="text"
+                name="variant"
+                value="{{ edit_item_data.variant }}"
+            >
 
-                        {% endfor %}
+        </div>
 
-                    </select>
+    </div>
 
-                </div>
+</div>
+<div style="
+padding:18px;
+border:1px solid #e2e8f0;
+border-radius:12px;
+margin-bottom:20px;
+">
 
-                <div class="two-column">
+    <h3 style="
+    margin-bottom:18px;
+    font-size:16px;
+    ">
+        Production Settings
+    </h3>
 
-                    <div class="form-group">
+    <div class="three-column">
 
-                        <label>PROCESS</label>
+        <div class="form-group">
 
-                        <select name="process">
+            <label>WT / PC</label>
 
-                            <option value="machining">
-                                Machining
-                            </option>
+            <input
+                type="number"
+                step="0.001"
+                name="weight_per_piece"
+                value="{{ edit_item_data.weight_per_piece }}"
+            >
 
-                            <option value="polishing">
-                                Polishing
-                            </option>
+        </div>
 
-                            <option value="packaging">
-                                Packaging
-                            </option>
+        <div class="form-group">
 
-                        </select>
+            <label>LOT SIZE</label>
 
-                    </div>
+            <input
+                type="number"
+                name="lot_size"
+                value="{{ edit_item_data.lot_size }}"
+            >
 
-                    <div class="form-group">
+        </div>
 
-                        <label>RATE (₹/PC)</label>
+        <div class="form-group">
 
-                        <input
-                            type="number"
-                            step="0.01"
-                            name="rate_per_piece"
-                        >
+            <label>LOT + BOX</label>
 
-                    </div>
+            <input
+                type="number"
+                name="lot_with_box"
+                value="{{ edit_item_data.lot_with_box }}"
+            >
 
-                </div>
+        </div>
 
-                <button type="submit">
+    </div>
 
-                    Add Item
+    <div style="
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:10px;
+    margin-top:10px;
+    ">
 
-                </button>
+        <label style="
+        background:#f8fafc;
+        padding:12px;
+        border-radius:10px;
+        border:1px solid #e2e8f0;
+        ">
+
+            <input
+                type="checkbox"
+                {% if edit_item_data.machining_required or not edit_item_data %}checked{% endif %}
+                name="machining_required"
+            >
+
+            Machining Required
+
+        </label>
+
+        <label style="
+        background:#f8fafc;
+        padding:12px;
+        border-radius:10px;
+        border:1px solid #e2e8f0;
+        ">
+
+            <input
+                type="checkbox"
+                {% if edit_item_data.polishing_required or not edit_item_data %}checked{% endif %}
+                name="polishing_required"
+            >
+
+            Polishing Required
+
+        </label>
+
+        <label style="
+        background:#f8fafc;
+        padding:12px;
+        border-radius:10px;
+        border:1px solid #e2e8f0;
+        ">
+
+            <input
+                type="checkbox"
+                {% if edit_item_data.packing_required or not edit_item_data %}checked{% endif %}
+                name="packing_required"
+            >
+
+            Packing Required
+
+        </label>
+
+    </div>
+
+</div>
+<div style="
+padding:18px;
+border:1px solid #e2e8f0;
+border-radius:12px;
+margin-bottom:20px;
+">
+
+    <h3 style="
+    margin-bottom:18px;
+    font-size:16px;
+    ">
+        Job Worker Configuration
+    </h3>
+
+    <div class="form-group">
+
+        <label>JOB WORKER</label>
+
+        <input
+            list="worker-list"
+            name="custom_worker"
+            placeholder="Select or type job worker"
+        >
+
+        <datalist id="worker-list">
+
+            {% for worker in workers %}
+
+            <option value="{{ worker.name }}">
+
+            {% endfor %}
+
+        </datalist>
+
+    </div>
+
+    <div class="two-column">
+
+        <div class="form-group">
+
+            <label>PROCESS</label>
+
+            <select name="process">
+
+                <option value="machining">
+                    Machining
+                </option>
+
+                <option value="polishing">
+                    Polishing
+                </option>
+
+                <option value="packaging">
+                    Packaging
+                </option>
+
+            </select>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>RATE (₹ / PC)</label>
+
+            <input
+                type="number"
+                step="0.01"
+                name="rate_per_piece"
+            >
+
+        </div>
+
+    </div>
+
+    <div class="form-group">
+
+        <label>ERP NOTES</label>
+
+        <textarea
+            name="notes"
+            rows="3"
+            placeholder="Production notes, QC notes, packaging instructions..."
+        >{{ edit_item_data.notes }}</textarea>
+
+    </div>
+
+</div>
+                <button
+    type="submit"
+    style="
+    width:100%;
+    padding:14px;
+    border-radius:12px;
+    font-size:15px;
+    font-weight:bold;
+    "
+>
+
+    {% if edit_item_data %}Update{% else %}Save{% endif %} Item Master
+
+</button>
+
+                {% if edit_item_data %}
+                <a href="/master-data/" style="display:block; text-align:center; margin-top:10px; color:#1d4ed8; text-decoration:none;">Cancel Edit</a>
+                {% endif %}
 
             </form>
 
         </div>
 
-        <div class="card">
+        <div class="card" style="display: none;">
 
-            <h2 style="margin-bottom:20px;">
-                All Items
-            </h2>
+            <div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+">
+
+    <div >
+
+        <h2 style="margin-bottom:5px;">
+            ERP Item Master
+        </h2>
+
+        <p style="
+        color:#64748b;
+        font-size:13px;
+        ">
+            All configured production items
+        </p>
+
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center;">
+        <input
+            type="text"
+            id="itemSearch"
+            placeholder="Search item..."
+            style="
+            width:220px;
+            "
+        >
+        <a href="/master-data/?tab=items" style="background:#10b981; color:white; padding:8px 12px; border-radius:8px; text-decoration:none; font-size:12px;">Add New Item</a>
+    </div>
+
+</div>
 
             <table>
 
@@ -327,14 +633,22 @@
 
                     <tr>
 
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Category</th>
-                        <th>Wt/Pc</th>
-                        <th>Lot</th>
-                        <th>Lot+Box</th>
+    <th>Code</th>
 
-                    </tr>
+    <th>Item</th>
+
+    <th>Client</th>
+
+    <th>Material</th>
+
+    <th>Category</th>
+
+    <th>Wt/Pc</th>
+
+    <th>Status</th>
+    
+    <th>Actions</th>
+</tr>
 
                 </thead>
 
@@ -342,14 +656,53 @@
 
                     {% for item in items %}
 
-                    <tr>
+                    <tr class="item-row">
 
                         <td>{{ item.code }}</td>
-                        <td>{{ item.name }}</td>
+
+                        <td>
+                            <div style="font-weight:bold;">
+                                {{ item.name }}
+                            </div>
+                            <div style="font-size:12px; color:#64748b;">
+                                {{ item.variant }}
+                            </div>
+                        </td>
+
+                        <td>{{ item.client }}</td>
+                        <td>{{ item.material }}</td>
                         <td>{{ item.category }}</td>
                         <td>{{ item.weight_per_piece }}</td>
-                        <td>{{ item.lot_size }}</td>
-                        <td>{{ item.lot_with_box }}</td>
+
+                        <td>
+                            {% if item.active %}
+                                <span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:20px; font-size:12px;">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span style="background:#fee2e2; color:#991b1b; padding:4px 10px; border-radius:20px; font-size:12px;">
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div style="display:flex; gap:8px;">
+                                <a
+                                    href="/master-data/?edit={{ item.id }}&tab=items"
+                                    style="background:#dbeafe; color:#1d4ed8; padding:6px 10px; border-radius:8px; font-size:12px; text-decoration:none;"
+                                >
+                                    Edit
+                                </a>
+                                <a
+                                    href="/delete-item/{{ item.id }}/"
+                                    onclick="return confirm('Delete this item?')"
+                                    style="background:#fee2e2; color:#b91c1c; padding:6px 10px; border-radius:8px; font-size:12px; text-decoration:none;"
+                                >
+                                    Delete
+                                </a>
+                            </div>
+                        </td>
 
                     </tr>
 
@@ -366,7 +719,8 @@
 </div>
 
 
-<!-- ===================================== -->
+<div class="content">
+    <!-- ===================================== -->
 <!-- CLIENTS TAB -->
 <!-- ===================================== -->
 
@@ -375,262 +729,336 @@
     class="tab-content {% if active_tab == 'clients' %}active{% endif %}"
 >
 
-    <div class="grid-layout">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; gap:16px; flex-wrap:wrap;">
 
-        <div class="card">
+        <div>
+            <h2 style="margin-bottom:8px;">Clients</h2>
+            <p style="margin:0; color:#64748b; font-size:13px;">
+                View and edit all clients. Add a new client using the drawer.
+            </p>
+        </div>
 
-            <h2 style="margin-bottom:25px;">
-                Add Client
-            </h2>
+        <button
+            type="button"
+            onclick="openClientDrawer()"
+            style="background:#0f172a; color:white; border:none; padding:12px 18px; border-radius:10px; cursor:pointer;"
+        >
+            Add Client
+        </button>
 
-            <form method="POST">
+    </div>
 
-                {% csrf_token %}
+    <div class="card">
 
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0;">All Clients</h2>
+            <input
+                type="text"
+                id="clientSearch"
+                placeholder="Search clients..."
+                style="padding:10px; border:1px solid #e2e8f0; border-radius:10px; width:240px;"
+            >
+        </div>
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>City</th>
+                    <th>Actions</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for client in clients %}
+
+                <tr class="client-row">
+
+                    <td>{{ client.name }}</td>
+                    <td>{{ client.phone }}</td>
+                    <td>{{ client.city }}</td>
+                    <td>
+                        <a
+                            href="/master-data/?edit_client={{ client.id }}&tab=clients"
+                            style="background:#dbeafe; color:#1d4ed8; padding:6px 10px; border-radius:8px; font-size:12px; text-decoration:none;"
+                        >
+                            Edit
+                        </a>
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <div id="clientDrawerBackdrop" class="drawer-backdrop" onclick="closeClientDrawer()"></div>
+
+    <div id="clientDrawer" class="drawer-panel">
+
+        <div class="drawer-header">
+            <div>
+                <h2 style="margin:0;">{% if edit_client_data %}Edit Client{% else %}Add Client{% endif %}</h2>
+                <p style="margin:6px 0 0; color:#64748b; font-size:13px;">
+                    {% if edit_client_data %}Update client details{% else %}Create a new client record{% endif %}
+                </p>
+            </div>
+            <button type="button" class="drawer-close" onclick="closeClientDrawer()">✕</button>
+        </div>
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+            <input type="hidden" name="form_type" value="client">
+            <input type="hidden" name="client_id" value="{% if edit_client_data %}{{ edit_client_data.id }}{% endif %}">
+
+            <div class="form-group">
+                <label>CLIENT NAME</label>
                 <input
-                    type="hidden"
-                    name="form_type"
-                    value="client"
+                    type="text"
+                    name="client_name"
+                    value="{% if edit_client_data %}{{ edit_client_data.name }}{% endif %}"
+                    required
                 >
+            </div>
 
-                <div class="form-group">
+            <div class="form-group">
+                <label>PHONE</label>
+                <input
+                    type="text"
+                    name="client_phone"
+                    value="{% if edit_client_data %}{{ edit_client_data.phone }}{% endif %}"
+                >
+            </div>
 
-                    <label>
-                        CLIENT NAME
-                    </label>
+            <div class="form-group">
+                <label>CITY</label>
+                <input
+                    type="text"
+                    name="client_city"
+                    value="{% if edit_client_data %}{{ edit_client_data.city }}{% endif %}"
+                >
+            </div>
 
-                    <input
-                        type="text"
-                        name="client_name"
-                        required
-                    >
+            <button type="submit" style="width:100%; padding:14px; border-radius:12px; font-size:15px; font-weight:bold; border:none; background:#0f172a; color:white;">
+                {% if edit_client_data %}Update Client{% else %}Save Client{% endif %}
+            </button>
 
-                </div>
-
-                <div class="form-group">
-
-                    <label>
-                        PHONE
-                    </label>
-
-                    <input
-                        type="text"
-                        name="client_phone"
-                    >
-
-                </div>
-
-                <div class="form-group">
-
-                    <label>
-                        CITY
-                    </label>
-
-                    <input
-                        type="text"
-                        name="client_city"
-                    >
-
-                </div>
-
-                <button type="submit">
-
-                    Add Client
-
-                </button>
-
-            </form>
-
-        </div>
-
-        <div class="card">
-
-            <h2 style="margin-bottom:20px;">
-                All Clients
-            </h2>
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>Name</th>
-                        <th>Phone</th>
-                        <th>City</th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    {% for client in clients %}
-
-                    <tr>
-
-                        <td>{{ client.name }}</td>
-                        <td>{{ client.phone }}</td>
-                        <td>{{ client.city }}</td>
-
-                    </tr>
-
-                    {% endfor %}
-
-                </tbody>
-
-            </table>
-
-        </div>
+        </form>
 
     </div>
 
 </div>
 
 
+</div>
 <!-- ===================================== -->
 <!-- WORKERS TAB -->
 <!-- ===================================== -->
 
 <div
     id="workers"
-    class="tab-content {% if active_tab == 'workers' %}active{% endif %}"
+    class="tab-content content {% if active_tab == 'workers' %}active{% endif %}"
 >
 
-    <div class="grid-layout">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; gap:16px; flex-wrap:wrap;">
 
-        <div class="card">
+        <div>
+            <h2 style="margin-bottom:8px;">Workers</h2>
+            <p style="margin:0; color:#64748b; font-size:13px;">
+                View and edit all workers. Add a new worker using the drawer.
+            </p>
+        </div>
 
-            <h2 style="margin-bottom:25px;">
-                Add Worker
-            </h2>
+        <button
+            type="button"
+            onclick="openWorkerDrawer()"
+            style="background:#0f172a; color:white; border:none; padding:12px 18px; border-radius:10px; cursor:pointer;"
+        >
+            Add Worker
+        </button>
 
-            <form method="POST">
+    </div>
 
-                {% csrf_token %}
+    <div class="card">
 
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0;">All Workers</h2>
+            <input
+                type="text"
+                id="workerSearch"
+                placeholder="Search workers..."
+                style="padding:10px; border:1px solid #e2e8f0; border-radius:10px; width:240px;"
+            >
+        </div>
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Name</th>
+                    <th>Process</th>
+                    <th>Phone</th>
+                    <th>Actions</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for worker in workers %}
+
+                <tr class="worker-row">
+
+                    <td>{{ worker.name }}</td>
+                    <td>{{ worker.process }}</td>
+                    <td>{{ worker.phone }}</td>
+                    <td>
+                        <a
+                            href="/master-data/?edit_worker={{ worker.id }}&tab=workers"
+                            style="background:#dbeafe; color:#1d4ed8; padding:6px 10px; border-radius:8px; font-size:12px; text-decoration:none;"
+                        >
+                            Edit
+                        </a>
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <div id="workerDrawerBackdrop" class="drawer-backdrop" onclick="closeWorkerDrawer()"></div>
+
+    <div id="workerDrawer" class="drawer-panel">
+
+        <div class="drawer-header">
+            <div>
+                <h2 style="margin:0;">{% if edit_worker_data %}Edit Worker{% else %}Add Worker{% endif %}</h2>
+                <p style="margin:6px 0 0; color:#64748b; font-size:13px;">
+                    {% if edit_worker_data %}Update worker details{% else %}Create a new worker record{% endif %}
+                </p>
+            </div>
+            <button type="button" class="drawer-close" onclick="closeWorkerDrawer()">✕</button>
+        </div>
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+            <input type="hidden" name="form_type" value="worker">
+            <input type="hidden" name="worker_id" value="{% if edit_worker_data %}{{ edit_worker_data.id }}{% endif %}">
+
+            <div class="form-group">
+                <label>WORKER NAME</label>
                 <input
-                    type="hidden"
-                    name="form_type"
-                    value="worker"
+                    type="text"
+                    name="worker_name"
+                    value="{% if edit_worker_data %}{{ edit_worker_data.name }}{% endif %}"
+                    required
                 >
+            </div>
 
-                <div class="form-group">
+            <div class="form-group">
+                <label>PROCESS</label>
+                <select name="worker_process">
+                    <option value="machining" {% if edit_worker_data.process == 'machining' %}selected{% endif %}>Machining</option>
+                    <option value="polishing" {% if edit_worker_data.process == 'polishing' %}selected{% endif %}>Polishing</option>
+                    <option value="packaging" {% if edit_worker_data.process == 'packaging' %}selected{% endif %}>Packaging</option>
+                </select>
+            </div>
 
-                    <label>
-                        WORKER NAME
-                    </label>
+            <div class="form-group">
+                <label>PHONE</label>
+                <input
+                    type="text"
+                    name="worker_phone"
+                    value="{% if edit_worker_data %}{{ edit_worker_data.phone }}{% endif %}"
+                >
+            </div>
 
-                    <input
-                        type="text"
-                        name="worker_name"
-                        required
-                    >
+            <button type="submit" style="width:100%; padding:14px; border-radius:12px; font-size:15px; font-weight:bold; border:none; background:#0f172a; color:white;">
+                {% if edit_worker_data %}Update Worker{% else %}Save Worker{% endif %}
+            </button>
 
-                </div>
-
-                <div class="form-group">
-
-                    <label>
-                        PROCESS
-                    </label>
-
-                    <select name="worker_process">
-
-                        <option value="machining">
-                            Machining
-                        </option>
-
-                        <option value="polishing">
-                            Polishing
-                        </option>
-
-                        <option value="packaging">
-                            Packaging
-                        </option>
-
-                    </select>
-
-                </div>
-
-                <div class="form-group">
-
-                    <label>
-                        PHONE
-                    </label>
-
-                    <input
-                        type="text"
-                        name="worker_phone"
-                    >
-
-                </div>
-
-                <button type="submit">
-
-                    Add Worker
-
-                </button>
-
-            </form>
-
-        </div>
-
-        <div class="card">
-
-            <h2 style="margin-bottom:20px;">
-                All Workers
-            </h2>
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>Name</th>
-                        <th>Process</th>
-                        <th>Phone</th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    {% for worker in workers %}
-
-                    <tr>
-
-                        <td>{{ worker.name }}</td>
-                        <td>{{ worker.process }}</td>
-                        <td>{{ worker.phone }}</td>
-
-                    </tr>
-
-                    {% endfor %}
-
-                </tbody>
-
-            </table>
-
-        </div>
+        </form>
 
     </div>
 
 </div>
 
-
 <script>
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function(){
+
+            const itemSearch = document.getElementById("itemSearch");
+            const clientSearch = document.getElementById("clientSearch");
+            const workerSearch = document.getElementById("workerSearch");
+
+            if(itemSearch){
+                itemSearch.addEventListener("keyup", function(){
+                    let value = this.value.toLowerCase();
+                    let rows = document.querySelectorAll(".item-row");
+                    rows.forEach(row => {
+                        row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
+                    });
+                });
+            }
+
+            if(clientSearch){
+                clientSearch.addEventListener("keyup", function(){
+                    let value = this.value.toLowerCase();
+                    let rows = document.querySelectorAll(".client-row");
+                    rows.forEach(row => {
+                        row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
+                    });
+                });
+            }
+
+            if(workerSearch){
+                workerSearch.addEventListener("keyup", function(){
+                    let value = this.value.toLowerCase();
+                    let rows = document.querySelectorAll(".worker-row");
+                    rows.forEach(row => {
+                        row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
+                    });
+                });
+            }
+
+            {% if edit_client_data %}
+                openClientDrawer();
+            {% endif %}
+
+            {% if edit_worker_data %}
+                openWorkerDrawer();
+            {% endif %}
+
+        }
+    );
 
     function showTab(tabId, button){
 
         let tabs = document.querySelectorAll('.tab-content');
 
         tabs.forEach(tab => {
-
             tab.classList.remove('active');
-
         });
 
         document.getElementById(tabId).classList.add('active');
@@ -638,13 +1066,33 @@
         let buttons = document.querySelectorAll('.tab-btn');
 
         buttons.forEach(btn => {
-
             btn.classList.remove('active');
-
         });
 
         button.classList.add('active');
 
+    }
+
+    function openClientDrawer(){
+        document.getElementById('clientDrawerBackdrop').classList.add('active');
+        document.getElementById('clientDrawer').classList.add('active');
+    }
+
+    function closeClientDrawer(){
+        document.getElementById('clientDrawerBackdrop').classList.remove('active');
+        document.getElementById('clientDrawer').classList.remove('active');
+        window.history.replaceState(null, '', '/master-data/?tab=clients');
+    }
+
+    function openWorkerDrawer(){
+        document.getElementById('workerDrawerBackdrop').classList.add('active');
+        document.getElementById('workerDrawer').classList.add('active');
+    }
+
+    function closeWorkerDrawer(){
+        document.getElementById('workerDrawerBackdrop').classList.remove('active');
+        document.getElementById('workerDrawer').classList.remove('active');
+        window.history.replaceState(null, '', '/master-data/?tab=workers');
     }
 
 </script>

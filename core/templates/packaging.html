@@ -1,0 +1,751 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<div style="margin-bottom:28px;">
+
+    <h1 style="
+        font-size:52px;
+        font-weight:800;
+        line-height:1;
+        margin-bottom:10px;
+    ">
+        Packaging
+    </h1>
+
+    <p style="
+        color:#64748b;
+        font-size:16px;
+    ">
+        Convert polished stock into ready cartons using lot based packaging
+    </p>
+
+</div>
+
+
+
+<!-- TOP BUTTONS -->
+
+<div style="
+    display:flex;
+    gap:10px;
+    margin-bottom:24px;
+">
+
+    <button style="
+        background:#0f172a;
+        color:white;
+        border:none;
+        padding:12px 18px;
+        border-radius:10px;
+        font-weight:700;
+    ">
+        Packaging Entry
+    </button>
+
+    <button style="
+        background:#cbd5e1;
+        color:#0f172a;
+        border:none;
+        padding:12px 18px;
+        border-radius:10px;
+        font-weight:700;
+    ">
+        Ready Stock
+    </button>
+
+</div>
+
+
+
+<div style="
+    display:grid;
+    grid-template-columns:1.2fr 1fr;
+    gap:24px;
+    align-items:start;
+">
+
+    <!-- LEFT -->
+
+    <div class="card">
+
+        <h2 style="
+            font-size:38px;
+            font-weight:800;
+            margin-bottom:30px;
+        ">
+            Packaging Process
+        </h2>
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+            <!-- ITEM -->
+
+            <div style="margin-bottom:22px;">
+
+                <label style="
+                    display:block;
+                    margin-bottom:8px;
+                    font-size:13px;
+                    font-weight:700;
+                    color:#64748b;
+                    text-transform:uppercase;
+                ">
+                    Item
+                </label>
+
+                <select
+                    name="item"
+                    id="itemSelect"
+                    onchange="updatePackagingInfo()"
+                    required
+                >
+
+                    <option value="">
+                        Select item
+                    </option>
+
+                    {% for row in packaging_queue %}
+
+<option
+
+    value="{{ row.item.id }}"
+
+    data-available="{{ row.quantity }}"
+
+    data-weight="{{ row.weight }}"
+
+    data-lotsize="{{ row.item.lot_size }}"
+
+    data-carton="{{ row.item.lot_with_box }}"
+
+    data-pieceweight="{{ row.item.weight_per_piece }}"
+
+>
+
+    {{ row.item.code }} - {{ row.item.name }}
+
+</option>
+
+{% endfor %}
+                </select>
+
+            </div>
+
+
+
+            <!-- STOCK INFO -->
+
+            <div style="
+                background:#f8fafc;
+                border:1px solid #dbe2ea;
+                border-radius:16px;
+                padding:22px;
+                margin-bottom:24px;
+            ">
+
+                <div style="
+                    display:grid;
+                    grid-template-columns:1fr 1fr;
+                    gap:18px;
+                ">
+
+                    <div>
+
+                        <div style="
+                            font-size:13px;
+                            color:#64748b;
+                            margin-bottom:6px;
+                        ">
+                            Available Qty
+                        </div>
+
+                        <div
+                            id="availableQty"
+                            style="
+                                font-size:36px;
+                                font-weight:800;
+                            "
+                        >
+                            0
+                        </div>
+
+                    </div>
+
+                    <div>
+
+                        <div style="
+                            font-size:13px;
+                            color:#64748b;
+                            margin-bottom:6px;
+                        ">
+                            Available Weight
+                        </div>
+
+                        <div
+                            id="availableWeight"
+                            style="
+                                font-size:36px;
+                                font-weight:800;
+                            "
+                        >
+                            0 kg
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- LOT INFO -->
+
+            <div style="
+                display:grid;
+                grid-template-columns:1fr 1fr;
+                gap:18px;
+                margin-bottom:24px;
+            ">
+
+                <div style="
+                    background:#f8fafc;
+                    border:1px solid #dbe2ea;
+                    padding:18px;
+                    border-radius:14px;
+                ">
+
+                    <div style="
+                        font-size:13px;
+                        color:#64748b;
+                        margin-bottom:6px;
+                    ">
+                        Lot Size
+                    </div>
+
+                    <div
+                        id="lotSize"
+                        style="
+                            font-size:32px;
+                            font-weight:800;
+                        "
+                    >
+                        0
+                    </div>
+
+                </div>
+
+
+
+                <div style="
+                    background:#f8fafc;
+                    border:1px solid #dbe2ea;
+                    padding:18px;
+                    border-radius:14px;
+                ">
+
+                    <div style="
+                        font-size:13px;
+                        color:#64748b;
+                        margin-bottom:6px;
+                    ">
+                        Carton Size
+                    </div>
+
+                    <div
+                        id="cartonSize"
+                        style="
+                            font-size:32px;
+                            font-weight:800;
+                        "
+                    >
+                        0
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- READY CARTON -->
+
+            <div style="
+                display:grid;
+                grid-template-columns:1fr 1fr;
+                gap:18px;
+                margin-bottom:24px;
+            ">
+
+                <div>
+
+                    <label style="
+                        display:block;
+                        margin-bottom:8px;
+                        font-size:13px;
+                        font-weight:700;
+                        color:#64748b;
+                        text-transform:uppercase;
+                    ">
+                        Ready Cartons
+                    </label>
+
+                    <input
+                        type="number"
+                        id="readyCartons"
+                        onchange="calculatePackaging()"
+                        onkeyup="calculatePackaging()"
+                        value="0"
+                        min="0"
+                    >
+
+                </div>
+
+
+
+                <div>
+
+                    <label style="
+                        display:block;
+                        margin-bottom:8px;
+                        font-size:13px;
+                        font-weight:700;
+                        color:#64748b;
+                        text-transform:uppercase;
+                    ">
+                        Auto Quantity
+                    </label>
+
+                    <input
+                        type="number"
+                        name="quantity"
+                        id="autoQty"
+                        readonly
+                    >
+
+                </div>
+
+            </div>
+
+
+
+            <!-- AUTO WEIGHT -->
+
+            <div style="margin-bottom:26px;">
+
+                <label style="
+                    display:block;
+                    margin-bottom:8px;
+                    font-size:13px;
+                    font-weight:700;
+                    color:#64748b;
+                    text-transform:uppercase;
+                ">
+                    Auto Weight (kg)
+                </label>
+
+                <input
+                    type="number"
+                    step="0.001"
+                    name="weight"
+                    id="autoWeight"
+                    readonly
+                >
+
+            </div>
+
+
+
+            <!-- CHECKBOXES -->
+
+            <div style="
+                display:grid;
+                grid-template-columns:1fr 1fr 1fr;
+                gap:14px;
+                margin-bottom:30px;
+            ">
+
+                <label style="
+                    background:#f8fafc;
+                    border:1px solid #cbd5e1;
+                    padding:18px;
+                    border-radius:14px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    gap:10px;
+                    cursor:pointer;
+                    font-weight:700;
+                ">
+
+                    <input
+                        type="checkbox"
+                        name="cleaning"
+                        value="YES"
+                    >
+
+                    Cleaning
+
+                </label>
+
+
+
+                <label style="
+                    background:#f8fafc;
+                    border:1px solid #cbd5e1;
+                    padding:18px;
+                    border-radius:14px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    gap:10px;
+                    cursor:pointer;
+                    font-weight:700;
+                ">
+
+                    <input
+                        type="checkbox"
+                        name="labeling"
+                        value="YES"
+                    >
+
+                    Labeling
+
+                </label>
+
+
+
+                <label style="
+                    background:#f8fafc;
+                    border:1px solid #cbd5e1;
+                    padding:18px;
+                    border-radius:14px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    gap:10px;
+                    cursor:pointer;
+                    font-weight:700;
+                ">
+
+                    <input
+                        type="checkbox"
+                        name="packing"
+                        value="YES"
+                    >
+
+                    Packing
+
+                </label>
+
+            </div>
+
+
+
+            <button type="submit"
+                    style="
+                        width:100%;
+                        height:62px;
+                        border-radius:14px;
+                        font-size:18px;
+                        font-weight:800;
+                    ">
+
+                Complete Packaging
+
+            </button>
+
+        </form>
+
+    </div>
+
+
+
+    <!-- RIGHT -->
+
+    <div class="card">
+
+<div class="card">
+
+    <h2 style="
+        font-size:38px;
+        font-weight:800;
+        margin-bottom:24px;
+    ">
+        Packaging Queue
+    </h2>
+
+    <table>
+
+        <thead>
+
+            <tr>
+
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Wt</th>
+                <th>Action</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {% for row in packaging_queue %}
+
+            <tr>
+
+                <td>
+                    {{ row.item.code }} - {{ row.item.name }}
+                </td>
+
+                <td>
+                    {{ row.quantity }}
+                </td>
+
+                <td>
+                    {{ row.weight }}
+                </td>
+
+                <td>
+
+                    {% if row.id in completed_ids %}
+
+                        <span style="
+                        color:#16a34a;
+                        font-size:13px;
+                        font-weight:700;
+                        ">
+                            ✓ Packed
+                        </span>
+
+                    {% else %}
+
+                        <a href="?pack={{ row.id }}"
+                           style="
+                           background:#0f172a;
+                           color:white;
+                           padding:8px 14px;
+                           border-radius:10px;
+                           text-decoration:none;
+                           font-size:13px;
+                           font-weight:700;
+                           display:inline-block;
+                           ">
+
+                            Pack Now
+
+                        </a>
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Wt</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for row in queue %}
+
+                <tr>
+
+                    <td>
+                        {{ row.item.code }} - {{ row.item.name }}
+                    </td>
+
+                    <td>
+                        {{ row.available }}
+                    </td>
+
+                    <td>
+                        {{ row.weight }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+
+<!-- RECENT -->
+
+<div class="card"
+     style="margin-top:24px;">
+
+    <h2 style="
+        font-size:38px;
+        font-weight:800;
+        margin-bottom:24px;
+    ">
+<div class="card"
+     style="margin-top:24px;">
+
+    <h2 style="
+        font-size:38px;
+        font-weight:800;
+        margin-bottom:24px;
+    ">
+        Ready Stock
+    </h2>
+
+    <table>
+
+        <thead>
+
+            <tr>
+
+                <th>Date</th>
+                <th>Item</th>
+                <th>Pcs</th>
+                <th>Weight</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {% for row in ready_stock %}
+
+            <tr>
+
+                <td>
+                    {{ row.created_at|date:"d/m/Y" }}
+                </td>
+
+                <td>
+                    {{ row.item }}
+                </td>
+
+                <td>
+                    {{ row.quantity }}
+                </td>
+
+                <td>
+                    {{ row.weight }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+
+<script>
+
+function updatePackagingInfo(){
+
+    const select =
+        document.getElementById('itemSelect');
+
+    const option =
+        select.options[select.selectedIndex];
+
+    const available =
+        option.getAttribute('data-available') || 0;
+
+    const weight =
+        option.getAttribute('data-weight') || 0;
+
+    const lotSize =
+        option.getAttribute('data-lotsize') || 0;
+
+    const cartonSize =
+        option.getAttribute('data-carton') || 0;
+
+    document.getElementById('availableQty').innerHTML =
+        available;
+
+    document.getElementById('availableWeight').innerHTML =
+        weight + ' kg';
+
+    document.getElementById('lotSize').innerHTML =
+        lotSize;
+
+    document.getElementById('cartonSize').innerHTML =
+        cartonSize;
+
+    calculatePackaging();
+
+}
+
+
+
+function calculatePackaging(){
+
+    const select =
+        document.getElementById('itemSelect');
+
+    const option =
+        select.options[select.selectedIndex];
+
+    const cartons =
+        parseInt(
+            document.getElementById('readyCartons').value || 0
+        );
+
+    const cartonSize =
+        parseInt(
+            option.getAttribute('data-carton') || 0
+        );
+
+    const pieceWeight =
+        parseFloat(
+            option.getAttribute('data-pieceweight') || 0
+        );
+
+    const qty =
+        cartons * cartonSize;
+
+    const weight =
+        qty * pieceWeight;
+
+    document.getElementById('autoQty').value =
+        qty;
+
+    document.getElementById('autoWeight').value =
+        weight.toFixed(3);
+
+}
+
+</script>
+
+{% endblock %}

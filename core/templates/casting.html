@@ -155,8 +155,14 @@ margin-bottom:20px;
                     <br><br>
 
                     <input
-                        type="number"
-                        name="heat_number"
+                        type="text"
+                        name="heat_no"
+                        style="
+                        width:100%;
+                        padding:12px;
+                        border:1px solid #cbd5e1;
+                        border-radius:8px;
+                        "
                     >
 
                 </div>
@@ -168,7 +174,15 @@ margin-bottom:20px;
 
                     <br><br>
 
-                    <select name="client">
+                    <select
+                        name="client"
+                        style="
+                        width:100%;
+                        padding:12px;
+                        border:1px solid #cbd5e1;
+                        border-radius:8px;
+                        "
+                    >
 
                         <option value="">
                             --------
@@ -196,6 +210,12 @@ margin-bottom:20px;
                     <select
                         name="item"
                         id="item-select"
+                        style="
+                        width:100%;
+                        padding:12px;
+                        border:1px solid #cbd5e1;
+                        border-radius:8px;
+                        "
                     >
 
                         <option value="">
@@ -224,7 +244,7 @@ margin-bottom:20px;
                 margin-bottom:18px;
                 ">
 
-                    <div>
+                    <div style="flex:1;">
 
                         <label>Pieces</label>
 
@@ -235,11 +255,17 @@ margin-bottom:20px;
                             name="quantity"
                             id="pieces-input"
                             value="0"
+                            style="
+                            width:100%;
+                            padding:12px;
+                            border:1px solid #cbd5e1;
+                            border-radius:8px;
+                            "
                         >
 
                     </div>
 
-                    <div>
+                    <div style="flex:1;">
 
                         <label>Weight</label>
 
@@ -251,6 +277,12 @@ margin-bottom:20px;
                             name="weight"
                             id="weight-input"
                             value="0"
+                            style="
+                            width:100%;
+                            padding:12px;
+                            border:1px solid #cbd5e1;
+                            border-radius:8px;
+                            "
                         >
 
                     </div>
@@ -309,305 +341,31 @@ margin-bottom:20px;
 
                 </tr>
 
-                {% for entry in entries %}
+                {% for row in recent %}
 
                 <tr>
 
-                    <td>
-                        {{ entry.created_at|date:"d/m/Y" }}
-                    </td>
+                    <td>{{ row.date }}</td>
 
-                    <td>
-                        {{ entry.heat_number }}
-                    </td>
+                    <td>{{ row.heat_no }}</td>
 
-                    <td>
-                        {{ entry.item }}
-                    </td>
+                    <td>{{ row.item }}</td>
 
-                    <td>
-                        {{ entry.client }}
-                    </td>
+                    <td>{{ row.client }}</td>
 
-                    <td>
-                        {{ entry.quantity }}
-                    </td>
+                    <td>{{ row.quantity }}</td>
 
-                    <td>
-                        {{ entry.weight }}
-                    </td>
+                    <td>{{ row.weight }}</td>
 
                 </tr>
 
-                {% endfor %}
-
-            </table>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-
-<!-- ALL TAB -->
-
-<div id="all-tab" style="display:none;">
-
-    <div class="card">
-
-        <h2 style="margin-bottom:25px;">
-            All Entries
-        </h2>
-
-        <table>
-
-            <tr>
-
-                <th>Date</th>
-                <th>Heat</th>
-                <th>Item</th>
-                <th>Client</th>
-                <th>Pcs</th>
-                <th>Weight</th>
-
-            </tr>
-
-            {% for entry in entries %}
-
-            <tr>
-
-                <td>{{ entry.created_at|date:"d/m/Y" }}</td>
-
-                <td>{{ entry.heat_number }}</td>
-
-                <td>{{ entry.item }}</td>
-
-                <td>{{ entry.client }}</td>
-
-                <td>{{ entry.quantity }}</td>
-
-                <td>{{ entry.weight }}</td>
-
-            </tr>
-
-            {% endfor %}
-
-        </table>
-
-    </div>
-
-</div>
-
-
-
-<!-- SUMMARY TAB -->
-
-<div id="summary-tab" style="display:none;">
-
-    <div class="card">
-
-        <form method="GET">
-
-            <div style="
-            display:flex;
-            gap:20px;
-            align-items:end;
-            margin-bottom:30px;
-            ">
-
-                <div>
-
-                    <label style="
-                    font-size:13px;
-                    color:#64748b;
-                    ">
-                        FROM
-                    </label>
-
-                    <br><br>
-
-                    <input
-                        type="date"
-                        name="from_date"
-                        id="from-date"
-                        value="{{ from_date }}"
-                    >
-
-                </div>
-
-
-                <div>
-
-                    <label style="
-                    font-size:13px;
-                    color:#64748b;
-                    ">
-                        TO
-                    </label>
-
-                    <br><br>
-
-                    <input
-                        type="date"
-                        name="to_date"
-                        id="to-date"
-                        value="{{ to_date }}"
-                    >
-
-                </div>
-
-
-                <button type="submit">
-                    Filter
-                </button>
-
-            </div>
-
-        </form>
-
-
-
-        <!-- SUMMARY TOTALS -->
-
-        <div style="
-        display:grid;
-        grid-template-columns:repeat(3,1fr);
-        gap:40px;
-        ">
-
-            <div>
-
-                <div style="
-                font-size:13px;
-                color:#64748b;
-                ">
-                    TOTAL HEATS
-                </div>
-
-                <div style="
-                font-size:40px;
-                font-weight:bold;
-                ">
-                    {{ summary_heats }}
-                </div>
-
-            </div>
-
-
-            <div>
-
-                <div style="
-                font-size:13px;
-                color:#64748b;
-                ">
-                    TOTAL PIECES
-                </div>
-
-                <div style="
-                font-size:40px;
-                font-weight:bold;
-                ">
-                    {{ summary_pieces }}
-                </div>
-
-            </div>
-
-
-            <div>
-
-                <div style="
-                font-size:13px;
-                color:#64748b;
-                ">
-                    TOTAL WEIGHT (KG)
-                </div>
-
-                <div style="
-                font-size:40px;
-                font-weight:bold;
-                ">
-                    {{ summary_weight }}
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-
-    <!-- SUMMARY TABLES -->
-
-    <div style="
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:20px;
-    ">
-
-        <div class="card">
-
-            <h3 style="margin-bottom:20px;">
-                By Item
-            </h3>
-
-            <table>
+                {% empty %}
 
                 <tr>
 
-                    <th>Item</th>
-                    <th>Pieces</th>
-                    <th>Weight</th>
-
-                </tr>
-
-                {% for row in item_summary %}
-
-                <tr>
-
-                    <td>{{ row.item__code }} - {{ row.item__name }}</td>
-
-                    <td>{{ row.total_pcs }}</td>
-
-                    <td>{{ row.total_weight }}</td>
-
-                </tr>
-
-                {% endfor %}
-
-            </table>
-
-        </div>
-
-
-
-        <div class="card">
-
-            <h3 style="margin-bottom:20px;">
-                By Client
-            </h3>
-
-            <table>
-
-                <tr>
-
-                    <th>Client</th>
-                    <th>Pieces</th>
-                    <th>Weight</th>
-
-                </tr>
-
-                {% for row in client_summary %}
-
-                <tr>
-
-                    <td>{{ row.client__name }}</td>
-
-                    <td>{{ row.total_pcs }}</td>
-
-                    <td>{{ row.total_weight }}</td>
+                    <td colspan="6">
+                        No entries found
+                    </td>
 
                 </tr>
 
@@ -641,93 +399,17 @@ function activateButton(tab){
 
 function showTab(tab){
 
-    localStorage.setItem(
-        'casting_active_tab',
-        tab
-    );
-
-    document.getElementById('entry-tab').style.display = 'none';
-
-    document.getElementById('all-tab').style.display = 'none';
-
-    document.getElementById('summary-tab').style.display = 'none';
-
-    document.getElementById(tab + '-tab').style.display = 'block';
+    document.getElementById('entry-tab').style.display = 'block';
 
     activateButton(tab);
 }
 
 
-
 window.onload = function(){
 
-    const params =
-        new URLSearchParams(
-            window.location.search
-        );
-
-    const hasFilter =
-        params.get('from_date') ||
-        params.get('to_date');
-
-    if(hasFilter){
-
-        showTab('summary');
-
-    }else{
-
-        const activeTab =
-            localStorage.getItem(
-                'casting_active_tab'
-            );
-
-        if(activeTab){
-
-            showTab(activeTab);
-
-        }else{
-
-            showTab('entry');
-        }
-    }
-
-
-
-    // AUTO CURRENT MONTH
-
-    const fromInput =
-        document.getElementById('from-date');
-
-    const toInput =
-        document.getElementById('to-date');
-
-    const today = new Date();
-
-    const firstDay =
-        new Date(
-            today.getFullYear(),
-            today.getMonth(),
-            1
-        );
-
-    if(!fromInput.value){
-
-        fromInput.value =
-            firstDay
-            .toISOString()
-            .split('T')[0];
-    }
-
-    if(!toInput.value){
-
-        toInput.value =
-            today
-            .toISOString()
-            .split('T')[0];
-    }
+    showTab('entry');
 
 }
-
 
 
 const itemSelect =

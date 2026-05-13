@@ -2,176 +2,628 @@
 
 {% block content %}
 
-<h1 style="margin-bottom:30px;">
-    Machining Entry
+<style>
+
+.small-tabs button{
+    background:#cbd5e1;
+    color:#0f172a;
+    border:none;
+    padding:9px 16px;
+    border-radius:8px;
+    cursor:pointer;
+    margin-right:8px;
+    font-size:13px;
+    font-weight:600;
+}
+
+.small-tabs button.active{
+    background:#16263d;
+    color:white;
+}
+
+.mini-tabs button{
+    background:#cbd5e1;
+    color:#0f172a;
+    border:none;
+    padding:8px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    margin-right:6px;
+    font-size:13px;
+    font-weight:600;
+}
+
+.mini-tabs button.active{
+    background:#16263d;
+    color:white;
+}
+
+.main-grid{
+    display:grid;
+    grid-template-columns:380px 1fr;
+    gap:20px;
+}
+
+.badge-in{
+    background:#dcfce7;
+    color:#166534;
+    padding:3px 8px;
+    border-radius:6px;
+    font-size:11px;
+    font-weight:600;
+}
+
+.badge-out{
+    background:#ffedd5;
+    color:#c2410c;
+    padding:3px 8px;
+    border-radius:6px;
+    font-size:11px;
+    font-weight:600;
+}
+
+</style>
+
+<h1 style="font-size:42px;margin-bottom:8px;">
+    Machining
 </h1>
 
-<div class="card">
+<p style="color:#64748b;margin-bottom:25px;">
+    Issue items to job workers and receive machined goods back
+</p>
 
-    <h2 style="margin-bottom:20px;">
-        Add Machining Transaction
-    </h2>
+<div class="small-tabs" style="margin-bottom:15px;">
 
-    <form method="POST">
+    <button
+        class="active"
+        id="movement-btn"
+        onclick="showMainTab('movement')">
+        Movements
+    </button>
 
-        {% csrf_token %}
+    <button
+        id="worker-btn"
+        onclick="showMainTab('worker')">
+        Job Worker WIP
+    </button>
 
-        <div style="margin-bottom:20px;">
+</div>
 
-            <label>
-                Select Item
-            </label>
+<div id="movement-section">
 
-            <br><br>
+    <div class="mini-tabs" style="margin-bottom:15px;">
 
-            <select name="item" required>
+        <button
+            class="active"
+            id="new-btn"
+            onclick="showSubTab('new')">
+            New Movement
+        </button>
 
-                {% for item in items %}
+        <button
+            id="stock-btn"
+            onclick="showSubTab('stock')">
+            Machining Stock
+        </button>
 
-                <option value="{{ item.id }}">
+        <button
+            id="ledger-btn"
+            onclick="showSubTab('ledger')">
+            Ledger
+        </button>
 
-                    {{ item.code }} - {{ item.name }}
+    </div>
 
-                </option>
+    <!-- NEW MOVEMENT -->
+
+    <div id="new-tab">
+
+        <div class="main-grid">
+
+            <!-- LEFT -->
+
+            <div class="card">
+
+                <h2 style="margin-bottom:25px;">
+                    Record Movement
+                </h2>
+
+                <form method="POST">
+
+                    {% csrf_token %}
+
+                    <!-- DATE -->
+
+                    <div style="margin-bottom:18px;">
+
+                        <label style="
+                        font-size:12px;
+                        color:#64748b;
+                        font-weight:600;
+                        ">
+                            DATE
+                        </label>
+
+                        <br><br>
+
+                        <input
+                            type="date"
+                            value="{{ today|date:'Y-m-d' }}"
+                        >
+
+                    </div>
+
+                    <!-- DIRECTION -->
+
+                    <div style="margin-bottom:18px;">
+
+                        <label style="
+                        font-size:12px;
+                        color:#64748b;
+                        font-weight:600;
+                        ">
+                            DIRECTION
+                        </label>
+
+                        <br><br>
+
+                        <select
+                            name="direction"
+                            style="
+                            width:100%;
+                            padding:12px;
+                            border:1px solid #cbd5e1;
+                            border-radius:8px;
+                            "
+                        >
+
+                            <option value="machining_out">
+                                OUT — Issue to worker
+                            </option>
+
+                            <option value="machining_in">
+                                IN — Receive from worker
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <!-- WORKER -->
+
+                    <div style="margin-bottom:18px;">
+
+                        <label style="
+                        font-size:12px;
+                        color:#64748b;
+                        font-weight:600;
+                        ">
+                            JOB WORKER
+                        </label>
+
+                        <br><br>
+
+                        <select name="worker">
+
+                            <option value="">
+                                Select job worker
+                            </option>
+
+                            {% for worker in workers %}
+
+                            <option value="{{ worker.id }}">
+                                {{ worker.name|upper }}
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+                    <!-- ITEM -->
+
+                    <div style="margin-bottom:18px;">
+
+                        <label style="
+                        font-size:12px;
+                        color:#64748b;
+                        font-weight:600;
+                        ">
+                            ITEM
+                        </label>
+
+                        <br><br>
+
+                        <select name="item">
+
+                            <option value="">
+                                Select item
+                            </option>
+
+                            {% for item in items %}
+
+                            <option value="{{ item.id }}">
+                                {{ item.code }} - {{ item.name }}
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+                    <!-- PCS + WT -->
+
+                    <div style="
+                    display:grid;
+                    grid-template-columns:1fr 1fr;
+                    gap:10px;
+                    margin-bottom:25px;
+                    ">
+
+                        <div>
+
+                            <label style="
+                            font-size:12px;
+                            color:#64748b;
+                            font-weight:600;
+                            ">
+                                PIECES
+                            </label>
+
+                            <br><br>
+
+                            <input
+                                type="number"
+                                name="quantity"
+                            >
+
+                        </div>
+
+                        <div>
+
+                            <label style="
+                            font-size:12px;
+                            color:#64748b;
+                            font-weight:600;
+                            ">
+                                WEIGHT (KG)
+                            </label>
+
+                            <br><br>
+
+                            <input
+                                type="number"
+                                step="0.001"
+                                name="weight"
+                            >
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        style="
+                        width:100%;
+                        background:#16263d;
+                        ">
+                        Save Movement
+                    </button>
+
+                </form>
+
+            </div>
+
+            <!-- RIGHT -->
+
+            <div class="card">
+
+                <h2 style="margin-bottom:25px;">
+                    Recent Movements
+                </h2>
+
+                <table>
+
+                    <tr>
+                        <th>Date</th>
+                        <th>Dir</th>
+                        <th>Item</th>
+                        <th>Job Worker</th>
+                        <th>Pcs</th>
+                        <th>Wt (kg)</th>
+                    </tr>
+
+                    {% for r in recent %}
+
+                    <tr>
+
+                        <td>
+                            {{ r.created_at|date:"d/m/Y" }}
+                        </td>
+
+                        <td>
+
+                            {% if r.transaction_type == 'machining_in' %}
+
+                                <span class="badge-in">
+                                    IN
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge-out">
+                                    OUT
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+                            {{ r.item }}
+                        </td>
+
+                        <td>
+                            {{ r.worker.name|upper }}
+                        </td>
+
+                        <td>
+                            {{ r.quantity }}
+                        </td>
+
+                        <td>
+                            {{ r.weight }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- STOCK -->
+
+    <div id="stock-tab" style="display:none;">
+
+        <div class="card">
+
+            <h2 style="margin-bottom:25px;">
+                Machining Stock
+            </h2>
+
+            <table>
+
+                <tr>
+                    <th>Item</th>
+                    <th>Job Worker</th>
+                    <th>Under Process Qty</th>
+                    <th>Available Qty</th>
+                </tr>
+
+                {% for row in machining_stock %}
+
+                <tr>
+
+                    <td>
+                        {{ row.item }}
+                    </td>
+
+                    <td>
+                        {{ row.worker }}
+                    </td>
+
+                    <td>
+                        {{ row.under_process }}
+                    </td>
+
+                    <td>
+                        {{ row.available_qty }}
+                    </td>
+
+                </tr>
 
                 {% endfor %}
 
-            </select>
+            </table>
 
         </div>
 
+    </div>
 
-        <div style="margin-bottom:20px;">
+    <!-- LEDGER -->
 
-            <label>
-                Transaction Type
-            </label>
+    <div id="ledger-tab" style="display:none;">
 
-            <br><br>
+        <div class="card">
 
-            <select name="direction" required>
+            <h2 style="margin-bottom:25px;">
+                Full Ledger
+            </h2>
 
-                <option value="in">
-                    IN
-                </option>
+            <table>
 
-                <option value="out">
-                    OUT
-                </option>
+                <tr>
+                    <th>Date</th>
+                    <th>Direction</th>
+                    <th>Worker</th>
+                    <th>Item</th>
+                    <th>Pcs</th>
+                </tr>
 
-            </select>
+                {% for r in recent %}
 
-        </div>
+                <tr>
 
+                    <td>
+                        {{ r.created_at|date:"d/m/Y" }}
+                    </td>
 
-        <div style="margin-bottom:20px;">
+                    <td>
+                        {{ r.transaction_type }}
+                    </td>
 
-            <label>
-                Quantity
-            </label>
+                    <td>
+                        {{ r.worker }}
+                    </td>
 
-            <br><br>
+                    <td>
+                        {{ r.item }}
+                    </td>
 
-            <input
-                type="number"
-                name="quantity"
-                required
-            >
+                    <td>
+                        {{ r.quantity }}
+                    </td>
 
-        </div>
+                </tr>
 
+                {% endfor %}
 
-        <div style="margin-bottom:20px;">
-
-            <label>
-                Weight (Optional)
-            </label>
-
-            <br><br>
-
-            <input
-                type="number"
-                step="0.01"
-                name="weight"
-            >
+            </table>
 
         </div>
 
-
-        <button type="submit">
-
-            Save Transaction
-
-        </button>
-
-    </form>
+    </div>
 
 </div>
 
+<!-- WORKER SECTION -->
 
+<div id="worker-section" style="display:none;">
 
-<div class="card">
+    <div class="card">
 
-    <h2 style="margin-bottom:20px;">
-        Recent Machining Entries
-    </h2>
+        <h2 style="margin-bottom:25px;">
+            Job Worker WIP
+        </h2>
 
-    <table>
+        <table>
 
-        <tr>
+            <tr>
+                <th>Worker</th>
+                <th>Issued</th>
+                <th>Received</th>
+                <th>Pending</th>
+            </tr>
 
-            <th>
-                Item
-            </th>
+            {% for row in worker_wip %}
 
-            <th>
-                Direction
-            </th>
+            <tr>
 
-            <th>
-                Quantity
-            </th>
+                <td>
+                    {{ row.worker.name|upper }}
+                </td>
 
-            <th>
-                Weight
-            </th>
+                <td>
+                    {{ row.issued }}
+                </td>
 
-            <th>
-                Date
-            </th>
+                <td>
+                    {{ row.received }}
+                </td>
 
-        </tr>
+                <td>
+                    {{ row.pending }}
+                </td>
 
-        {% for r in recent %}
+            </tr>
 
-        <tr>
+            {% endfor %}
 
-            <td>
-                {{ r.item.name }}
-            </td>
+        </table>
 
-            <td>
-                {{ r.direction }}
-            </td>
-
-            <td>
-                {{ r.quantity }}
-            </td>
-
-            <td>
-                {{ r.weight }}
-            </td>
-
-            <td>
-                {{ r.created_at }}
-            </td>
-
-        </tr>
-
-        {% endfor %}
-
-    </table>
+    </div>
 
 </div>
+
+<script>
+
+function showMainTab(tab){
+
+    document
+        .getElementById('movement-section')
+        .style.display = 'none';
+
+    document
+        .getElementById('worker-section')
+        .style.display = 'none';
+
+    document
+        .querySelectorAll('.small-tabs button')
+        .forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+    if(tab == 'movement'){
+
+        document
+            .getElementById('movement-section')
+            .style.display = 'block';
+
+        document
+            .getElementById('movement-btn')
+            .classList.add('active');
+
+    }
+
+    if(tab == 'worker'){
+
+        document
+            .getElementById('worker-section')
+            .style.display = 'block';
+
+        document
+            .getElementById('worker-btn')
+            .classList.add('active');
+
+    }
+
+}
+
+function showSubTab(tab){
+
+    document
+        .getElementById('new-tab')
+        .style.display = 'none';
+
+    document
+        .getElementById('stock-tab')
+        .style.display = 'none';
+
+    document
+        .getElementById('ledger-tab')
+        .style.display = 'none';
+
+    document
+        .querySelectorAll('.mini-tabs button')
+        .forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+    document
+        .getElementById(tab + '-tab')
+        .style.display = 'block';
+
+    document
+        .getElementById(tab + '-btn')
+        .classList.add('active');
+
+}
+
+window.onload = function(){
+
+    showMainTab('movement');
+    showSubTab('new');
+
+}
+
+</script>
 
 {% endblock %}
