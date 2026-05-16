@@ -1,0 +1,32 @@
+192:            {% if active_client_filter %}
+400:                                    style="color:{% if client.item_count > 0 %}#10b981{% else %}var(--text-secondary){% endif %}; 
+402:                                           background:{% if client.item_count > 0 %}rgba(16,185,129,0.1){% else %}rgba(255,255,255,0.05){% endif %}; 
+404:                                           {% if client.item_count == 0 %}cursor:default; pointer-events:none; opacity:0.6;{% endif %}">
+1071:            <h2 style="margin:0; color:white;">{% if edit_item_data %}Edit Spec{% else %}New Item{% endif %}</h2>
+1099:                    value="{% if edit_item_data.item_type == 'SET' %}SET{% else %}SINGLE{% endif %}">
+1108:                    <option value="BRASS" {% if edit_item_data.category == "BRASS" %} selected {% endif %}>
+1112:                    <option value="MORTAR" {% if edit_item_data.category == "MORTAR" %} selected {% endif %}>
+1116:                    <option value="PESTLE" {% if edit_item_data.category == "PESTLE" %} selected {% endif %}>
+1120:                    <option value="CHOPPING" {% if edit_item_data.category == "CHOPPING" %} selected {% endif %}>
+1124:                    <option value="OTHER" {% if edit_item_data.category == "OTHER" or not edit_item_data %} selected {%
+1182:                    <input type="checkbox" name="casting_required" id="check_casting" {% if edit_item_data.casting_required or not edit_item_data %}checked{% endif %}
+1188:                    <input type="checkbox" name="machining_required" id="check_machining" {% if edit_item_data.machining_required or not edit_item_data %}checked{% endif %}
+1194:                    <input type="checkbox" name="polishing_required" id="check_polishing" {% if edit_item_data.polishing_required or not edit_item_data %}checked{% endif %}
+1200:                    <input type="checkbox" name="packing_required" id="check_packing" {% if edit_item_data.packing_required or not edit_item_data %}checked{% endif %}
+1282:    {% if edit_item_data %}
+1284:    {% if alloc.worker %}
+1300:        <h2 style="margin:0; color:white;">{% if edit_client_data %}Edit Client{% else %}Add Client{% endif %}</h2>
+1344:            {% if edit_client_data %}Update Client{% else %}Save Client{% endif %}
+1353:        <h2 style="margin:0; color:white;">{% if edit_worker_data %}Edit Worker{% else %}Add Worker{% endif %}</h2>
+1395:                        <option value="machining" {% if edit_worker_data.process == 'machining' %}selected{% endif %}>
+1397:                        <option value="polishing" {% if edit_worker_data.process == 'polishing' %}selected{% endif %}>
+1399:                        <option value="packaging" {% if edit_worker_data.process == 'packaging' %}selected{% endif %}>
+1415:                    <option value="DAILY" {% if edit_worker_data.salary_model == 'DAILY' %}selected{% endif %}>Daily Wage
+1417:                    <option value="FIXED" {% if edit_worker_data.salary_model == 'FIXED' %}selected{% endif %}>Monthly
+1423:                style="display:{% if edit_worker_data.salary_model == 'DAILY' or not edit_worker_data %}block{% else %}none{% endif %};">
+1432:                style="display:{% if edit_worker_data.salary_model == 'FIXED' %}block{% else %}none{% endif %};">
+1515:        <h2 style="margin:0; color:white;">{% if edit_job_worker_data %}Edit Job Work Unit{% else %}Add Job Work Unit{% endif %}</h2>
+1534:                <option value="casting" {% if edit_job_worker_data.process == 'casting' %}selected{% endif %}>Casting
+1536:                <option value="machining" {% if edit_job_worker_data.process == 'machining' %}selected{% endif %}>
+1538:                <option value="polishing" {% if edit_job_worker_data.process == 'polishing' %}selected{% endif %}>
+1540:                <option value="packaging" {% if edit_job_worker_data.process == 'packaging' %}selected{% endif %}>

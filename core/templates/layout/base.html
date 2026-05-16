@@ -11,6 +11,13 @@
     <title>
         Foundry ERP
     </title>
+    <!-- Flatpickr for beautiful calendars -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <!-- Tom Select for searchable dropdowns -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
     <style>
 
@@ -21,8 +28,22 @@
             font-family:Inter,sans-serif;
         }
 
+        :root {
+            --bg-dark: #0b0f19;         /* Very dark matte blue-black */
+            --card-dark: #111827;       /* Soft charcoal for cards */
+            --input-dark: #0d1117;      /* Matte input background */
+            --text-primary: #cbd5e1;    /* Softer gray-white text */
+            --text-secondary: #64748b;  /* Muted gray text */
+            --accent-blue: #4f46e5;     /* Dull, matte indigo */
+            --accent-gold: #b45309;     /* Dull amber gold */
+            --border-soft: rgba(255,255,255,0.05); /* Barely visible border */
+        }
+
         body{
-            background:#f1f5f9;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-size: 24px;
+            line-height: 1.6;
         }
 
         .layout{
@@ -30,308 +51,234 @@
         }
 
         .sidebar{
-
-            width:250px;
+            width:260px;
             height:100vh;
-
-            background:#071426;
-
-            color:white;
-
+            background:#0d1117;
+            color: var(--text-primary);
             position:fixed;
-
             left:0;
             top:0;
-
             display:flex;
             flex-direction:column;
             justify-content:space-between;
-
-            border-right:1px solid rgba(255,255,255,0.08);
-
+            border-right:1px solid var(--border-soft);
             overflow-y:auto;
-
         }
 
         .logo-section{
-
-            padding:22px 20px;
-
-            border-bottom:1px solid rgba(255,255,255,0.08);
-
+            padding:28px 24px;
+            border-bottom:1px solid var(--border-soft);
             display:flex;
-
             align-items:center;
-
-            gap:12px;
-
+            gap:14px;
         }
 
         .logo-box{
-
-            width:34px;
-            height:34px;
-
-            background:#f6b23e;
-
-            color:#111827;
-
-            border-radius:8px;
-
+            width:38px;
+            height:38px;
+            background: var(--accent-gold);
+            color: white;
+            border-radius:10px;
             display:flex;
-
             align-items:center;
             justify-content:center;
-
             font-weight:bold;
-
-            font-size:18px;
-
+            font-size:28px;
+            opacity: 0.8;
         }
 
         .logo-title{
-            font-size:18px;
+            font-size:28px;
             font-weight:700;
+            color: var(--text-primary);
         }
 
         .logo-subtitle{
-            font-size:12px;
-            color:#94a3b8;
+            font-size:14px;
+            color: var(--text-secondary);
             margin-top:2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .menu{
-            padding:18px 12px;
+            padding:24px 14px;
         }
 
         .menu a{
-
             display:flex;
-
             align-items:center;
-
-            gap:12px;
-
+            gap:14px;
             text-decoration:none;
-
-            color:#d1d5db;
-
-            padding:12px 14px;
-
-            border-radius:12px;
-
-            margin-bottom:6px;
-
-            font-size:14px;
-
-            transition:0.2s;
-
+            color: var(--text-secondary);
+            padding:14px 16px;
+            border-radius:14px;
+            margin-bottom:8px;
+            font-size:22px;
+            font-weight: 500;
+            transition: all 0.2s;
         }
 
         .menu a:hover{
-            background:rgba(255,255,255,0.05);
-            color:white;
+            background:rgba(255,255,255,0.03);
+            color: var(--text-primary);
         }
 
         .menu a.active{
-
-            background:#f6b23e;
-
-            color:#111827;
-
+            background: rgba(79, 70, 229, 0.2);
+            color: var(--accent-blue);
             font-weight:600;
-
+            border: 1px solid rgba(79, 70, 229, 0.3);
         }
 
         .content{
-
-            margin-left:250px;
-
-            width:calc(100% - 250px);
-
-            padding:30px;
-
+            margin-left:260px;
+            width:calc(100% - 260px);
+            padding:40px;
         }
 
         .sidebar-footer{
-
-            padding:18px;
-
-            border-top:1px solid rgba(255,255,255,0.08);
-
+            padding:24px;
+            border-top:1px solid var(--border-soft);
         }
 
         .user-email{
-
-            font-size:13px;
-
-            color:#cbd5e1;
-
-            margin-bottom:10px;
-
+            font-size:18px;
+            color: var(--text-secondary);
+            margin-bottom:8px;
         }
 
         .admin-badge{
-
             display:inline-block;
-
-            background:#1e3a5f;
-
-            color:#dbeafe;
-
-            padding:4px 10px;
-
-            border-radius:6px;
-
-            font-size:11px;
-
-            font-weight:600;
-
-            margin-bottom:18px;
-
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+            padding:5px 12px;
+            border-radius:8px;
+            font-size:10px;
+            font-weight:700;
+            margin-bottom:20px;
+            border: 1px solid var(--border-soft);
         }
 
         .logout{
-
-            color:#cbd5e1;
-
+            color: #991b1b; /* Dull red */
             text-decoration:none;
-
             font-size:14px;
-
+            font-weight: 500;
         }
 
         .card{
+            background: var(--card-dark);
+            border-radius:20px;
+            padding:32px;
+            border: 1px solid var(--border-soft);
+        }
 
-            background:white;
+        h1, h2, h3 {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
 
-            border-radius:16px;
-
-            padding:24px;
-
-            box-shadow:
-            0 1px 3px rgba(0,0,0,0.08);
-
+        p {
+            color: var(--text-secondary);
         }
 
         table{
-
             width:100%;
-
             border-collapse:collapse;
-
         }
 
         table th{
-
-            background:#f8fafc;
-
-            padding:14px;
-
+            background: rgba(255,255,255,0.02);
+            padding:18px 20px;
             text-align:left;
-
-            font-size:13px;
-
-            color:#64748b;
-
+            font-size:11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-soft);
         }
 
         table td{
-
-            padding:14px;
-
-            border-top:1px solid #e2e8f0;
-
+            padding:18px 20px;
+            border-bottom: 1px solid var(--border-soft);
             font-size:14px;
+            color: var(--text-primary);
+        }
 
+        table tr:hover td {
+            background: rgba(255,255,255,0.01);
         }
 
         input,
         select,
         textarea{
-
             width:100%;
-
-            padding:12px;
-
-            border:1px solid #cbd5e1;
-
-            border-radius:10px;
-
+            padding:14px 16px;
+            background: var(--input-dark);
+            border: 1px solid var(--border-soft);
+            border-radius:12px;
             outline:none;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
 
+        input:focus, select:focus {
+            border-color: var(--accent-blue);
         }
 
         button{
-
-            background:#0f172a;
-
+            background: var(--accent-blue);
             color:white;
-
             border:none;
-
-            padding:12px 20px;
-
-            border-radius:10px;
-
+            padding:14px 24px;
+            border-radius:12px;
             cursor:pointer;
+            font-weight: 600;
+            opacity: 0.9;
+            transition: 0.2s;
+        }
 
+        button:hover {
+            opacity: 1;
         }
 
         .toast-container{
             position:fixed;
-            right:20px;
-            bottom:20px;
+            right:30px;
+            bottom:30px;
             display:flex;
             flex-direction:column;
-            gap:12px;
+            gap:15px;
             z-index:9999;
-            pointer-events:none;
         }
 
         .toast{
-            min-width:280px;
-            max-width:380px;
-            padding:14px 18px;
-            border-radius:14px;
+            min-width:320px;
+            padding:18px 24px;
+            border-radius:18px;
             font-size:14px;
-            color:#fff;
-            box-shadow:0 16px 40px rgba(15,23,42,0.16);
+            color: var(--text-primary);
+            background: var(--card-dark);
+            border: 1px solid var(--border-soft);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             display:flex;
             justify-content:space-between;
             align-items:center;
-            gap:12px;
-            pointer-events:auto;
-            opacity:0;
-            transform:translateY(20px);
-            animation:toast-in 0.3s ease forwards;
+            gap:15px;
         }
 
-        .toast-success{
-            background:#16a34a;
-        }
-
-        .toast-error{
-            background:#b91c1c;
-        }
-
-        .toast-info{
-            background:#2563eb;
-        }
+        .toast-success{ border-left: 4px solid #059669; }
+        .toast-error{ border-left: 4px solid #991b1b; }
+        .toast-info{ border-left: 4px solid var(--accent-blue); }
 
         .toast-close{
-            background:rgba(255,255,255,0.18);
+            background: none;
             border:none;
-            color:#fff;
-            width:28px;
-            height:28px;
-            border-radius:50%;
+            color: var(--text-secondary);
             cursor:pointer;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:14px;
-            line-height:1;
+            font-size:18px;
         }
 
         @keyframes toast-in{
@@ -340,7 +287,41 @@
                 transform:translateY(0);
             }
         }
-
+        /* TOM SELECT DARK THEME */
+        .ts-control {
+            background: var(--input-dark) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-soft) !important;
+            border-radius: 12px !important;
+            padding: 12px !important;
+            font-size: 16px !important;
+        }
+        .ts-dropdown {
+            background: var(--card-dark) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-soft) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+            margin-top: 5px !important;
+        }
+        .ts-dropdown .active {
+            background: var(--accent-blue) !important;
+            color: white !important;
+        }
+        .ts-dropdown .option {
+            padding: 12px !important;
+            font-size: 16px !important;
+        }
+        .ts-control input {
+            color: white !important;
+        }
+        .ts-wrapper.single .ts-control::after {
+            border-color: var(--text-secondary) transparent transparent transparent !important;
+        }
+        .ts-wrapper.focus .ts-control {
+            border-color: var(--accent-blue) !important;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2) !important;
+        }
     </style>
 
 </head>
@@ -359,8 +340,8 @@
 
             <div class="logo-section">
 
-                <div class="logo-box">
-                    F
+                <div class="logo-box" style="background: none; opacity: 1;">
+                    <img src="/static/img/logo.jpg" alt="Logo" style="width: 100%; height: 100%; border-radius: 10px; object-fit: cover;">
                 </div>
 
                 <div>
@@ -426,16 +407,9 @@
 
                 </a>
 
-
-
-                <a href="{% url 'casting_stock' %}"
-                   class="{% if request.resolver_match.url_name == 'casting_stock' %}active{% endif %}">
-                    📈 Casting Stock
-                </a>
-
-                <a href="{% url 'machining_stock' %}"
-                   class="{% if request.resolver_match.url_name == 'machining_stock' %}active{% endif %}">
-                    📉 Machining Stock
+                <a href="{% url 'assembly' %}"
+                   class="{% if request.resolver_match.url_name == 'assembly' %}active{% endif %}">
+                    🧩 Assembly (Kitting)
                 </a>
 
                 <a href="{% url 'dispatch' %}"
@@ -445,18 +419,21 @@
 
 
 
+                {% if user.is_staff %}
                 <a href="{% url 'master_data' %}"
                    class="{% if request.resolver_match.url_name == 'master_data' %}active{% endif %}">
-
                     ⚙ Master Data
-
                 </a>
 
-
+                <a href="{% url 'labor_ledger' %}"
+                   class="{% if request.resolver_match.url_name == 'labor_ledger' %}active{% endif %}">
+                    💹 Labor Ledger
+                </a>
 
                 <a href="#">
                     👥 Users
                 </a>
+                {% endif %}
 
             </div>
 
@@ -469,12 +446,14 @@
         <div class="sidebar-footer">
 
             <div class="user-email">
-                admin@foundryerp.com
+                {{ user.email|default:user.username }}
             </div>
 
-            <div class="admin-badge">
-                ADMIN
-            </div>
+            {% if user.is_staff %}
+            <div class="admin-badge">ADMIN</div>
+            {% else %}
+            <div class="admin-badge" style="background:rgba(16,185,129,0.1); color:#10b981;">OPERATOR</div>
+            {% endif %}
 
             <br>
 

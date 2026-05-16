@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import StockTransaction, Item, Client, Worker
+from .models import StockTransaction, Item, Client, Worker, JobWorker
 
 
 class CastingEntryForm(forms.ModelForm):
@@ -21,17 +21,28 @@ class ItemForm(forms.ModelForm):
     class Meta:
         model = Item
         fields = [
-            'code', 'name', 'client', 'category', 'material', 'variant',
-            'weight_per_piece', 'lot_size', 'lot_with_box',
-            'machining_required', 'polishing_required', 'packing_required', 'notes'
+            'code', 'name', 'client', 'category', 'sub_category', 'material', 'variant', 'item_type',
+            'casting_weight', 'machining_weight',
+            'lot_size', 'lot_with_box',
+            'casting_required', 'machining_required', 'polishing_required', 'packing_required', 'notes'
         ]
 
 class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
-        fields = ['name', 'phone', 'city']
+        fields = ['name', 'phone', 'email', 'city', 'address', 'gst_number']
 
 class WorkerForm(forms.ModelForm):
     class Meta:
         model = Worker
-        fields = ['name', 'process', 'phone']
+        fields = [
+            'name', 'process', 'daily_rate', 'phone', 'employee_id', 
+            'designation', 'joining_date', 'standard_shift_hours', 
+            'identity_number', 'emergency_contact_name', 'emergency_contact_phone', 
+            'blood_group', 'salary_model', 'monthly_fixed_salary', 'monthly_allowance', 'overtime_rate'
+        ]
+
+class JobWorkerForm(forms.ModelForm):
+    class Meta:
+        model = JobWorker
+        fields = ['name', 'process', 'phone', 'email', 'address', 'gst_number']

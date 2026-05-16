@@ -25,21 +25,25 @@
             <div style="margin-bottom:18px;">
 
                 <label>
-                    Worker
+                    Item
                 </label>
 
                 <br><br>
 
                 <select
-                    name="worker"
+                    name="item"
+                    id="itemSelect"
                     required
                 >
+                    <option value="">-- Select Item --</option>
+                    {% for item in items %}
 
-                    {% for worker in workers %}
+                    <option
+                        value="{{ item.id }}"
+                        data-weight="{{ item.casting_weight }}"
+                    >
 
-                    <option value="{{ worker.id }}">
-
-                        {{ worker.name }}
+                        {{ item.code }} - {{ item.name }}
 
                     </option>
 
@@ -52,30 +56,17 @@
             <div style="margin-bottom:18px;">
 
                 <label>
-                    Item
+                    Worker
                 </label>
 
                 <br><br>
 
                 <select
-                    name="item"
-                    id="itemSelect"
+                    name="worker"
+                    id="workerSelect"
                     required
                 >
-
-                    {% for item in items %}
-
-                    <option
-                        value="{{ item.id }}"
-                        data-weight="{{ item.weight_per_piece }}"
-                    >
-
-                        {{ item.code }} - {{ item.name }}
-
-                    </option>
-
-                    {% endfor %}
-
+                    <option value="">-- Select Item First --</option>
                 </select>
 
             </div>
@@ -205,7 +196,11 @@
 
     const weightInput = document.getElementById('weightInput')
 
+    const workerSelect = document.getElementById('workerSelect')
+
     function calculateWeight(){
+
+        if(itemSelect.selectedIndex <= 0) return;
 
         const selectedOption =
             itemSelect.options[itemSelect.selectedIndex]
@@ -226,9 +221,45 @@
 
     }
 
+    async function loadWorkers() {
+        const itemId = itemSelect.value;
+        workerSelect.innerHTML = '<option value="">Loading...</option>';
+        
+        if (!itemId) {
+            workerSelect.innerHTML = '<option value="">-- Select Item First --</option>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/item/${itemId}/workers/`);
+            const data = await response.json();
+            
+            workerSelect.innerHTML = '<option value="">-- Select Worker --</option>';
+            
+            const machiningWorkers = data.workers.filter(w => w.process === 'machining');
+            
+            if (machiningWorkers.length === 0) {
+                workerSelect.innerHTML = '<option value="">-- No Machining Workers Allocated --</option>';
+            } else {
+                machiningWorkers.forEach(worker => {
+                    const option = document.createElement('option');
+                    option.value = worker.id;
+                    option.textContent = `${worker.name} (Rate: ₹${worker.rate})`;
+                    workerSelect.appendChild(option);
+                });
+            }
+            
+        } catch (error) {
+            workerSelect.innerHTML = '<option value="">Error loading workers</option>';
+        }
+    }
+
     itemSelect.addEventListener(
         'change',
-        calculateWeight
+        () => {
+            calculateWeight();
+            loadWorkers();
+        }
     )
 
     pcsInput.addEventListener(

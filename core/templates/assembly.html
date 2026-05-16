@@ -1,0 +1,115 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <div>
+            <h1 style="margin-bottom: 5px;">Assembly (Kitting)</h1>
+            <p style="color: var(--text-secondary); font-size: 14px;">Assemble component parts into finished sets.</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); color: var(--text-secondary); padding: 10px 18px; border-radius: 12px; font-size: 12px; font-weight: 700; border: 1px solid var(--border-soft); text-transform: uppercase; letter-spacing: 1px;">
+            BOM CONTROL
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 25px;">
+        <!-- ASSEMBLY FORM -->
+        <div class="card">
+            <h2 style="font-size: 18px; margin-bottom: 20px;">Record Assembly</h2>
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; font-size: 12px; color: var(--text-secondary); text-transform: uppercase;">SELECT SET ITEM</label>
+                    <select name="item_id" id="setItemSelect" onchange="loadComposition(this.value)" required style="width: 100%; padding: 14px; background: var(--input-dark); color: var(--text-primary); border-radius: 12px; border: 1px solid var(--border-soft);">
+                        <option value="">-- Choose a Set --</option>
+                        {% for item in items %}
+                        <option value="{{ item.id }}">{{ item.code }} - {{ item.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; font-size: 12px; color: var(--text-secondary); text-transform: uppercase;">QUANTITY TO ASSEMBLE</label>
+                    <input type="number" name="quantity" id="assembleQty" value="1" min="1" oninput="updateNeeded()" required style="width: 100%; padding: 14px; background: var(--input-dark); color: var(--text-primary); border-radius: 12px; border: 1px solid var(--border-soft);">
+                </div>
+
+                <button type="submit" style="width: 100%; background: var(--accent-blue); color: white; padding: 16px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer;">
+                    Complete Assembly
+                </button>
+            </form>
+        </div>
+
+        <!-- COMPOSITION SUMMARY -->
+        <div class="card" id="compositionSummary" style="background: rgba(255,255,255,0.01); border: 1px dashed var(--border-soft);">
+            <h2 style="font-size: 18px; margin-bottom: 20px;">Component Requirements</h2>
+            <div id="compositionList">
+                <p style="color: var(--text-secondary); font-style: italic; text-align: center; margin-top: 40px;">Select a set item to see required components.</p>
+            </div>
+            
+            <div id="stockWarning" style="display: none; margin-top: 20px; padding: 15px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 12px; font-size: 13px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                ⚠️ <strong>Insufficient Stock:</strong> You do not have enough components to complete this assembly.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentComposition = [];
+
+    async function loadComposition(itemId) {
+        const container = document.getElementById('compositionList');
+        const warning = document.getElementById('stockWarning');
+        
+        if (!itemId) {
+            container.innerHTML = '<p style="color: #94a3b8; font-style: italic; text-align: center; margin-top: 40px;">Select a set item to see required components.</p>';
+            warning.style.display = 'none';
+            return;
+        }
+
+        container.innerHTML = '<p style="text-align: center; margin-top: 40px;">Loading requirements...</p>';
+        
+        try {
+            const response = await fetch(`/api/item/${itemId}/composition/`);
+            const data = await response.json();
+            currentComposition = data.components;
+            updateNeeded();
+        } catch (error) {
+            container.innerHTML = '<p style="color: #e11d48; text-align: center; margin-top: 40px;">Error loading composition.</p>';
+        }
+    }
+
+    function updateNeeded() {
+        if (currentComposition.length === 0) return;
+        
+        const qty = parseInt(document.getElementById('assembleQty').value) || 0;
+        const container = document.getElementById('compositionList');
+        const warning = document.getElementById('stockWarning');
+        let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+        let insufficient = false;
+
+        currentComposition.forEach(comp => {
+            const totalNeeded = comp.quantity * qty;
+            const isMissing = totalNeeded > comp.available;
+            if (isMissing) insufficient = true;
+
+            html += `
+                <div style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px; border: 1px solid ${isMissing ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-soft)'}; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">${comp.name}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">${comp.code} • ${comp.quantity} per set</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 15px; font-weight: 800; color: ${isMissing ? '#ef4444' : 'var(--accent-blue)'};">${totalNeeded} Needed</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Available: ${comp.available}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+        warning.style.display = insufficient ? 'block' : 'none';
+    }
+</script>
+{% endblock %}

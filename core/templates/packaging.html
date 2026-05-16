@@ -15,7 +15,7 @@
 
     <p style="
         color:#64748b;
-        font-size:16px;
+        font-size:24px;
     ">
         Convert polished stock into ready cartons using lot based packaging
     </p>
@@ -26,34 +26,13 @@
 
 <!-- TOP BUTTONS -->
 
-<div style="
-    display:flex;
-    gap:10px;
-    margin-bottom:24px;
-">
-
-    <button style="
-        background:#0f172a;
-        color:white;
-        border:none;
-        padding:12px 18px;
-        border-radius:10px;
-        font-weight:700;
-    ">
+<div style="display:flex; gap:10px; margin-bottom:24px;">
+    <button style="background: var(--accent-blue); color:white; border:none; padding:15px 25px; border-radius:12px; font-weight:700; font-size:22px;">
         Packaging Entry
     </button>
-
-    <button style="
-        background:#cbd5e1;
-        color:#0f172a;
-        border:none;
-        padding:12px 18px;
-        border-radius:10px;
-        font-weight:700;
-    ">
+    <button style="background: rgba(255,255,255,0.03); color: var(--text-secondary); border: 1px solid var(--border-soft); padding:15px 25px; border-radius:12px; font-weight:700; font-size:22px;">
         Ready Stock
     </button>
-
 </div>
 
 
@@ -88,7 +67,7 @@
                 <label style="
                     display:block;
                     margin-bottom:8px;
-                    font-size:13px;
+                    font-size:18px;
                     font-weight:700;
                     color:#64748b;
                     text-transform:uppercase;
@@ -101,6 +80,7 @@
                     id="itemSelect"
                     onchange="updatePackagingInfo()"
                     required
+                    style="font-size:22px; padding:12px;"
                 >
 
                     <option value="">
@@ -121,7 +101,7 @@
 
     data-carton="{{ row.item.lot_with_box }}"
 
-    data-pieceweight="{{ row.item.weight_per_piece }}"
+    data-pieceweight="{{ row.item.machining_weight }}"
 
 >
 
@@ -138,135 +118,34 @@
 
             <!-- STOCK INFO -->
 
-            <div style="
-                background:#f8fafc;
-                border:1px solid #dbe2ea;
-                border-radius:16px;
-                padding:22px;
-                margin-bottom:24px;
-            ">
-
-                <div style="
-                    display:grid;
-                    grid-template-columns:1fr 1fr;
-                    gap:18px;
-                ">
-
+            <!-- STOCK INFO -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); border-radius:20px; padding:24px; margin-bottom:24px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
                     <div>
-
-                        <div style="
-                            font-size:13px;
-                            color:#64748b;
-                            margin-bottom:6px;
-                        ">
-                            Available Qty
-                        </div>
-
-                        <div
-                            id="availableQty"
-                            style="
-                                font-size:36px;
-                                font-weight:800;
-                            "
-                        >
-                            0
-                        </div>
-
+                        <div style="font-size:16px; color: var(--text-secondary); margin-bottom:8px; text-transform: uppercase; letter-spacing: 1px;">Available Qty</div>
+                        <div id="availableQty" style="font-size:48px; font-weight:800; color: var(--text-primary);">0</div>
                     </div>
-
                     <div>
-
-                        <div style="
-                            font-size:13px;
-                            color:#64748b;
-                            margin-bottom:6px;
-                        ">
-                            Available Weight
-                        </div>
-
-                        <div
-                            id="availableWeight"
-                            style="
-                                font-size:36px;
-                                font-weight:800;
-                            "
-                        >
-                            0 kg
-                        </div>
-
+                        <div style="font-size:16px; color: var(--text-secondary); margin-bottom:8px; text-transform: uppercase; letter-spacing: 1px;">Available Weight</div>
+                        <div id="availableWeight" style="font-size:48px; font-weight:800; color: var(--text-primary);">0 kg</div>
                     </div>
-
                 </div>
-
             </div>
 
 
 
             <!-- LOT INFO -->
 
-            <div style="
-                display:grid;
-                grid-template-columns:1fr 1fr;
-                gap:18px;
-                margin-bottom:24px;
-            ">
-
-                <div style="
-                    background:#f8fafc;
-                    border:1px solid #dbe2ea;
-                    padding:18px;
-                    border-radius:14px;
-                ">
-
-                    <div style="
-                        font-size:13px;
-                        color:#64748b;
-                        margin-bottom:6px;
-                    ">
-                        Lot Size
-                    </div>
-
-                    <div
-                        id="lotSize"
-                        style="
-                            font-size:32px;
-                            font-weight:800;
-                        "
-                    >
-                        0
-                    </div>
-
+            <!-- LOT INFO -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:24px;">
+                <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding:20px; border-radius:16px;">
+                    <div style="font-size:12px; color: var(--text-secondary); margin-bottom:8px; text-transform: uppercase;">Lot Size</div>
+                    <div id="lotSize" style="font-size:32px; font-weight:800; color: var(--text-primary);">0</div>
                 </div>
-
-
-
-                <div style="
-                    background:#f8fafc;
-                    border:1px solid #dbe2ea;
-                    padding:18px;
-                    border-radius:14px;
-                ">
-
-                    <div style="
-                        font-size:13px;
-                        color:#64748b;
-                        margin-bottom:6px;
-                    ">
-                        Carton Size
-                    </div>
-
-                    <div
-                        id="cartonSize"
-                        style="
-                            font-size:32px;
-                            font-weight:800;
-                        "
-                    >
-                        0
-                    </div>
-
+                <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding:20px; border-radius:16px;">
+                    <div style="font-size:12px; color: var(--text-secondary); margin-bottom:8px; text-transform: uppercase;">Carton Size</div>
+                    <div id="cartonSize" style="font-size:32px; font-weight:800; color: var(--text-primary);">0</div>
                 </div>
-
             </div>
 
 
@@ -361,86 +240,17 @@
 
             <!-- CHECKBOXES -->
 
-            <div style="
-                display:grid;
-                grid-template-columns:1fr 1fr 1fr;
-                gap:14px;
-                margin-bottom:30px;
-            ">
-
-                <label style="
-                    background:#f8fafc;
-                    border:1px solid #cbd5e1;
-                    padding:18px;
-                    border-radius:14px;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    gap:10px;
-                    cursor:pointer;
-                    font-weight:700;
-                ">
-
-                    <input
-                        type="checkbox"
-                        name="cleaning"
-                        value="YES"
-                    >
-
-                    Cleaning
-
+            <!-- CHECKBOXES -->
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:30px;">
+                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:18px; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; font-weight:700; color: var(--text-primary);">
+                    <input type="checkbox" name="cleaning" value="YES"> Cleaning
                 </label>
-
-
-
-                <label style="
-                    background:#f8fafc;
-                    border:1px solid #cbd5e1;
-                    padding:18px;
-                    border-radius:14px;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    gap:10px;
-                    cursor:pointer;
-                    font-weight:700;
-                ">
-
-                    <input
-                        type="checkbox"
-                        name="labeling"
-                        value="YES"
-                    >
-
-                    Labeling
-
+                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:18px; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; font-weight:700; color: var(--text-primary);">
+                    <input type="checkbox" name="labeling" value="YES"> Labeling
                 </label>
-
-
-
-                <label style="
-                    background:#f8fafc;
-                    border:1px solid #cbd5e1;
-                    padding:18px;
-                    border-radius:14px;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    gap:10px;
-                    cursor:pointer;
-                    font-weight:700;
-                ">
-
-                    <input
-                        type="checkbox"
-                        name="packing"
-                        value="YES"
-                    >
-
-                    Packing
-
+                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:18px; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; font-weight:700; color: var(--text-primary);">
+                    <input type="checkbox" name="packing" value="YES"> Packing
                 </label>
-
             </div>
 
 

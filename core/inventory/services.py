@@ -18,12 +18,14 @@ def get_stock_by_item(item):
     polishing_in = (totals.get(TransactionType.POLISHING_IN, 0) or 0)
     packaging_in = (totals.get(TransactionType.PACKAGING_IN, 0) or 0)
     dispatch_out = (totals.get(TransactionType.DISPATCH_OUT, 0) or 0)
+    kitting_consume = (totals.get(TransactionType.KITTING_CONSUME, 0) or 0)
+    kitting_produce = (totals.get(TransactionType.KITTING_PRODUCE, 0) or 0)
     
     return {
         'casting': casting_in - machining_out,
         'machining': machining_in - polishing_out,
-        'polishing': polishing_in - packaging_in,
-        'ready': packaging_in - dispatch_out
+        'polishing': polishing_in - (packaging_in + kitting_consume),
+        'ready': (packaging_in + kitting_produce) - dispatch_out
     }
 
 def get_overall_stock():
@@ -41,12 +43,12 @@ def get_overall_stock():
     casting_qty = get_sum(qty_totals, TransactionType.CASTING_ENTRY) - get_sum(qty_totals, TransactionType.MACHINING_OUT)
     machining_qty = get_sum(qty_totals, TransactionType.MACHINING_IN) - get_sum(qty_totals, TransactionType.POLISHING_OUT)
     polishing_qty = get_sum(qty_totals, TransactionType.POLISHING_IN) - get_sum(qty_totals, TransactionType.PACKAGING_IN)
-    ready_qty = get_sum(qty_totals, TransactionType.PACKAGING_IN) - get_sum(qty_totals, TransactionType.DISPATCH_OUT)
+    ready_qty = get_sum(qty_totals, TransactionType.PACKAGING_IN, TransactionType.KITTING_PRODUCE) - get_sum(qty_totals, TransactionType.DISPATCH_OUT)
 
     casting_weight = get_sum(weight_totals, TransactionType.CASTING_ENTRY) - get_sum(weight_totals, TransactionType.MACHINING_OUT)
     machining_weight = get_sum(weight_totals, TransactionType.MACHINING_IN) - get_sum(weight_totals, TransactionType.POLISHING_OUT)
-    polishing_weight = get_sum(weight_totals, TransactionType.POLISHING_IN) - get_sum(weight_totals, TransactionType.PACKAGING_IN)
-    ready_weight = get_sum(weight_totals, TransactionType.PACKAGING_IN) - get_sum(weight_totals, TransactionType.DISPATCH_OUT)
+    polishing_weight = get_sum(weight_totals, TransactionType.POLISHING_IN) - get_sum(weight_totals, TransactionType.PACKAGING_IN, TransactionType.KITTING_CONSUME)
+    ready_weight = get_sum(weight_totals, TransactionType.PACKAGING_IN, TransactionType.KITTING_PRODUCE) - get_sum(weight_totals, TransactionType.DISPATCH_OUT)
 
     return {
         'casting_qty': casting_qty,

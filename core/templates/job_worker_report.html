@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Statement - {{ jw.name }} - {{ month_name }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        
+        :root {
+            --primary: #0f172a;
+            --accent: #3b82f6;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            line-height: 1.5;
+            margin: 0;
+            padding: 40px;
+            background: white;
+        }
+
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .company-info h1 {
+            margin: 0;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .statement-title {
+            text-align: right;
+        }
+
+        .statement-title h2 {
+            margin: 0;
+            color: var(--accent);
+            font-size: 28px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .summary-item {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .summary-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .summary-value.highlight {
+            color: var(--accent);
+            font-size: 22px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        th {
+            background: #f1f5f9;
+            text-align: left;
+            padding: 12px;
+            font-size: 12px;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 12px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            color: var(--primary);
+            border-left: 4px solid var(--accent);
+            padding-left: 10px;
+        }
+
+        .earned { color: #10b981; font-weight: 600; }
+        .paid { color: #ef4444; font-weight: 600; }
+
+        .footer {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .signature-box {
+            border-top: 1px solid var(--text-main);
+            width: 200px;
+            text-align: center;
+            padding-top: 10px;
+            margin-top: 40px;
+        }
+
+        .btn-print {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="btn-print no-print" onclick="window.print()">Print Statement</button>
+
+    <div class="header">
+        <div class="company-info">
+            <h1>FOUNDRY ERP</h1>
+            <p style="margin:5px 0; font-size:12px; color:var(--text-muted);">Monthly Work Settlement Statement</p>
+        </div>
+        <div class="statement-title">
+            <h2>{{ jw.name }}</h2>
+            <p style="margin:5px 0; font-weight:600;">{{ month_name }}</p>
+        </div>
+    </div>
+
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="summary-label">Total Work Done</div>
+            <div class="summary-value">₹{{ total_earned|floatformat:2 }}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Total Advances/Paid</div>
+            <div class="summary-value">₹{{ total_paid|floatformat:2 }}</div>
+        </div>
+        <div class="summary-item" style="border-color: var(--accent); background: #eff6ff;">
+            <div class="summary-label">Net Payable Balance</div>
+            <div class="summary-value highlight">₹{{ balance|floatformat:2 }}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Process Type</div>
+            <div class="summary-value" style="text-transform: capitalize;">{{ jw.process }}</div>
+        </div>
+    </div>
+
+    <div class="section-title">Daily Stock & Earnings Ledger (Compact)</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Item Code</th>
+                <th style="text-align:right;">IN (Received)</th>
+                <th style="text-align:right;">OUT (Delivered)</th>
+                <th style="text-align:right;">BAL (On Hand)</th>
+                <th style="text-align:right;">Total Earned</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in item_ledger %}
+            <tr>
+                <td style="color: var(--text-muted); font-size: 11px; white-space: nowrap;">{{ item.date|date:"d M, Y" }}</td>
+                <td><div style="font-weight:700;">{{ item.name }}</div></td>
+                <td style="color: var(--text-muted); font-size: 11px;">{{ item.code }}</td>
+                <td style="text-align:right; color: #3b82f6; font-weight: 600;">{{ item.in|default:"0" }}</td>
+                <td style="text-align:right; color: #10b981; font-weight: 600;">{{ item.out|default:"0" }}</td>
+                <td style="text-align:right; font-weight:700; background: rgba(0,0,0,0.02);">{{ item.bal }}</td>
+                <td style="text-align:right; font-weight:700; color: #10b981;">₹{{ item.earned|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-muted);">No activity recorded for this month.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="display: grid; grid-template-columns: 1fr; gap: 40px; margin-top: 40px;">
+        <div>
+            <div class="section-title">Payment History</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Payment Mode</th>
+                        <th>Notes</th>
+                        <th style="text-align:right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in payments %}
+                    <tr>
+                        <td>{{ p.date|date:"d M, Y" }}</td>
+                        <td>{{ p.payment_mode }}</td>
+                        <td style="font-size: 11px; color: var(--text-muted);">{{ p.notes|default:"-" }}</td>
+                        <td class="paid" style="text-align:right;">₹{{ p.amount|floatformat:0 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted);">No payments recorded.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>
+            <p>Generated on: {{ today|date:"d M Y, H:i" }}</p>
+            <p>* Amount calculated based on current Master Rates.</p>
+        </div>
+        <div style="display: flex; gap: 40px;">
+            <div class="signature-box">Job Worker Signature</div>
+            <div class="signature-box">Authorized Signatory</div>
+        </div>
+    </div>
+
+</body>
+</html>

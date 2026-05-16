@@ -16,16 +16,11 @@
 
 }
 
-.dashboard-card{
-
-    background:white;
-
-    border-radius:16px;
-
-    padding:18px;
-
-    border:1px solid #e2e8f0;
-
+.dashboard-card, .summary-card, .stock-card {
+    background: var(--card-dark) !important;
+    border: 1px solid var(--border-soft) !important;
+    border-radius: 20px !important;
+    padding: 24px !important;
 }
 
 .dashboard-icon{
@@ -49,23 +44,27 @@
 }
 
 .orange{
-    background:#fff7ed;
-    color:#ea580c;
+    background: rgba(234, 88, 12, 0.1);
+    color: #ea580c;
+    border: 1px solid rgba(234, 88, 12, 0.15);
 }
 
 .blue{
-    background:#eff6ff;
-    color:#2563eb;
+    background: rgba(37, 99, 235, 0.1);
+    color: #3b82f6;
+    border: 1px solid rgba(37, 99, 235, 0.15);
 }
 
 .purple{
-    background:#faf5ff;
-    color:#9333ea;
+    background: rgba(147, 51, 234, 0.1);
+    color: #a855f7;
+    border: 1px solid rgba(147, 51, 234, 0.15);
 }
 
 .green{
-    background:#f0fdf4;
-    color:#16a34a;
+    background: rgba(22, 163, 74, 0.1);
+    color: #22c55e;
+    border: 1px solid rgba(22, 163, 74, 0.15);
 }
 
 .card-label{
@@ -82,7 +81,7 @@
 
 .card-number{
 
-    font-size:42px;
+    font-size:58px;
 
     font-weight:700;
 
@@ -508,16 +507,18 @@ margin-bottom:25px;
                 <th>Item Code</th>
                 <th>Item Name</th>
                 <th>Cartons</th>
-                <th>Pieces</th>
+                <th>Loose Pcs</th>
+                <th>Total Pcs</th>
                 <th>Weight (KG)</th>
             </tr>
 
         {% for row in stock_rows %}
         <tr>
-            <td style="font-weight:bold;">{{ row.item.code }}</td>
+            <td style="font-weight:bold; color: var(--text-primary);">{{ row.item.code }}</td>
             <td>{{ row.item.name }}</td>
-            <td style="color:#16a34a; font-weight:bold;">{{ row.cartons|default:"0" }}</td>
-            <td>{{ row.pieces }}</td>
+            <td style="color:#059669; font-weight:bold;">{{ row.cartons|default:"0" }}</td>
+            <td>{{ row.loose_pieces|default:"0" }}</td>
+            <td style="font-weight:bold;">{{ row.total_pieces|default:"0" }}</td>
             <td>{{ row.weight }}</td>
         </tr>
         {% empty %}

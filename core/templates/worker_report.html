@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Salary Slip - {{ worker.name }} - {{ month_name }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        
+        :root {
+            --primary: #0f172a;
+            --accent: #10b981;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            line-height: 1.5;
+            margin: 0;
+            padding: 40px;
+            background: white;
+        }
+
+        @media print {
+            @page {
+                size: auto;
+                margin: 0mm;
+            }
+            body { 
+                padding: 15mm; 
+                background: white;
+            }
+            .no-print { display: none; }
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .company-info h1 {
+            margin: 0;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .statement-title {
+            text-align: right;
+        }
+
+        .statement-title h2 {
+            margin: 0;
+            color: var(--accent);
+            font-size: 24px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-item {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .summary-label {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .summary-value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .summary-value.highlight {
+            color: var(--accent);
+            font-size: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        th {
+            background: #f1f5f9;
+            text-align: left;
+            padding: 10px;
+            font-size: 11px;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 10px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            color: var(--primary);
+            border-left: 4px solid var(--accent);
+            padding-left: 10px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .signature-box {
+            border-top: 1px solid var(--text-main);
+            width: 180px;
+            text-align: center;
+            padding-top: 8px;
+            margin-top: 30px;
+        }
+
+        .btn-print {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="btn-print no-print" onclick="window.print()">Print Salary Slip</button>
+
+    <div class="header">
+        <div class="company-info">
+            <p style="margin:0; font-size:12px; color:var(--text-muted); font-weight: 600;">Monthly Staff Salary Slip</p>
+            <h1 style="margin:5px 0 0 0; font-size:28px; color:var(--accent);">{{ worker.name }}</h1>
+        </div>
+        <div class="statement-title">
+            <h2 style="margin:0; font-weight:800; font-size:20px; color:var(--primary);">{{ month_name }}</h2>
+            {% if stats.loan_balance > 0 %}
+            <p style="margin:5px 0 0 0; font-size:11px; color:#ef4444; font-weight:700;">Remaining Loan: ₹{{ stats.loan_balance|floatformat:0 }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 30px; margin-bottom: 30px; align-items: flex-start;">
+        <!-- LEFT: CALENDAR -->
+        <div style="flex: 1; max-width: 350px;">
+            <div class="section-title">Attendance</div>
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border);">
+                {% for day in "SMTWTFS" %}
+                <div style="text-align: center; font-size: 9px; font-weight: 900; color: var(--primary);">{{ day }}</div>
+                {% endfor %}
+
+                {% for week in calendar_weeks %}
+                    {% for day in week %}
+                        <div style="aspect-ratio: 1; border-radius: 4px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; position: relative; min-height: 35px;">
+                            {% if day %}
+                                <span style="font-size: 14px; font-weight: 900; color: #000; line-height: 1;">{{ day.day }}</span>
+                                <div style="font-size: 12px; font-weight: 900; line-height: 1; margin-top: -1px;">
+                                    {% if day.status == 'PRESENT' %}
+                                        <span style="color:#10b981;">✓</span>
+                                    {% elif day.status == 'HALF_DAY' %}
+                                        <span style="color:#f59e0b;">=</span>
+                                    {% elif day.status == 'ABSENT' %}
+                                        <span style="color:#ef4444;">✕</span>
+                                    {% endif %}
+                                </div>
+                                {% if day.ot > 0 %}
+                                    <div style="position: absolute; bottom: 2px; right: 2px; width: 3px; height: 3px; background: #3b82f6; border-radius: 50%;"></div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+            <div style="display:flex; gap:10px; font-size:8px; color:var(--text-muted); justify-content:center; margin-top:10px;">
+                <div><span style="color:#10b981; font-weight:bold;">✓</span> Present</div>
+                <div><span style="color:#f59e0b; font-weight:bold;">=</span> Half</div>
+                <div><span style="color:#ef4444; font-weight:bold;">✕</span> Absent</div>
+            </div>
+        </div>
+
+        <!-- RIGHT: PAYMENT HISTORY -->
+        <div style="flex: 1;">
+            <div class="section-title">Payment & Advance History</div>
+            <table style="font-size: 11px;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th style="text-align:right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in payments %}
+                    <tr>
+                        <td>{{ p.date|date:"d M" }}</td>
+                        <td>{{ p.get_payment_type_display }}</td>
+                        <td style="text-align:right; font-weight:700; color: #ef4444;">₹{{ p.amount|floatformat:0 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: var(--text-muted); padding:20px;">No payments.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="summary-grid" style="grid-template-columns: repeat(5, 1fr);">
+        <div class="summary-item">
+            <div class="summary-label">Attendance Summary</div>
+            <div class="summary-value">{{ stats.present }}P | {{ stats.half }}H | {{ stats.absent }}A</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Total Overtime</div>
+            <div class="summary-value">{{ stats.ot }} Hours</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Monthly Allowance</div>
+            <div class="summary-value">₹{{ worker.monthly_allowance|floatformat:0 }}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Gross Earnings</div>
+            <div class="summary-value">₹{{ stats.earned|floatformat:2 }}</div>
+        </div>
+        <div class="summary-item" style="border-color: var(--accent); background: #f0fdf4;">
+            <div class="summary-label">Net Payable Balance</div>
+            <div class="summary-value highlight">₹{{ stats.balance|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    </div>
+
+</body>
+</html>
