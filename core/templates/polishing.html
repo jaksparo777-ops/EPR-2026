@@ -757,8 +757,11 @@
             return;
         }
 
-        // Update lot size multiplier based on packaging choice
-        const lotSize = pkgType === 'box' ? item.lot_with_box : item.lot_size;
+        // Update lot size multiplier based on packaging choice (with fallback to lot_size if lot_with_box is 0/undefined)
+        let lotSize = item.lot_size;
+        if (pkgType === 'box') {
+            lotSize = (item.lot_with_box && item.lot_with_box > 0) ? item.lot_with_box : item.lot_size;
+        }
         document.getElementById(`lot-size-span-${id}`).innerText = `(Lot: ${lotSize})`;
 
         // Visual feedback based on item type

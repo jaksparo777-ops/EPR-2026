@@ -793,8 +793,11 @@ def polishing_entry(request):
                 weight = float(row.get("weight") or 0)
                 packaging = row.get("packaging", "regular")
 
-                # Get correct lot size based on packaging
-                lot_size = item.lot_with_box if packaging == "box" else item.lot_size
+                # Get correct lot size based on packaging (with fallback to lot_size if lot_with_box is 0 or None)
+                if packaging == "box":
+                    lot_size = item.lot_with_box if (item.lot_with_box and item.lot_with_box > 0) else item.lot_size
+                else:
+                    lot_size = item.lot_size
                 lot_size = lot_size or 0
                 total_quantity = (lots * lot_size) + manual
 
