@@ -698,12 +698,12 @@
                     </div>
                 </div>
 
-                <div class="row-grid">
+                <div class="row-grid" id="input-grid-${id}">
                     <div class="input-group">
                         <label class="stat-label" id="lot-label-${id}">BULK LOTS <span style="font-size:9px; color:var(--text-secondary);" id="lot-size-span-${id}">(Lot: 0)</span></label>
                         <input type="number" name="lots[]" value="0" min="0" oninput="calculateRow(${id})">
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" id="extra-group-${id}">
                         <label class="stat-label" id="extra-label-${id}">+ EXTRA PIECES</label>
                         <input type="number" name="manual[]" value="0" min="0" oninput="calculateRow(${id})">
                     </div>
@@ -815,6 +815,13 @@
             document.getElementById(`wt-display-${id}`).innerText = '0.000';
             document.getElementById(`wt-input-${id}`).value = 0;
             bomDisplay.innerHTML = '';
+
+            const extraGroup = document.getElementById(`extra-group-${id}`);
+            const inputGrid = document.getElementById(`input-grid-${id}`);
+            if (extraGroup && inputGrid) {
+                extraGroup.style.display = 'block';
+                inputGrid.style.gridTemplateColumns = '1fr 1fr';
+            }
             return;
         }
 
@@ -828,7 +835,23 @@
         // Visual feedback based on item type
         row.style.borderLeftColor = item.is_set ? '#6366f1' : '#fbbf24';
 
-        const totalQty = (lots * lotSize) + extra;
+        // Dynamic visibility of Extra Pieces field: HIDE for Sets, SHOW for Single items
+        const extraGroup = document.getElementById(`extra-group-${id}`);
+        const inputGrid = document.getElementById(`input-grid-${id}`);
+        const manualInput = row.querySelector('[name="manual[]"]');
+        let currentExtra = extra;
+
+        if (item.is_set) {
+            if (extraGroup) extraGroup.style.display = 'none';
+            if (inputGrid) inputGrid.style.gridTemplateColumns = '1fr';
+            if (manualInput) manualInput.value = 0;
+            currentExtra = 0;
+        } else {
+            if (extraGroup) extraGroup.style.display = 'block';
+            if (inputGrid) inputGrid.style.gridTemplateColumns = '1fr 1fr';
+        }
+
+        const totalQty = (lots * lotSize) + currentExtra;
         const totalWt = (totalQty * item.weight).toFixed(3);
 
         document.getElementById(`qty-display-${id}`).innerText = totalQty;
