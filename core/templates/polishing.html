@@ -349,7 +349,7 @@
                     <!-- Worker Selection -->
                     <div>
                         <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Assigned Worker</label>
-                        <select name="worker" id="workerSelect" required style="width: 100%;">
+                        <select name="worker" id="workerSelect" style="width: 100%;">
                             <option value="">Select Worker...</option>
                             {% if workers %}
                             <optgroup label="🏠 Internal Staff">
@@ -683,7 +683,7 @@
                 <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; margin-bottom: 16px;">
                     <div>
                         <label class="stat-label">SELECT ITEM / SET</label>
-                        <select name="item[]" class="item-select" onchange="handleItemChange(${id}, this)" required>
+                        <select name="item[]" class="item-select" onchange="handleItemChange(${id}, this)">
                             <option value="">Search...</option>
                             ${itemsMaster.map(it => `<option value="${it.id}">${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}</option>`).join('')}
                         </select>
@@ -748,6 +748,10 @@
         // Ensure TomSelect change reliably triggers handleItemChange and recalculates quantities
         ts.on('change', function() {
             const selectEl = document.querySelector(`#row-${id} .item-select`);
+            if (selectEl && selectEl.nextElementSibling) {
+                selectEl.nextElementSibling.style.border = '';
+                selectEl.nextElementSibling.style.boxShadow = '';
+            }
             handleItemChange(id, selectEl);
         });
     }
@@ -921,6 +925,11 @@
 
         // Auto-select allocated item when a worker is chosen
         workerTS.on('change', function(val) {
+            const control = document.querySelector('#workerSelect').nextElementSibling;
+            if (control) {
+                control.style.border = '';
+                control.style.boxShadow = '';
+            }
             if (!val) {
                 lastAllocatedItemId = null;
                 return;
@@ -941,6 +950,42 @@
         });
 
         document.getElementById('polishingForm').addEventListener('submit', function(e) {
+            // 1. Validate Assigned Worker
+            const workerVal = workerTS.getValue();
+            if (!workerVal) {
+                e.preventDefault();
+                const control = document.querySelector('#workerSelect').nextElementSibling;
+                if (control) {
+                    control.style.border = '2px solid #ef4444';
+                    control.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.2)';
+                    control.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                alert("Please select an Assigned Worker before saving polishing entries.");
+                return;
+            }
+
+            // 2. Validate Row Selection
+            let hasEmptyRow = false;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const id = row.id.replace('row-', '');
+                const select = row.querySelector('.item-select');
+                if (select && !select.value) {
+                    hasEmptyRow = true;
+                    const control = select.nextElementSibling;
+                    if (control) {
+                        control.style.border = '2px solid #ef4444';
+                        control.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.2)';
+                        control.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+
+            if (hasEmptyRow) {
+                e.preventDefault();
+                alert("Please select an item for all transaction rows.");
+                return;
+            }
+
             const rowsData = [];
             
             document.querySelectorAll('.item-row').forEach(row => {
