@@ -1732,155 +1732,346 @@ def casting_stock(request):
     )
 
 def machining_stock(request):
-
     from collections import defaultdict
+    from django.db.models import Sum
+    from django.utils import timezone
+    from .models import StockTransaction, Item, JobWorker, Worker
 
-    rows = []
-
-    transactions = StockTransaction.objects.filter(
-
-        transaction_type__in=[
-            "machining_out",
-            "machining_in"
-        ]
-
-    ).select_related(
-
-        "worker",
-        "item"
-
-    )
+    # Fetch all machining transactions
+    txs = StockTransaction.objects.filter(
+        transaction_type__in=["machining_out", "machining_in"]
+    ).select_related("worker", "job_worker", "item")
 
     grouped = defaultdict(lambda: {
-
-        "pcs": 0,
-        "weight": 0
-
+        "issued_qty": 0,
+        "issued_weight": 0.0,
+        "received_qty": 0,
+        "received_weight": 0.0,
     })
 
-    for tx in transactions:
-
-        # =====================================
-        # SUPPORT OLD + NEW DATA
-        # =====================================
-
-        if tx.worker:
-
+    for tx in txs:
+        # Support both internal & external
+        if tx.job_worker:
+            worker_name = tx.job_worker.name
+        elif tx.worker:
             worker_name = tx.worker.name
-
         else:
+            worker_name = "NO WORKER"
 
-            worker_name = "NO JOB WORKER"
-
-        # =====================================
-        # ITEM DETAILS
-        # =====================================
-
-        item_code = (
-            tx.item.code
-            if tx.item else "-"
-        )
-
-        item_name = (
-            tx.item.name
-            if tx.item else "-"
-        )
-
-        key = (
-            worker_name,
-            item_code,
-            item_name
-        )
-
-        # =====================================
-        # STOCK CALCULATION
-        # =====================================
+        item_code = tx.item.code if tx.item else "-"
+        item_name = tx.item.name if tx.item else "-"
+        key = (worker_name, item_code, item_name)
 
         if tx.transaction_type == "machining_out":
-
-            grouped[key]["pcs"] += (
-                tx.quantity or 0
-            )
-
-            grouped[key]["weight"] += float(
-                tx.weight or 0
-            )
-
+            grouped[key]["issued_qty"] += tx.quantity or 0
+            grouped[key]["issued_weight"] += float(tx.weight or 0)
         elif tx.transaction_type == "machining_in":
+            grouped[key]["received_qty"] += tx.quantity or 0
+            grouped[key]["received_weight"] += float(tx.weight or 0)
 
-            grouped[key]["pcs"] -= (
-                tx.quantity or 0
-            )
+    rows = []
+    total_issued_pcs = 0
+    total_issued_wt = 0.0
+    total_received_pcs = 0
+    total_received_wt = 0.0
+    total_wip_pcs = 0
+    total_wip_wt = 0.0
 
-            grouped[key]["weight"] -= float(
-                tx.weight or 0
-            )
+    for key, val in grouped.items():
+        issued_qty = val["issued_qty"]
+        issued_wt = round(val["issued_weight"], 3)
+        received_qty = val["received_qty"]
+        received_wt = round(val["received_weight"], 3)
+        wip_qty = max(0, issued_qty - received_qty)
+        wip_wt = max(0.0, round(val["issued_weight"] - val["received_weight"], 3))
 
-    # =====================================
-    # FINAL TABLE ROWS
-    # =====================================
+        rows.append({
+            "worker": key[0],
+            "code": key[1],
+            "item": key[2],
+            "issued_pcs": issued_qty,
+            "issued_weight": issued_wt,
+            "received_pcs": received_qty,
+            "received_weight": received_wt,
+            "pcs": wip_qty,
+            "weight": wip_wt,
+        })
 
-    for key, value in grouped.items():
+        total_issued_pcs += issued_qty
+        total_issued_wt += val["issued_weight"]
+        total_received_pcs += received_qty
+        total_received_wt += val["received_weight"]
+        total_wip_pcs += wip_qty
+        total_wip_wt += (val["issued_weight"] - val["received_weight"])
 
-        if value["pcs"] > 0:
-
-            rows.append({
-
-                "worker": key[0],
-
-                "code": key[1],
-
-                "item": key[2],
-
-                "pcs": value["pcs"],
-
-                "weight": round(
-                    value["weight"],
-                    3
-                )
-
-            })
-
-    # =====================================
-    # PIE CHART DATA
-    # =====================================
-
-    graph_labels = []
-    graph_values = []
-
-    item_summary = defaultdict(int)
+    # Graph distributions
+    worker_stock = defaultdict(int)
+    item_stock = defaultdict(lambda: {"issued": 0, "received": 0, "net": 0})
 
     for row in rows:
+        worker_stock[row["worker"]] += row["pcs"]
+        item_stock[row["item"]]["issued"] += row["issued_pcs"]
+        item_stock[row["item"]]["received"] += row["received_pcs"]
+        item_stock[row["item"]]["net"] += row["pcs"]
 
-        item_summary[
-            row["item"]
-        ] += row["pcs"]
+    # Graph Worker Stock Distribution
+    graph_worker_labels = list(worker_stock.keys())
+    graph_worker_values = list(worker_stock.values())
 
-    for item_name, pcs in item_summary.items():
+    # Graph Item comparison
+    graph_item_labels = list(item_stock.keys())
+    graph_item_issued = [d["issued"] for d in item_stock.values()]
+    graph_item_received = [d["received"] for d in item_stock.values()]
+    graph_item_net = [d["net"] for d in item_stock.values()]
 
-        graph_labels.append(item_name)
-
-        graph_values.append(pcs)
+    # Production run this month (machining_in from 1st day of current month)
+    first_day_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_prod_qty = StockTransaction.objects.filter(
+        transaction_type="machining_in",
+        created_at__gte=first_day_of_month
+    ).aggregate(total=Sum('quantity'))['total'] or 0
 
     context = {
-
         "rows": rows,
-
-        "graph_labels": graph_labels,
-
-        "graph_values": graph_values,
-
+        "total_issued_pcs": total_issued_pcs,
+        "total_issued_wt": round(total_issued_wt, 3),
+        "total_received_pcs": total_received_pcs,
+        "total_received_wt": round(total_received_wt, 3),
+        "total_wip_pcs": max(0, total_wip_pcs),
+        "total_wip_wt": max(0.0, round(total_wip_wt, 3)),
+        "month_prod_qty": month_prod_qty,
+        "graph_worker_labels": graph_worker_labels,
+        "graph_worker_values": graph_worker_values,
+        "graph_item_labels": graph_item_labels,
+        "graph_item_issued": graph_item_issued,
+        "graph_item_received": graph_item_received,
+        "graph_item_net": graph_item_net,
     }
 
-    return render(
+    return render(request, "machining_stock.html", context)
 
-        request,
+def polishing_stock(request):
+    from collections import defaultdict
+    from django.db.models import Sum
+    from django.utils import timezone
+    from .models import StockTransaction, Item, JobWorker, Worker
 
-        "machining_stock.html",
+    # Fetch all polishing transactions
+    txs = StockTransaction.objects.filter(
+        transaction_type__in=["polishing_out", "polishing_in"]
+    ).select_related("worker", "job_worker", "item")
 
-        context
+    grouped = defaultdict(lambda: {
+        "issued_qty": 0,
+        "issued_weight": 0.0,
+        "received_qty": 0,
+        "received_weight": 0.0,
+    })
 
-    )
+    for tx in txs:
+        # Support both internal & external
+        if tx.job_worker:
+            worker_name = tx.job_worker.name
+        elif tx.worker:
+            worker_name = tx.worker.name
+        else:
+            worker_name = "NO WORKER"
+
+        item_code = tx.item.code if tx.item else "-"
+        item_name = tx.item.name if tx.item else "-"
+        key = (worker_name, item_code, item_name)
+
+        if tx.transaction_type == "polishing_out":
+            grouped[key]["issued_qty"] += tx.quantity or 0
+            grouped[key]["issued_weight"] += float(tx.weight or 0)
+        elif tx.transaction_type == "polishing_in":
+            grouped[key]["received_qty"] += tx.quantity or 0
+            grouped[key]["received_weight"] += float(tx.weight or 0)
+
+    rows = []
+    total_issued_pcs = 0
+    total_issued_wt = 0.0
+    total_received_pcs = 0
+    total_received_wt = 0.0
+    total_wip_pcs = 0
+    total_wip_wt = 0.0
+
+    for key, val in grouped.items():
+        issued_qty = val["issued_qty"]
+        issued_wt = round(val["issued_weight"], 3)
+        received_qty = val["received_qty"]
+        received_wt = round(val["received_weight"], 3)
+        wip_qty = max(0, issued_qty - received_qty)
+        wip_wt = max(0.0, round(val["issued_weight"] - val["received_weight"], 3))
+
+        rows.append({
+            "worker": key[0],
+            "code": key[1],
+            "item": key[2],
+            "issued_pcs": issued_qty,
+            "issued_weight": issued_wt,
+            "received_pcs": received_qty,
+            "received_weight": received_wt,
+            "pcs": wip_qty,
+            "weight": wip_wt,
+        })
+
+        total_issued_pcs += issued_qty
+        total_issued_wt += val["issued_weight"]
+        total_received_pcs += received_qty
+        total_received_wt += val["received_weight"]
+        total_wip_pcs += wip_qty
+        total_wip_wt += (val["issued_weight"] - val["received_weight"])
+
+    # Graph distributions
+    worker_stock = defaultdict(int)
+    item_stock = defaultdict(lambda: {"issued": 0, "received": 0, "net": 0})
+
+    for row in rows:
+        worker_stock[row["worker"]] += row["pcs"]
+        item_stock[row["item"]]["issued"] += row["issued_pcs"]
+        item_stock[row["item"]]["received"] += row["received_pcs"]
+        item_stock[row["item"]]["net"] += row["pcs"]
+
+    # Graph Worker Stock Distribution
+    graph_worker_labels = list(worker_stock.keys())
+    graph_worker_values = list(worker_stock.values())
+
+    # Graph Item comparison
+    graph_item_labels = list(item_stock.keys())
+    graph_item_issued = [d["issued"] for d in item_stock.values()]
+    graph_item_received = [d["received"] for d in item_stock.values()]
+    graph_item_net = [d["net"] for d in item_stock.values()]
+
+    # Production run this month (polishing_in from 1st day of current month)
+    first_day_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_prod_qty = StockTransaction.objects.filter(
+        transaction_type="polishing_in",
+        created_at__gte=first_day_of_month
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+    context = {
+        "rows": rows,
+        "total_issued_pcs": total_issued_pcs,
+        "total_issued_wt": round(total_issued_wt, 3),
+        "total_received_pcs": total_received_pcs,
+        "total_received_wt": round(total_received_wt, 3),
+        "total_wip_pcs": max(0, total_wip_pcs),
+        "total_wip_wt": max(0.0, round(total_wip_wt, 3)),
+        "month_prod_qty": month_prod_qty,
+        "graph_worker_labels": graph_worker_labels,
+        "graph_worker_values": graph_worker_values,
+        "graph_item_labels": graph_item_labels,
+        "graph_item_issued": graph_item_issued,
+        "graph_item_received": graph_item_received,
+        "graph_item_net": graph_item_net,
+    }
+
+    return render(request, "polishing_stock.html", context)
+
+def ready_stock(request):
+    from collections import defaultdict
+    from django.db.models import Sum
+    from django.utils import timezone
+    from .models import StockTransaction, Item
+
+    # Ready stock transactions: packaging_in, kitting_produce (inflows) and dispatch_out (outflows)
+    txs = StockTransaction.objects.filter(
+        transaction_type__in=["packaging_in", "kitting_produce", "dispatch_out"]
+    ).select_related("item")
+
+    grouped = defaultdict(lambda: {
+        "received_qty": 0,
+        "received_weight": 0.0,
+        "dispatched_qty": 0,
+        "dispatched_weight": 0.0,
+    })
+
+    for tx in txs:
+        item_code = tx.item.code if tx.item else "-"
+        item_name = tx.item.name if tx.item else "-"
+        key = (item_code, item_name)
+
+        if tx.transaction_type in ["packaging_in", "kitting_produce"]:
+            grouped[key]["received_qty"] += tx.quantity or 0
+            grouped[key]["received_weight"] += float(tx.weight or 0)
+        elif tx.transaction_type == "dispatch_out":
+            grouped[key]["dispatched_qty"] += tx.quantity or 0
+            grouped[key]["dispatched_weight"] += float(tx.weight or 0)
+
+    rows = []
+    total_received_pcs = 0
+    total_received_wt = 0.0
+    total_dispatched_pcs = 0
+    total_dispatched_wt = 0.0
+    total_net_pcs = 0
+    total_net_wt = 0.0
+
+    for key, val in grouped.items():
+        received_qty = val["received_qty"]
+        received_wt = round(val["received_weight"], 3)
+        dispatched_qty = val["dispatched_qty"]
+        dispatched_wt = round(val["dispatched_weight"], 3)
+        net_qty = max(0, received_qty - dispatched_qty)
+        net_wt = max(0.0, round(val["received_weight"] - val["dispatched_weight"], 3))
+
+        rows.append({
+            "code": key[0],
+            "item": key[1],
+            "received_pcs": received_qty,
+            "received_weight": received_wt,
+            "dispatched_pcs": dispatched_qty,
+            "dispatched_weight": dispatched_wt,
+            "pcs": net_qty,
+            "weight": net_wt,
+        })
+
+        total_received_pcs += received_qty
+        total_received_wt += val["received_weight"]
+        total_dispatched_pcs += dispatched_qty
+        total_dispatched_wt += val["dispatched_weight"]
+        total_net_pcs += net_qty
+        total_net_wt += (val["received_weight"] - val["dispatched_weight"])
+
+    # Graph distributions
+    item_stock = defaultdict(lambda: {"received": 0, "dispatched": 0, "net": 0})
+
+    for row in rows:
+        item_stock[row["item"]]["received"] += row["received_pcs"]
+        item_stock[row["item"]]["dispatched"] += row["dispatched_pcs"]
+        item_stock[row["item"]]["net"] += row["pcs"]
+
+    # Graph Item Wise Stock Percentage (Pie/Doughnut)
+    graph_item_labels = list(item_stock.keys())
+    graph_item_values = [d["net"] for d in item_stock.values()]
+
+    # Graph Item comparison (Bar)
+    graph_item_received = [d["received"] for d in item_stock.values()]
+    graph_item_dispatched = [d["dispatched"] for d in item_stock.values()]
+
+    # Production run this month (packaging_in + kitting_produce from 1st day of current month)
+    first_day_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_prod_qty = StockTransaction.objects.filter(
+        transaction_type__in=["packaging_in", "kitting_produce"],
+        created_at__gte=first_day_of_month
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+    context = {
+        "rows": rows,
+        "total_received_pcs": total_received_pcs,
+        "total_received_wt": round(total_received_wt, 3),
+        "total_dispatched_pcs": total_dispatched_pcs,
+        "total_dispatched_wt": round(total_dispatched_wt, 3),
+        "total_net_pcs": max(0, total_net_pcs),
+        "total_net_wt": max(0.0, round(total_net_wt, 3)),
+        "month_prod_qty": month_prod_qty,
+        "graph_item_labels": graph_item_labels,
+        "graph_item_values": graph_item_values,
+        "graph_item_received": graph_item_received,
+        "graph_item_dispatched": graph_item_dispatched,
+    }
+
+    return render(request, "ready_stock.html", context)
 # =====================================================
 # OLD URL SUPPORT
 # =====================================================

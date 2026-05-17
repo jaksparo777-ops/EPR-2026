@@ -176,8 +176,8 @@
     }
 
     .graph-tab-btn.active {
-        color: var(--accent-blue);
-        background: rgba(59, 130, 246, 0.1);
+        color: var(--accent-purple);
+        background: rgba(139, 92, 246, 0.15);
     }
 
     .graph-container {
@@ -260,9 +260,9 @@
     }
 
     .badge-in-stock {
-        background: rgba(59, 130, 246, 0.08);
-        color: #60a5fa;
-        border-color: rgba(59, 130, 246, 0.15);
+        background: rgba(139, 92, 246, 0.08);
+        color: #a78bfa;
+        border-color: rgba(139, 92, 246, 0.15);
     }
 
     .badge-empty {
@@ -276,15 +276,15 @@
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
     <div>
         <h1 style="font-size:42px; font-weight:800; margin:0; letter-spacing:-0.5px; font-family:'Outfit', sans-serif;">
-            Machining Analytics
+            Polishing Analytics
         </h1>
         <p style="color:var(--text-secondary); margin:6px 0 0; font-size:14px;">
-            Professional real-time ledger & operational bifurcation breakdown for machining WIP stock
+            Professional real-time ledger & operational bifurcation breakdown for polishing WIP stock
         </p>
     </div>
     <div style="display:flex; gap:10px;">
         <span class="badge" style="background:rgba(255,255,255,0.03); color:var(--text-secondary); border-color:var(--border-soft); padding:10px 18px; border-radius:12px; font-size:13px; font-weight:600;">
-            🛠️ Month Received: <strong>{{ month_prod_qty }} Pcs</strong>
+            ✨ Month Polished: <strong>{{ month_prod_qty }} Pcs</strong>
         </span>
     </div>
 </div>
@@ -295,7 +295,7 @@
     <div class="glass-card kpi-card blue">
         <div class="kpi-icon">📤</div>
         <div style="font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
-            Total Issued (Casting Out)
+            Total Issued (Machined Out)
         </div>
         <div class="kpi-value">{{ total_issued_pcs }} <span style="font-size:14px; font-weight:500; color:var(--text-secondary);">Pcs</span></div>
         <div class="kpi-subtext">
@@ -307,7 +307,7 @@
     <div class="glass-card kpi-card gold">
         <div class="kpi-icon">📥</div>
         <div style="font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
-            Total Received (Machining In)
+            Total Received (Polishing In)
         </div>
         <div class="kpi-value" style="color:#fbbf24;">{{ total_received_pcs }} <span style="font-size:14px; font-weight:500; color:var(--text-secondary);">Pcs</span></div>
         <div class="kpi-subtext">
@@ -317,9 +317,9 @@
 
     <!-- Current WIP -->
     <div class="glass-card kpi-card green">
-        <div class="kpi-icon">🛠️</div>
+        <div class="kpi-icon">✨</div>
         <div style="font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
-            Current Machining WIP
+            Current Polishing WIP
         </div>
         <div class="kpi-value" style="color:#34d399;">{{ total_wip_pcs }} <span style="font-size:14px; font-weight:500; color:var(--text-secondary);">Pcs</span></div>
         <div class="kpi-subtext">
@@ -356,8 +356,8 @@
 
         <!-- Search Worker -->
         <div class="filter-group">
-            <label class="filter-label">Search Worker</label>
-            <input type="text" id="workerSearch" class="filter-input" placeholder="Search worker name..." onkeyup="filterTable()">
+            <label class="filter-label">Search Polisher</label>
+            <input type="text" id="workerSearch" class="filter-input" placeholder="Search polisher name..." onkeyup="filterTable()">
         </div>
 
         <!-- Stock Status Filter -->
@@ -381,7 +381,7 @@
             </div>
             <div style="display:flex; justify-content:space-between; font-size:13px;">
                 <span style="color:var(--text-secondary);">Visible WIP Pcs:</span>
-                <span id="filteredPcs" style="font-weight:700; color:#34d399;">{{ total_wip_pcs }}</span>
+                <span id="filteredPcs" style="font-weight:700; color:#a78bfa;">{{ total_wip_pcs }}</span>
             </div>
         </div>
     </div>
@@ -390,7 +390,7 @@
     <div class="glass-card">
         <div class="graph-tabs">
             <button onclick="switchTab('worker')" id="tab-worker" class="graph-tab-btn active">
-                📊 Worker Wise WIP Distribution
+                📊 Polisher Wise WIP Distribution
             </button>
             <button onclick="switchTab('item')" id="tab-item" class="graph-tab-btn">
                 📈 Item Wise Production vs Completion
@@ -419,10 +419,10 @@
 <div class="glass-card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <h3 style="margin:0; font-size:20px; font-weight:800; font-family:'Outfit', sans-serif;">
-            Machining WIP Ledger (Bifurcated Analysis)
+            Polishing WIP Ledger (Bifurcated Analysis)
         </h3>
         <span style="color:var(--text-secondary); font-size:12px; font-weight:600;">
-            Track precise quantities assigned to each operator
+            Track precise quantities assigned to each polisher
         </span>
     </div>
 
@@ -430,7 +430,7 @@
         <table class="analytics-table" id="stockTable">
             <thead>
                 <tr>
-                    <th>Job Worker / Machinist</th>
+                    <th>Job Worker / Polisher</th>
                     <th>Code</th>
                     <th>Item Name</th>
                     <th style="text-align:right;">Issued (Pcs/Wt)</th>
@@ -448,7 +448,7 @@
                     </td>
 
                     <!-- Code -->
-                    <td style="font-weight:700; color:var(--accent-blue);">
+                    <td style="font-weight:700; color:var(--accent-purple);">
                         {{ row.code }}
                     </td>
 
@@ -471,7 +471,7 @@
 
                     <!-- Current WIP -->
                     <td style="text-align:right; font-size:13px;">
-                        <strong style="color:{% if row.pcs > 0 %}#60a5fa{% else %}var(--text-secondary){% endif %}; font-size:15px;">{{ row.pcs }}</strong> pcs
+                        <strong style="color:{% if row.pcs > 0 %}#a78bfa{% else %}var(--text-secondary){% endif %}; font-size:15px;">{{ row.pcs }}</strong> pcs
                         <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">⚖️ {{ row.weight }} kg</div>
                     </td>
 
@@ -493,7 +493,7 @@
                     <td>-</td>
                     <td style="text-align:right;" id="totalIssuedFooter">-</td>
                     <td style="text-align:right;" id="totalReceivedFooter">-</td>
-                    <td style="text-align:right; color:#60a5fa;" id="totalWipFooter">-</td>
+                    <td style="text-align:right; color:#a78bfa;" id="totalWipFooter">-</td>
                     <td></td>
                 </tr>
             </tfoot>
@@ -577,8 +577,8 @@
                 {
                     label: 'Active WIP',
                     data: itemNet,
-                    backgroundColor: 'rgba(59, 130, 246, 0.85)',
-                    hoverBackgroundColor: '#3b82f6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.85)',
+                    hoverBackgroundColor: '#8b5cf6',
                     borderRadius: 6
                 },
                 {
@@ -689,7 +689,7 @@
         document.getElementById('totalReceivedFooter').innerHTML = 
             `<strong style="color:#fbbf24; font-size:14px;">${totalReceivedPcs.toLocaleString()}</strong> pcs<div style="font-size:11px; margin-top:2px;">⚖️ ${totalReceivedWt.toFixed(3)} kg</div>`;
         document.getElementById('totalWipFooter').innerHTML = 
-            `<strong style="color:#60a5fa; font-size:15px;">${totalWipPcs.toLocaleString()}</strong> pcs<div style="font-size:11px; margin-top:2px;">⚖️ ${totalWipWt.toFixed(3)} kg</div>`;
+            `<strong style="color:#a78bfa; font-size:15px;">${totalWipPcs.toLocaleString()}</strong> pcs<div style="font-size:11px; margin-top:2px;">⚖️ ${totalWipWt.toFixed(3)} kg</div>`;
     }
 
     document.addEventListener('DOMContentLoaded', filterTable);

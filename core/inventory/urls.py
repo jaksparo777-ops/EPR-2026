@@ -11,6 +11,10 @@ from inventory.views import (
     casting_stock,
 
     machining_stock,
+    
+    polishing_stock,
+    
+    ready_stock,
 
     machining_entry,
 
@@ -101,6 +105,18 @@ urlpatterns = [
         'machining-stock/',
         machining_stock,
         name='machining_stock'
+    ),
+
+    path(
+        'polishing-stock/',
+        polishing_stock,
+        name='polishing_stock'
+    ),
+
+    path(
+        'ready-stock/',
+        ready_stock,
+        name='ready_stock'
     ),
 
     path(
