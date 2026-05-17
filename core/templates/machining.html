@@ -298,6 +298,7 @@
                                         onclick='quickReceive({
                                             worker_id: "{{ row.worker_id }}",
                                             item_id: "{{ row.item_id }}",
+                                            item_name: "{{ row.item_name }}",
                                             qty: "{{ row.under_process }}"
                                         })'>
                                         Mark IN
@@ -356,6 +357,7 @@
                                             id: "{{ row.id }}",
                                             type: "{{ row.transaction_type }}",
                                             item_id: "{{ row.item.id }}",
+                                            item_name: "{{ row.item.code }} - {{ row.item.name }}",
                                             worker_id: "{% if row.worker %}w_{{ row.worker.id }}{% elif row.job_worker %}jw_{{ row.job_worker.id }}{% endif %}",
                                             qty: "{{ row.quantity }}",
                                             weight: "{{ row.weight }}",
@@ -782,7 +784,15 @@
             setDirection('machining_in');
             
             // Explicitly append option to newItemTS and workerTS to guarantee selection holds
-            const originalOpt = originalItems.find(item => item.id.toString() === data.item_id.toString());
+            let originalOpt = originalItems.find(item => item.id.toString() === data.item_id.toString());
+            if (!originalOpt && data.item_name) {
+                originalOpt = {
+                    id: data.item_id.toString(),
+                    text: data.item_name,
+                    casting: 0,
+                    machining: 0
+                };
+            }
             if (originalOpt) {
                 newItemTS.addOption(originalOpt);
             }
@@ -812,7 +822,21 @@
 
             // Set values
             document.getElementById('editIdInput').value = data.id;
-            newItemTS.setValue(data.item_id);
+
+            let originalOpt = originalItems.find(item => item.id.toString() === data.item_id.toString());
+            if (!originalOpt && data.item_name) {
+                originalOpt = {
+                    id: data.item_id.toString(),
+                    text: data.item_name,
+                    casting: 0,
+                    machining: 0
+                };
+            }
+            if (originalOpt) {
+                newItemTS.addOption(originalOpt);
+            }
+            newItemTS.setValue(data.item_id, true);
+
             workerTS.setValue(data.worker_id);
             quantityInput.value = data.qty;
             document.getElementById('rejectionInput').value = data.rej || 0;
