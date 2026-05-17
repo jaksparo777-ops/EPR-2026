@@ -1867,6 +1867,8 @@ def delete_item(request, item_id):
     next_url = request.GET.get('next', 'master_data')
     if next_url == 'bom':
         target = f"{reverse('master_data')}?tab=items&sub=bom"
+    elif next_url == 'assembly':
+        target = f"{reverse('assembly')}?tab=bom"
     else:
         target = reverse('master_data')
 
@@ -2041,54 +2043,143 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
 def assembly_view(request):
-    items = Item.objects.filter(item_type='SET', active=True)
+    from django.urls import reverse
+    
+    active_tab = request.GET.get('tab', 'entry')
+    
     if request.method == 'POST':
-        item_id = request.POST.get('item_id')
-        quantity = int(request.POST.get('quantity') or 0)
+        form_type = request.POST.get('form_type')
         
-        if not item_id or quantity <= 0:
-            messages.error(request, "Please select an item and enter a valid quantity.")
-            return redirect('assembly')
-
-        try:
-            item = Item.objects.get(id=item_id)
-            compositions = item.components.all()
+        if form_type == 'bom':
+            parent_id = request.POST.get('parent_item_id')
+            new_set_name = request.POST.get('new_set_name')
             
-            # Check stock for components
-            from .services import get_stock_by_item
-            can_assemble = True
-            missing = []
-            for comp in compositions:
-                stock = get_stock_by_item(comp.component_item)
-                needed = comp.quantity * quantity
-                if stock['polishing'] < needed:
-                    can_assemble = False
-                    missing.append(f"{comp.component_item.name} (Need {needed}, Have {stock['polishing']})")
-            
-            if not can_assemble:
-                messages.error(request, f"Insufficient component stock: {', '.join(missing)}")
-            else:
-                # Create Transactions
-                from .models import Warehouse
-                from_wh = Warehouse.objects.filter(code='POLISHING').first()
-                for comp in compositions:
-                    StockTransaction.objects.create(
-                        item=comp.component_item,
-                        transaction_type=TransactionType.KITTING_CONSUME,
-                        quantity=comp.quantity * quantity,
-                        from_warehouse=from_wh
+            try:
+                if new_set_name:
+                    code = request.POST.get('new_set_code', '').strip()
+                    if Item.objects.filter(code=code).exists():
+                        messages.error(request, f"Error saving BOM: An item with code '{code}' already exists in the Item Master. Please choose a unique code.")
+                        return redirect(f"{reverse('assembly')}?tab=bom")
+                    
+                    # Create a NEW Item for the Set
+                    parent_item = Item.objects.create(
+                        name=new_set_name,
+                        code=code,
+                        category=request.POST.get('category', 'OTHER'),
+                        item_type='SET'
                     )
-                StockTransaction.objects.create(
-                    item=item,
-                    transaction_type=TransactionType.KITTING_PRODUCE,
-                    quantity=quantity
-                )
-                messages.success(request, f"Successfully assembled {quantity} units of {item.name}.")
-                return redirect('assembly')
-        except Exception as e:
-            messages.error(request, f"Error: {str(e)}")
+                else:
+                    parent_item = Item.objects.get(id=parent_id)
+
+                ItemComposition.objects.filter(parent_item=parent_item).delete()
+                
+                # Ensure it's marked as SET
+                parent_item.item_type = 'SET'
+                parent_item.save()
+
+                comp_ids = request.POST.getlist('component_id[]')
+                comp_qtys = request.POST.getlist('component_qty[]')
+                
+                total_weight = 0
+                for cid, qty in zip(comp_ids, comp_qtys):
+                    if cid and qty:
+                        comp_obj = Item.objects.get(id=cid)
+                        qty_int = int(qty)
+                        total_weight += (comp_obj.machining_weight * qty_int)
+                        
+                        ItemComposition.objects.create(
+                            parent_item=parent_item,
+                            component_item=comp_obj,
+                            quantity=qty_int
+                        )
+                
+                # Update parent weight and lot_size from components
+                parent_item.machining_weight = total_weight
+                
+                # PRIMARY COMPONENT RULE: Inherit lot size, client, category, and material from the first component
+                if comp_ids:
+                    first_comp = Item.objects.filter(id=comp_ids[0]).first()
+                    if first_comp:
+                        parent_item.lot_size = first_comp.lot_size
+                        parent_item.lot_with_box = first_comp.lot_with_box
+                        if not parent_item.client and first_comp.client:
+                            parent_item.client = first_comp.client
+                        if not parent_item.category or parent_item.category == 'OTHER':
+                            parent_item.category = first_comp.category
+                        if not parent_item.material:
+                            parent_item.material = first_comp.material
+                
+                parent_item.save()
+                
+                messages.success(request, f"BOM for {parent_item.name} saved successfully with calculated weight {total_weight}kg.")
+                return redirect(f"{reverse('assembly')}?tab=bom")
+            except Exception as e:
+                messages.error(request, f"Error saving BOM: {str(e)}")
+                return redirect(f"{reverse('assembly')}?tab=bom")
+                
+        else:
+            item_id = request.POST.get('item_id')
+            quantity = int(request.POST.get('quantity') or 0)
             
-    return render(request, 'assembly.html', {'items': items, 'active_page': 'assembly'})
+            if not item_id or quantity <= 0:
+                messages.error(request, "Please select an item and enter a valid quantity.")
+                return redirect(f"{reverse('assembly')}?tab=entry")
+
+            try:
+                item = Item.objects.get(id=item_id)
+                compositions = item.components.all()
+                
+                # Check stock for components
+                from .services import get_stock_by_item
+                can_assemble = True
+                missing = []
+                for comp in compositions:
+                    stock = get_stock_by_item(comp.component_item)
+                    needed = comp.quantity * quantity
+                    if stock['polishing'] < needed:
+                        can_assemble = False
+                        missing.append(f"{comp.component_item.name} (Need {needed}, Have {stock['polishing']})")
+                
+                if not can_assemble:
+                    messages.error(request, f"Insufficient component stock: {', '.join(missing)}")
+                else:
+                    # Create Transactions
+                    from .models import Warehouse
+                    from_wh = Warehouse.objects.filter(code='POLISHING').first()
+                    for comp in compositions:
+                        StockTransaction.objects.create(
+                            item=comp.component_item,
+                            transaction_type=TransactionType.KITTING_CONSUME,
+                            quantity=comp.quantity * quantity,
+                            from_warehouse=from_wh
+                        )
+                    StockTransaction.objects.create(
+                        item=item,
+                        transaction_type=TransactionType.KITTING_PRODUCE,
+                        quantity=quantity
+                    )
+                    messages.success(request, f"Successfully assembled {quantity} units of {item.name}.")
+                    return redirect(f"{reverse('assembly')}?tab=entry")
+            except Exception as e:
+                messages.error(request, f"Error: {str(e)}")
+                return redirect(f"{reverse('assembly')}?tab=entry")
+            
+    items = Item.objects.filter(item_type='SET', active=True).order_by('code')
+    bom_items = Item.objects.filter(item_type='SET', components__isnull=False).distinct().prefetch_related('components__component_item').order_by('code')
+    all_items = Item.objects.filter(active=True).order_by('code')
+    recent_assemblies = StockTransaction.objects.filter(transaction_type='kitting_produce').order_by('-created_at')[:20]
+    clients = Client.objects.filter(active=True).order_by('name')
+    
+    context = {
+        'items': items,
+        'bom_items': bom_items,
+        'all_items': all_items,
+        'recent_assemblies': recent_assemblies,
+        'clients': clients,
+        'active_tab': active_tab,
+        'active_page': 'assembly'
+    }
+    return render(request, 'assembly.html', context)
 
 @require_GET
 def get_item_composition(request, item_id):
