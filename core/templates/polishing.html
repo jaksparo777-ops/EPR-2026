@@ -718,10 +718,16 @@
 
         document.getElementById('items-container').insertAdjacentHTML('beforeend', html);
 
-        new TomSelect(`#row-${id} .item-select`, {
+        const ts = new TomSelect(`#row-${id} .item-select`, {
             create: false,
             placeholder: 'Search...',
             allowEmptyOption: true,
+        });
+
+        // Ensure TomSelect change reliably triggers handleItemChange and recalculates quantities
+        ts.on('change', function() {
+            const selectEl = document.querySelector(`#row-${id} .item-select`);
+            handleItemChange(id, selectEl);
         });
     }
 
