@@ -681,19 +681,30 @@
 
                 if (data.workers.length > 0) {
                     data.workers.forEach(w => {
-                        workerTS.addOption({ id: w.id, text: w.name });
+                        workerTS.addOption({ id: w.id.toString(), text: w.name });
                     });
 
+                    // ROBUSTNESS GUARD: If currentWorker is selected but not in fetched list, explicitly append it
+                    if (currentWorker) {
+                        const exists = data.workers.some(w => w.id.toString() === currentWorker.toString());
+                        if (!exists) {
+                            const originalW = originalWorkers.find(w => w.id.toString() === currentWorker.toString());
+                            if (originalW) {
+                                workerTS.addOption(originalW);
+                            }
+                        }
+                    }
+
                     // SMART ALLOCATION LOGIC
-                    if (data.workers.length === 1) {
+                    if (currentWorker) {
+                        workerTS.setValue(currentWorker, true);
+                    } else if (data.workers.length === 1) {
                         // AUTO-ASSIGN if only one worker exists
                         workerTS.setValue(data.workers[0].id);
-                        // Optional: Show a subtle toast or highlight
                     } else if (data.workers.length > 1) {
                         // ASK TO CHOOSE if multiple
                         workerTS.clear();
                         workerTS.open();
-                        // You could add a small tip or message here
                     }
                 } else {
                     // Fallback to all workers if no specific allocation
@@ -741,7 +752,15 @@
                     });
                 });
 
+                // ROBUSTNESS GUARD: If selectedItem is selected but not in fetched list, explicitly append it
                 if (selectedItem) {
+                    const exists = data.items.some(item => item.id.toString() === selectedItem.toString());
+                    if (!exists) {
+                        const originalOpt = originalItems.find(item => item.id.toString() === selectedItem.toString());
+                        if (originalOpt) {
+                            newItemTS.addOption(originalOpt);
+                        }
+                    }
                     newItemTS.setValue(selectedItem, true);
                 }
 
@@ -761,14 +780,27 @@
 
             // Setup Form
             setDirection('machining_in');
-            newItemTS.setValue(data.item_id);
-            workerTS.setValue(data.worker_id);
+            
+            // Explicitly append option to newItemTS and workerTS to guarantee selection holds
+            const originalOpt = originalItems.find(item => item.id.toString() === data.item_id.toString());
+            if (originalOpt) {
+                newItemTS.addOption(originalOpt);
+            }
+            newItemTS.setValue(data.item_id, true);
+
+            const originalW = originalWorkers.find(w => w.id.toString() === data.worker_id.toString());
+            if (originalW) {
+                workerTS.addOption(originalW);
+            }
+            workerTS.setValue(data.worker_id, true);
+            
             quantityInput.value = data.qty;
 
             // Focus weight
             document.getElementById('weightInput').focus();
 
             isUpdating = false;
+            calculateWeight();
         }
         window.quickReceive = quickReceive;
 
