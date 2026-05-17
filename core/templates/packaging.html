@@ -48,432 +48,199 @@
 
 
 {% if active_tab == 'entry' %}
-<div style="
-    display:grid;
-    grid-template-columns:1fr 1.2fr;
-    gap:24px;
-    align-items:start;
-">
+<div class="main-grid" style="display:grid; grid-template-columns: 450px 1fr; gap: 24px; align-items: start;">
 
-    <!-- LEFT (Queue Card) -->
-
-    <div class="card">
-
-<div class="card">
-
-    <h2 style="
-        font-size:38px;
-        font-weight:800;
-        margin-bottom:24px;
-    ">
-        Packaging Queue
-    </h2>
-
-    <table>
-
-        <thead>
-
-            <tr>
-
-                <th>Item</th>
-                <th>Qty</th>
-                <th>Wt</th>
-                <th>Action</th>
-
-            </tr>
-
-        </thead>
-
-        <tbody>
-
-            {% for row in packaging_queue %}
-
-            <tr>
-
-                <td>
-                    {{ row.item.code }} - {{ row.item.name }}
-                </td>
-
-                <td>
-                    {{ row.quantity }}
-                </td>
-
-                <td>
-                    {{ row.weight }}
-                </td>
-
-                <td>
-
-                    {% if row.id in completed_ids %}
-
-                        <span style="
-                        color:#16a34a;
-                        font-size:13px;
-                        font-weight:700;
-                        ">
-                            ✓ Packed
-                        </span>
-
-                    {% else %}
-
-                        <a href="?pack={{ row.id }}"
-                           style="
-                           background:#0f172a;
-                           color:white;
-                           padding:8px 14px;
-                           border-radius:10px;
-                           text-decoration:none;
-                           font-size:13px;
-                           font-weight:700;
-                           display:inline-block;
-                           ">
-
-                            Pack Now
-
-                        </a>
-
-                    {% endif %}
-
-                </td>
-
-            </tr>
-
-            {% endfor %}
-
-        </tbody>
-
-    </table>
-
-</div>
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>Item</th>
-                    <th>Qty</th>
-                    <th>Wt</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                {% for row in queue %}
-
-                <tr>
-
-                    <td>
-                        {{ row.item.code }} - {{ row.item.name }}
-                    </td>
-
-                    <td>
-                        {{ row.available }}
-                    </td>
-
-                    <td>
-                        {{ row.weight }}
-                    </td>
-
-                </tr>
-
-                {% endfor %}
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-
-    <!-- RIGHT (Process Card) -->
-
-    <div class="card">
-
-        <h2 style="
-            font-size:38px;
-            font-weight:800;
-            margin-bottom:30px;
-        ">
-            Packaging Process
-        </h2>
+    <!-- LEFT COLUMN: Packaging Process Form -->
+    <div class="glass-card">
+        <h3 style="margin-bottom:24px; font-size:20px; letter-spacing:1px; display:flex; align-items:center; gap:10px; margin-top:0;">
+            <span style="color:var(--accent-blue);">●</span> RECORD PACKAGING
+        </h3>
 
         <form method="POST">
-
             {% csrf_token %}
 
             <!-- ITEM -->
-
             <div style="margin-bottom:22px;">
-
-                <label style="
-                    display:block;
-                    margin-bottom:8px;
-                    font-size:18px;
-                    font-weight:700;
-                    color:#64748b;
-                    text-transform:uppercase;
-                ">
-                    Item
+                <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
+                    Item Selection
                 </label>
-
-                <select
-                    name="item"
-                    id="itemSelect"
-                    onchange="updatePackagingInfo()"
-                    required
-                    style="font-size:22px; padding:12px;"
-                >
-
-                    <option value="">
-                        Select item
-                    </option>
-
+                <select name="item" id="itemSelect" onchange="updatePackagingInfo()" required
+                    style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 12px; color: white; padding: 12px 16px; font-size: 16px; width: 100%; cursor: pointer;">
+                    <option value="">Select item...</option>
                     {% for row in packaging_queue %}
-
-<option
-
-    value="{{ row.item.id }}"
-
-    data-available="{{ row.quantity }}"
-
-    data-weight="{{ row.weight }}"
-
-    data-lotsize="{{ row.item.lot_size }}"
-
-    data-carton="{{ row.item.lot_with_box }}"
-
-    data-pieceweight="{{ row.item.machining_weight }}"
-
->
-
-    {{ row.item.code }} - {{ row.item.name }}
-
-</option>
-
-{% endfor %}
+                    <option value="{{ row.item.id }}"
+                        data-available="{{ row.quantity }}"
+                        data-weight="{{ row.weight }}"
+                        data-lotsize="{{ row.item.lot_size }}"
+                        data-carton="{{ row.item.lot_with_box }}"
+                        data-pieceweight="{{ row.item.machining_weight }}">
+                        {{ row.item.code }} - {{ row.item.name }}
+                    </option>
+                    {% endfor %}
                 </select>
-
             </div>
 
-
-
             <!-- STOCK INFO -->
-
-            <!-- STOCK INFO -->
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); border-radius:20px; padding:24px; margin-bottom:24px;">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); border-radius:16px; padding:20px; margin-bottom:22px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
                     <div>
-                        <div style="font-size:16px; color: var(--text-secondary); margin-bottom:8px; text-transform: uppercase; letter-spacing: 1px;">Available Qty</div>
-                        <div id="availableQty" style="font-size:48px; font-weight:800; color: var(--text-primary);">0</div>
+                        <div style="font-size:11px; color: var(--text-secondary); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Available Qty</div>
+                        <div id="availableQty" style="font-size:32px; font-weight:800; color: var(--text-primary);">0</div>
                     </div>
                     <div>
-                        <div style="font-size:16px; color: var(--text-secondary); margin-bottom:8px; text-transform: uppercase; letter-spacing: 1px;">Available Weight</div>
-                        <div id="availableWeight" style="font-size:48px; font-weight:800; color: var(--text-primary);">0 kg</div>
+                        <div style="font-size:11px; color: var(--text-secondary); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Available Weight</div>
+                        <div id="availableWeight" style="font-size:32px; font-weight:800; color: var(--text-primary);">0 kg</div>
                     </div>
                 </div>
             </div>
 
-
-
             <!-- LOT INFO -->
-
-            <!-- LOT INFO -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:24px;">
-                <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding:20px; border-radius:16px;">
-                    <div style="font-size:12px; color: var(--text-secondary); margin-bottom:8px; text-transform: uppercase;">Lot Size</div>
-                    <div id="lotSize" style="font-size:32px; font-weight:800; color: var(--text-primary);">0</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px;">
+                <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding:16px; border-radius:12px;">
+                    <div style="font-size:11px; color: var(--text-secondary); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Lot Size</div>
+                    <div id="lotSize" style="font-size:24px; font-weight:800; color: var(--text-primary);">0</div>
                 </div>
-                <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding:20px; border-radius:16px;">
-                    <div style="font-size:12px; color: var(--text-secondary); margin-bottom:8px; text-transform: uppercase;">Carton Size</div>
-                    <div id="cartonSize" style="font-size:32px; font-weight:800; color: var(--text-primary);">0</div>
+                <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding:16px; border-radius:12px;">
+                    <div style="font-size:11px; color: var(--text-secondary); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Carton Size</div>
+                    <div id="cartonSize" style="font-size:24px; font-weight:800; color: var(--text-primary);">0</div>
                 </div>
             </div>
 
-
-
-            <!-- READY CARTON -->
-
-            <div style="
-                display:grid;
-                grid-template-columns:1fr 1fr;
-                gap:18px;
-                margin-bottom:24px;
-            ">
-
+            <!-- READY CARTONS & AUTO QTY -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px;">
                 <div>
-
-                    <label style="
-                        display:block;
-                        margin-bottom:8px;
-                        font-size:13px;
-                        font-weight:700;
-                        color:#64748b;
-                        text-transform:uppercase;
-                    ">
+                    <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
                         Ready Cartons
                     </label>
-
-                    <input
-                        type="number"
-                        id="readyCartons"
-                        onchange="calculatePackaging()"
-                        onkeyup="calculatePackaging()"
-                        value="0"
-                        min="0"
-                    >
-
+                    <input type="number" id="readyCartons" onchange="calculatePackaging()" onkeyup="calculatePackaging()" value="0" min="0"
+                        style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 12px; color: white; padding: 12px 16px; font-size: 16px; width: 100%; box-sizing: border-box;">
                 </div>
-
-
-
                 <div>
-
-                    <label style="
-                        display:block;
-                        margin-bottom:8px;
-                        font-size:13px;
-                        font-weight:700;
-                        color:#64748b;
-                        text-transform:uppercase;
-                    ">
+                    <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
                         Auto Quantity
                     </label>
-
-                    <input
-                        type="number"
-                        name="quantity"
-                        id="autoQty"
-                        readonly
-                    >
-
+                    <input type="number" name="quantity" id="autoQty" readonly
+                        style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius: 12px; color: var(--text-secondary); padding: 12px 16px; font-size: 16px; width: 100%; box-sizing: border-box;">
                 </div>
-
             </div>
-
-
 
             <!-- AUTO WEIGHT -->
-
-            <div style="margin-bottom:26px;">
-
-                <label style="
-                    display:block;
-                    margin-bottom:8px;
-                    font-size:13px;
-                    font-weight:700;
-                    color:#64748b;
-                    text-transform:uppercase;
-                ">
+            <div style="margin-bottom:22px;">
+                <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
                     Auto Weight (kg)
                 </label>
-
-                <input
-                    type="number"
-                    step="0.001"
-                    name="weight"
-                    id="autoWeight"
-                    readonly
-                >
-
+                <input type="number" step="0.001" name="weight" id="autoWeight" readonly
+                    style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius: 12px; color: var(--text-secondary); padding: 12px 16px; font-size: 16px; width: 100%; box-sizing: border-box;">
             </div>
 
-
-
             <!-- CHECKBOXES -->
-
-            <!-- CHECKBOXES -->
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:30px;">
-                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:18px; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; font-weight:700; color: var(--text-primary);">
-                    <input type="checkbox" name="cleaning" value="YES"> Cleaning
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:26px;">
+                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:12px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:700; color: var(--text-primary); font-size:13px; transition: all 0.2s;">
+                    <input type="checkbox" name="cleaning" value="YES" style="cursor:pointer;"> Cleaning
                 </label>
-                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:18px; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; font-weight:700; color: var(--text-primary);">
-                    <input type="checkbox" name="labeling" value="YES"> Labeling
+                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:12px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:700; color: var(--text-primary); font-size:13px; transition: all 0.2s;">
+                    <input type="checkbox" name="labeling" value="YES" style="cursor:pointer;"> Labeling
                 </label>
-                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:18px; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer; font-weight:700; color: var(--text-primary);">
-                    <input type="checkbox" name="packing" value="YES"> Packing
+                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:12px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:700; color: var(--text-primary); font-size:13px; transition: all 0.2s;">
+                    <input type="checkbox" name="packing" value="YES" style="cursor:pointer;"> Packing
                 </label>
             </div>
 
-
-
-            <button type="submit"
-                    style="
-                        width:100%;
-                        height:62px;
-                        border-radius:14px;
-                        font-size:18px;
-                        font-weight:800;
-                    ">
-
-                Complete Packaging
-
+            <button type="submit" class="btn-primary" style="width: 100%; height:54px; font-size:16px;">
+                COMPLETE PACKAGING
             </button>
-
         </form>
+    </div>
 
+    <!-- RIGHT COLUMN: Packaging Queue -->
+    <div class="glass-card">
+        <h3 style="margin-bottom:24px; font-size:20px; letter-spacing:1px; display:flex; align-items:center; gap:10px; margin-top:0;">
+            <span style="color:var(--accent-blue);">●</span> PACKAGING QUEUE
+        </h3>
+
+        <div style="overflow-x:auto;">
+            <table class="recent-table">
+                <thead>
+                    <tr>
+                        <th>ITEM</th>
+                        <th>QTY PENDING</th>
+                        <th>PENDING WT</th>
+                        <th style="text-align:right;">ACTION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in packaging_queue %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:700; color:var(--text-primary);">{{ row.item.code }}</div>
+                            <div style="font-size:12px; color:var(--text-secondary);">{{ row.item.name }}</div>
+                        </td>
+                        <td><span style="font-weight:700;">{{ row.quantity }}</span> pcs</td>
+                        <td style="color:var(--text-secondary);">{{ row.weight }} kg</td>
+                        <td style="text-align:right;">
+                            {% if row.id in completed_ids %}
+                                <span style="color:#10b981; font-size:11px; font-weight:800; letter-spacing:0.5px;">✓ PACKED</span>
+                            {% else %}
+                                <a href="?pack={{ row.id }}" class="btn-primary"
+                                   style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.2); padding:6px 12px; font-size:11px; font-weight:800; border-radius:6px; text-decoration:none; display:inline-block; line-height:1.2;">
+                                    PACK NOW
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-state" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                            <i>✨</i>
+                            No items currently in packaging queue
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
 </div>
 
-<!-- RECENT PACKING LOG -->
-<div class="card" style="margin-top:24px;">
+<!-- RECENT PACKAGING LOGS (BOTTOM CARD FULL WIDTH) -->
+<div class="glass-card" style="margin-top:24px;">
+    <h3 style="margin-bottom:24px; font-size:20px; letter-spacing:1px; display:flex; align-items:center; gap:10px;">
+        <span style="color:var(--accent-blue);">●</span> RECENT PACKAGING LOGS
+    </h3>
 
-    <h2 style="
-        font-size:38px;
-        font-weight:800;
-        margin-bottom:24px;
-    ">
-        Recent Packaging Logs
-    </h2>
-
-    <table>
-
-        <thead>
-
-            <tr>
-
-                <th>Date</th>
-                <th>Item</th>
-                <th>Pcs</th>
-                <th>Weight</th>
-
-            </tr>
-
-        </thead>
-
-        <tbody>
-
-            {% for row in ready_stock %}
-
-            <tr>
-
-                <td>
-                    {{ row.created_at|date:"d/m/Y H:i" }}
-                </td>
-
-                <td>
-                    {{ row.item.code }} - {{ row.item.name }}
-                </td>
-
-                <td>
-                    {{ row.quantity }}
-                </td>
-
-                <td>
-                    {{ row.weight }}
-                </td>
-
-            </tr>
-
-            {% endfor %}
-
-        </tbody>
-
-    </table>
-
+    <div style="overflow-x:auto;">
+        <table class="recent-table">
+            <thead>
+                <tr>
+                    <th>DATE / TIME</th>
+                    <th>ITEM DETAILS</th>
+                    <th>PACKED QUANTITY</th>
+                    <th>PACKED WEIGHT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in ready_stock %}
+                <tr>
+                    <td style="color:var(--text-secondary);">{{ row.created_at|date:"d M Y, H:i" }}</td>
+                    <td>
+                        <div style="font-weight:700; color:var(--text-primary);">{{ row.item.code }}</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">{{ row.item.name }}</div>
+                    </td>
+                    <td><span style="font-weight:700; color:#10b981;">+{{ row.quantity }}</span> pcs</td>
+                    <td style="color:var(--text-secondary);">{{ row.weight }} kg</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="empty-state" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                        <i>✨</i>
+                        No recent packaging logs found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% elif active_tab == 'ready' %}
     <!-- READY STOCK ANALYTICS DASHBOARD -->
