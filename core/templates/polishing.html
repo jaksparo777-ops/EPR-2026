@@ -369,18 +369,8 @@
                     </div>
                 </div>
 
-                <!-- Entry Mode Toggle -->
-                <div style="margin-bottom: 20px;">
-                    <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Movement Type</label>
-                    <div class="mode-toggle-container" style="margin-bottom: 0;">
-                        <button type="button" class="mode-btn active sets-active" id="mode-set" onclick="switchEntryMode('set')">
-                            📦 FULL SETS
-                        </button>
-                        <button type="button" class="mode-btn" id="mode-single" onclick="switchEntryMode('single')">
-                            🧩 SINGLE ITEMS
-                        </button>
-                    </div>
-                </div>
+                <!-- Hidden dynamic transaction data array -->
+                <input type="hidden" name="transaction_data" id="transaction-data-input">
 
                 <div id="items-container">
                     <!-- Rows will be injected here -->
@@ -608,7 +598,6 @@
     const stockMaster = JSON.parse(document.getElementById('stock-data').textContent);
     const capacityMaster = JSON.parse(document.getElementById('set-capacity-data').textContent);
     let rowCount = 0;
-    let currentEntryMode = 'set'; // 'set' or 'single'
 
     function toggleDirection() {
         const container = document.querySelector('.dir-toggle-pill');
@@ -628,38 +617,35 @@
         }
     }
 
-    function switchEntryMode(mode) {
-        if (currentEntryMode === mode) return;
-
-        // Check if there is actual unsaved data
-        let hasData = false;
-        document.querySelectorAll('.item-row').forEach(row => {
-            const itemSelected = row.querySelector('.item-select').value;
-            const lots = parseInt(row.querySelector('[name="lots[]"]').value || 0);
-            const extra = parseInt(row.querySelector('[name="manual[]"]').value || 0);
-            if (itemSelected || lots > 0 || extra > 0) {
-                hasData = true;
-            }
-        });
-
-        if (hasData) {
-            if (!confirm("You have unsaved entries. Switching modes will clear them. Continue?")) return;
-        }
-
-        currentEntryMode = mode;
-
-        // Update UI toggles
-        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active', 'sets-active', 'single-active'));
-        if (mode === 'set') {
-            document.getElementById('mode-set').classList.add('active', 'sets-active');
+    function togglePackaging(id, pkgType) {
+        const regBtn = document.getElementById(`pkg-reg-${id}`);
+        const boxBtn = document.getElementById(`pkg-box-${id}`);
+        const pkgInput = document.getElementById(`pkg-input-${id}`);
+        
+        pkgInput.value = pkgType;
+        pkgInput.dataset.pkg = pkgType;
+        
+        if (pkgType === 'box') {
+            regBtn.style.background = 'transparent';
+            regBtn.style.color = 'var(--text-secondary)';
+            regBtn.style.border = 'none';
+            boxBtn.style.background = 'rgba(255,255,255,0.05)';
+            boxBtn.style.color = '#fbbf24';
+            boxBtn.style.border = '1px solid rgba(251, 191, 36, 0.2)';
         } else {
-            document.getElementById('mode-single').classList.add('active', 'single-active');
+            boxBtn.style.background = 'transparent';
+            boxBtn.style.color = 'var(--text-secondary)';
+            boxBtn.style.border = 'none';
+            regBtn.style.background = 'rgba(255,255,255,0.05)';
+            regBtn.style.color = 'white';
+            regBtn.style.border = 'none';
         }
-
-        // Clear existing rows
-        document.getElementById('items-container').innerHTML = '';
-        addItemRow();
+        
+        // Recalculate row
+        calculateRow(id);
     }
+
+    // (Entry mode switching removed in favor of Unified mixed-mode transaction builder)
 
     function switchMainTab(tab) {
         document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
@@ -672,35 +658,37 @@
     function addItemRow() {
         const id = rowCount++;
 
-        // Filter items based on current mode
-        const filteredItems = itemsMaster.filter(it =>
-            currentEntryMode === 'set' ? it.is_set : !it.is_set
-        );
-
-        console.log(`Adding row in mode: ${currentEntryMode}. Filtered items count: ${filteredItems.length}`);
-
-        const extraLabel = currentEntryMode === 'set' ? 'LOOSE PIECES (EXTRA)' : 'PIECES';
-        const lotLabel = currentEntryMode === 'set' ? 'FULL SETS' : 'BULK LOTS';
+        console.log(`Adding dynamic mixed row. Items count: ${itemsMaster.length}`);
 
         const html = `
-            <div class="item-row" id="row-${id}" style="border-left: 4px solid ${currentEntryMode === 'set' ? '#6366f1' : '#fbbf24'}">
+            <div class="item-row" id="row-${id}" style="border-left: 4px solid #fbbf24;">
                 <div class="remove-row-btn" onclick="removeRow(${id})">×</div>
                 
-                <div style="margin-bottom:16px;">
-                    <label class="stat-label">SELECT ${currentEntryMode === 'set' ? 'SET' : 'ITEM'}</label>
-                    <select name="item[]" class="item-select" onchange="handleItemChange(${id}, this)" required>
-                        <option value="">Search...</option>
-                        ${filteredItems.map(it => `<option value="${it.id}">${it.code} - ${it.name}</option>`).join('')}
-                    </select>
+                <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label class="stat-label">SELECT ITEM / SET</label>
+                        <select name="item[]" class="item-select" onchange="handleItemChange(${id}, this)" required>
+                            <option value="">Search...</option>
+                            ${itemsMaster.map(it => `<option value="${it.id}">${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="stat-label">PACKAGING</label>
+                        <div style="display:flex; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); border-radius:10px; padding:2px; height:38px; align-items:center;">
+                            <button type="button" class="pkg-btn active pkg-regular-btn" style="flex:1; height:32px; border-radius:8px; font-size:10px; font-weight:800; border:none; background:rgba(255,255,255,0.05); color:white; cursor:pointer;" id="pkg-reg-${id}" onclick="togglePackaging(${id}, 'regular')">REGULAR</button>
+                            <button type="button" class="pkg-btn pkg-box-btn" style="flex:1; height:32px; border-radius:8px; font-size:10px; font-weight:800; border:none; background:transparent; color:var(--text-secondary); cursor:pointer;" id="pkg-box-${id}" onclick="togglePackaging(${id}, 'box')">BOX</button>
+                        </div>
+                        <input type="hidden" id="pkg-input-${id}" class="pkg-toggle-pill" data-pkg="regular" value="regular">
+                    </div>
                 </div>
 
                 <div class="row-grid">
                     <div class="input-group">
-                        <label class="stat-label">${lotLabel}</label>
+                        <label class="stat-label" id="lot-label-${id}">BULK LOTS <span style="font-size:9px; color:var(--text-secondary);" id="lot-size-span-${id}">(Lot: 0)</span></label>
                         <input type="number" name="lots[]" value="0" min="0" oninput="calculateRow(${id})">
                     </div>
                     <div class="input-group">
-                        <label class="stat-label">+ ${extraLabel}</label>
+                        <label class="stat-label" id="extra-label-${id}">+ EXTRA PIECES</label>
                         <input type="number" name="manual[]" value="0" min="0" oninput="calculateRow(${id})">
                     </div>
                 </div>
@@ -718,6 +706,12 @@
                 </div>
 
                 <div id="bom-display-${id}" class="bom-indicator"></div>
+
+                <!-- Dynamic components overrides -->
+                <div id="components-drawer-${id}" style="margin-top:16px; border-top:1px dashed var(--glass-border); padding-top:16px; display:none;">
+                    <div class="stat-label" style="color:var(--accent-gold); margin-bottom:12px; font-size:11px;">📦 Set Components overrides</div>
+                    <div id="components-list-${id}" style="display:flex; flex-direction:column; gap:12px;"></div>
+                </div>
             </div>
         `;
 
@@ -735,43 +729,105 @@
     }
 
     function handleItemChange(id, select) {
+        const compList = document.getElementById(`components-list-${id}`);
+        if (compList) {
+            compList.innerHTML = '';
+        }
         calculateRow(id);
     }
 
     function calculateRow(id) {
         const row = document.getElementById(`row-${id}`);
+        if (!row) return;
         const select = row.querySelector('.item-select');
         const lots = parseInt(row.querySelector('[name="lots[]"]').value || 0);
         const extra = parseInt(row.querySelector('[name="manual[]"]').value || 0);
         const bomDisplay = document.getElementById(`bom-display-${id}`);
+        const pkgType = document.getElementById(`pkg-input-${id}`).value;
 
         const item = itemsMaster.find(it => it.id == select.value);
         if (!item) {
+            document.getElementById(`lot-size-span-${id}`).innerText = '(Lot: 0)';
+            document.getElementById(`components-drawer-${id}`).style.display = 'none';
+            document.getElementById(`qty-display-${id}`).innerText = 0;
+            document.getElementById(`wt-display-${id}`).innerText = '0.000';
+            document.getElementById(`wt-input-${id}`).value = 0;
             bomDisplay.innerHTML = '';
             return;
         }
 
-        const totalQty = (lots * item.lot_size) + extra;
+        // Update lot size multiplier based on packaging choice
+        const lotSize = pkgType === 'box' ? item.lot_with_box : item.lot_size;
+        document.getElementById(`lot-size-span-${id}`).innerText = `(Lot: ${lotSize})`;
+
+        // Visual feedback based on item type
+        row.style.borderLeftColor = item.is_set ? '#6366f1' : '#fbbf24';
+
+        const totalQty = (lots * lotSize) + extra;
         const totalWt = (totalQty * item.weight).toFixed(3);
 
         document.getElementById(`qty-display-${id}`).innerText = totalQty;
         document.getElementById(`wt-display-${id}`).innerText = totalWt;
         document.getElementById(`wt-input-${id}`).value = totalWt;
 
-        // BOM Validation Logic
-        bomDisplay.innerHTML = '';
-        if (item.is_set && item.components.length > 0) {
-            item.components.forEach(c => {
-                const totalNeeded = c.qty_per_set * totalQty;
-                const available = stockMaster[c.id] || 0;
-                const isInsufficient = totalNeeded > available;
+        // Render BOM/Set components overrides if it's a SET
+        const compDrawer = document.getElementById(`components-drawer-${id}`);
+        const compList = document.getElementById(`components-list-${id}`);
 
-                bomDisplay.innerHTML += `
-                    <div class="bom-tag" style="${isInsufficient ? 'border-color:#ef4444; color:#ef4444; background:rgba(239,68,68,0.1);' : ''}">
-                        ${c.name}: ${totalNeeded} needed (Have ${available})
-                    </div>
-                `;
+        if (item.is_set && item.components.length > 0) {
+            compDrawer.style.display = 'block';
+
+            if (compList.children.length === 0) {
+                compList.innerHTML = item.components.map(c => {
+                    const available = stockMaster[c.id] || 0;
+                    return `
+                        <div class="comp-row-override" id="comp-row-${id}-${c.id}" data-comp-id="${c.id}" data-qty-per-set="${c.qty_per_set}">
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); padding:10px 14px; border-radius:12px; flex-wrap:wrap; gap:10px;">
+                                <div style="flex:1; min-width:150px;">
+                                    <div style="font-size:12px; font-weight:700; color:white;">${c.name}</div>
+                                    <div style="font-size:10px; color:var(--text-secondary);">Stock: <span id="comp-stock-val-${id}-${c.id}">${available}</span> pcs</div>
+                                </div>
+                                <div style="width:100px;">
+                                    <div class="stat-label" style="font-size:9px; margin-bottom:4px;">Calc Qty</div>
+                                    <div style="font-size:13px; font-weight:700; color:var(--indigo-primary);"><span id="comp-calc-qty-${id}-${c.id}">0</span> pcs</div>
+                                </div>
+                                <div class="input-group" style="width:110px;">
+                                    <label class="stat-label" style="font-size:9px; margin-bottom:2px;">+ Extra pcs</label>
+                                    <input type="number" class="comp-extra-input" value="0" min="0" style="height:32px; font-size:11px; padding:4px 8px; border-radius:8px; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); color:white; text-align:center;" oninput="calculateRow(${id})">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Update nested components calculated amounts
+            item.components.forEach(c => {
+                const calcQty = c.qty_per_set * totalQty;
+                const compRow = document.getElementById(`comp-row-${id}-${c.id}`);
+                const extraInput = compRow.querySelector('.comp-extra-input');
+                const extraVal = parseInt(extraInput.value || 0);
+                const totalCompQty = calcQty + extraVal;
+
+                document.getElementById(`comp-calc-qty-${id}-${c.id}`).innerText = calcQty;
+
+                // Validation against machining stock
+                const available = stockMaster[c.id] || 0;
+                const containerDiv = compRow.querySelector('div');
+                if (totalCompQty > available) {
+                    containerDiv.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                    containerDiv.style.background = 'rgba(239, 68, 68, 0.05)';
+                } else {
+                    containerDiv.style.borderColor = 'var(--glass-border)';
+                    containerDiv.style.background = 'rgba(255,255,255,0.02)';
+                }
             });
+
+            bomDisplay.innerHTML = '';
+        } else {
+            compDrawer.style.display = 'none';
+            compList.innerHTML = '';
+            bomDisplay.innerHTML = '';
         }
     }
 
@@ -819,6 +875,62 @@
                             </div>`;
                 }
             }
+        });
+
+        document.getElementById('polishingForm').addEventListener('submit', function(e) {
+            const rowsData = [];
+            
+            document.querySelectorAll('.item-row').forEach(row => {
+                const id = row.id.replace('row-', '');
+                const select = row.querySelector('.item-select');
+                const itemId = select.value;
+                if (!itemId) return;
+                
+                const packaging = document.getElementById(`pkg-input-${id}`).value;
+                const lots = parseInt(row.querySelector('[name="lots[]"]').value || 0);
+                const manual = parseInt(row.querySelector('[name="manual[]"]').value || 0);
+                const weight = parseFloat(row.querySelector('[name="weight[]"]').value || 0);
+                
+                const rowObj = {
+                    item_id: itemId,
+                    packaging: packaging,
+                    lots: lots,
+                    manual: manual,
+                    weight: weight
+                };
+                
+                const item = itemsMaster.find(it => it.id == itemId);
+                if (item && item.is_set) {
+                    rowObj.components = [];
+                    row.querySelectorAll('.comp-row-override').forEach(compRow => {
+                        const compId = compRow.dataset.compId;
+                        const qtyPerSet = parseInt(compRow.dataset.qtyPerSet);
+                        const extraInput = compRow.querySelector('.comp-extra-input');
+                        const extraQty = parseInt(extraInput.value || 0);
+                        
+                        const setLotSize = packaging === 'box' ? item.lot_with_box : item.lot_size;
+                        const setTotalQty = (lots * setLotSize) + manual;
+                        const totalQty = (qtyPerSet * setTotalQty) + extraQty;
+                        
+                        rowObj.components.push({
+                            component_id: compId,
+                            qty_per_set: qtyPerSet,
+                            extra_qty: extraQty,
+                            total_qty: totalQty
+                        });
+                    });
+                }
+                
+                rowsData.push(rowObj);
+            });
+            
+            if (rowsData.length === 0) {
+                alert("Please add at least one item transaction.");
+                e.preventDefault();
+                return;
+            }
+            
+            document.getElementById('transaction-data-input').value = JSON.stringify(rowsData);
         });
     });
 </script>

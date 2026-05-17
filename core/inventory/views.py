@@ -767,58 +767,131 @@ def polishing_entry(request):
             return redirect("polishing_entry")
 
         direction = request.POST.get("direction", "polishing_out")
-        rows = request.POST.getlist("item[]")
-
-        for index, item_id in enumerate(rows):
-            if not item_id:
-                continue
-
+        
+        import json
+        transaction_data_str = request.POST.get("transaction_data")
+        
+        if transaction_data_str:
             try:
-                item = Item.objects.get(id=item_id)
-            except Item.DoesNotExist:
-                continue
+                transaction_data = json.loads(transaction_data_str)
+            except json.JSONDecodeError:
+                messages.error(request, "Invalid transaction data payload.")
+                return redirect("polishing_entry")
 
-            lots = int(request.POST.getlist("lots[]")[index] or 0)
-            manual = int(request.POST.getlist("manual[]")[index] or 0)
-            weight = float(request.POST.getlist("weight[]")[index] or 0)
+            for row in transaction_data:
+                item_id = row.get("item_id")
+                if not item_id:
+                    continue
 
-            # Combined quantity logic: (Lots * Lot Size) + Extra
-            lot_size = item.lot_size or 0
-            total_quantity = (lots * lot_size) + manual
+                try:
+                    item = Item.objects.get(id=item_id)
+                except Item.DoesNotExist:
+                    continue
 
-            if total_quantity <= 0:
-                continue
+                lots = int(row.get("lots") or 0)
+                manual = int(row.get("manual") or 0)
+                weight = float(row.get("weight") or 0)
+                packaging = row.get("packaging", "regular")
 
-            # If it's a SET item, consume components (only for OUT transactions)
-            if direction == "polishing_out" and item.item_type == 'SET':
-                from .models import ItemComposition, Warehouse
-                comps = ItemComposition.objects.filter(parent_item=item)
-                from_wh = Warehouse.objects.filter(code='MACHINING').first()
-                for comp in comps:
-                    comp_total_qty = comp.quantity * total_quantity
-                    StockTransaction.objects.create(
-                        transaction_type="kitting_consume",
-                        item=comp.component_item,
-                        quantity=comp_total_qty,
-                        from_warehouse=from_wh,
-                        notes=f"Auto-consumed for Set: {item.name} (Polishing Out)"
-                    )
+                # Get correct lot size based on packaging
+                lot_size = item.lot_with_box if packaging == "box" else item.lot_size
+                lot_size = lot_size or 0
+                total_quantity = (lots * lot_size) + manual
 
-            StockTransaction.objects.create(
-                transaction_type=direction,
-                item=item,
-                worker=worker_obj,
-                job_worker=job_worker_obj,
-                quantity=total_quantity,
-                weight=weight
+                if total_quantity <= 0:
+                    continue
+
+                # If it's a SET item, consume components (only for OUT transactions)
+                if direction == "polishing_out" and item.item_type == 'SET':
+                    from .models import Warehouse
+                    from_wh = Warehouse.objects.filter(code='MACHINING').first()
+                    
+                    components = row.get("components", [])
+                    for comp_row in components:
+                        comp_id = comp_row.get("component_id")
+                        total_qty = int(comp_row.get("total_qty") or 0)
+                        
+                        if total_qty <= 0:
+                            continue
+                            
+                        try:
+                            comp_item = Item.objects.get(id=comp_id)
+                        except Item.DoesNotExist:
+                            continue
+                            
+                        StockTransaction.objects.create(
+                            transaction_type="kitting_consume",
+                            item=comp_item,
+                            quantity=total_qty,
+                            from_warehouse=from_wh,
+                            notes=f"Auto-consumed for Set: {item.name} (Polishing Out)"
+                        )
+
+                StockTransaction.objects.create(
+                    transaction_type=direction,
+                    item=item,
+                    worker=worker_obj,
+                    job_worker=job_worker_obj,
+                    quantity=total_quantity,
+                    weight=weight
+                )
+
+            messages.success(
+                request,
+                f"Polishing { 'Issue' if direction == 'polishing_out' else 'Receipt' } saved successfully."
             )
+            return redirect("polishing_entry")
+        else:
+            # Fallback to standard form fields (legacy support)
+            rows = request.POST.getlist("item[]")
+            for index, item_id in enumerate(rows):
+                if not item_id:
+                    continue
 
-        messages.success(
-            request,
-            f"Polishing { 'Issue' if direction == 'polishing_out' else 'Receipt' } saved successfully."
-        )
+                try:
+                    item = Item.objects.get(id=item_id)
+                except Item.DoesNotExist:
+                    continue
 
-        return redirect("polishing_entry")
+                lots = int(request.POST.getlist("lots[]")[index] or 0)
+                manual = int(request.POST.getlist("manual[]")[index] or 0)
+                weight = float(request.POST.getlist("weight[]")[index] or 0)
+
+                lot_size = item.lot_size or 0
+                total_quantity = (lots * lot_size) + manual
+
+                if total_quantity <= 0:
+                    continue
+
+                # If it's a SET item, consume components (only for OUT transactions)
+                if direction == "polishing_out" and item.item_type == 'SET':
+                    from .models import ItemComposition, Warehouse
+                    comps = ItemComposition.objects.filter(parent_item=item)
+                    from_wh = Warehouse.objects.filter(code='MACHINING').first()
+                    for comp in comps:
+                        comp_total_qty = comp.quantity * total_quantity
+                        StockTransaction.objects.create(
+                            transaction_type="kitting_consume",
+                            item=comp.component_item,
+                            quantity=comp_total_qty,
+                            from_warehouse=from_wh,
+                            notes=f"Auto-consumed for Set: {item.name} (Polishing Out)"
+                        )
+
+                StockTransaction.objects.create(
+                    transaction_type=direction,
+                    item=item,
+                    worker=worker_obj,
+                    job_worker=job_worker_obj,
+                    quantity=total_quantity,
+                    weight=weight
+                )
+
+            messages.success(
+                request,
+                f"Polishing { 'Issue' if direction == 'polishing_out' else 'Receipt' } saved successfully."
+            )
+            return redirect("polishing_entry")
 
     recent = StockTransaction.objects.filter(
         transaction_type__in=[
