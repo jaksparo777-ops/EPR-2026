@@ -897,7 +897,7 @@
                 const extraVal = parseInt(extraInput.value || 0);
                 const totalCompQty = calcQty + extraVal;
 
-                document.getElementById(`comp-calc-qty-${id}-${c.id}`).innerText = calcQty;
+                document.getElementById(`comp-calc-qty-${id}-${c.id}`).innerText = totalCompQty;
 
                 // Validation against machining stock
                 const available = stockMaster[c.id] || 0;
