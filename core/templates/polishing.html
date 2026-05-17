@@ -770,7 +770,26 @@
         // Auto-select allocated worker when an item is selected
         if (select && select.value) {
             const itemId = select.value;
-            const alloc = allocationsMaster.find(a => a.item_id == itemId);
+            let alloc = allocationsMaster.find(a => a.item_id == itemId);
+
+            // Component Fallback: If it's a SET and has no direct allocation, check components' allocations
+            if (!alloc) {
+                const item = itemsMaster.find(it => it.id == itemId);
+                if (item && item.is_set && item.components && item.components.length > 0) {
+                    for (const comp of item.components) {
+                        const compAlloc = allocationsMaster.find(a => a.item_id == comp.id);
+                        if (compAlloc) {
+                            // Verify if the allocated worker is available in the dropdown
+                            const optExists = document.querySelector(`#workerSelect option[value="${compAlloc.worker_id}"]`);
+                            if (optExists) {
+                                alloc = compAlloc;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
             if (alloc && workerTS) {
                 workerTS.setValue(alloc.worker_id);
             }
@@ -936,12 +955,20 @@
             }
             const alloc = allocationsMaster.find(a => a.worker_id === val);
             if (alloc) {
-                lastAllocatedItemId = alloc.item_id;
+                let itemId = alloc.item_id;
+
+                // Parent Set Lookup: If the allocated item is a component of a SET, prefer selecting that SET in Polishing!
+                const parentSet = itemsMaster.find(it => it.is_set && it.components && it.components.some(c => c.id == itemId));
+                if (parentSet) {
+                    itemId = parentSet.id;
+                }
+
+                lastAllocatedItemId = itemId;
                 // Auto-fill empty rows with this item
                 Object.keys(rowTomSelects).forEach(id => {
                     const ts = rowTomSelects[id];
                     if (ts && !ts.getValue()) {
-                        ts.setValue(alloc.item_id);
+                        ts.setValue(itemId);
                     }
                 });
             } else {
