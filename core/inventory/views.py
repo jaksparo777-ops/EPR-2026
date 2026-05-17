@@ -1369,12 +1369,18 @@ def master_data(request):
                 # Update parent weight and lot_size from components
                 parent_item.machining_weight = total_weight
                 
-                # PRIMARY COMPONENT RULE: Inherit lot size from the first component
+                # PRIMARY COMPONENT RULE: Inherit lot size, client, category, and material from the first component
                 if comp_ids:
                     first_comp = Item.objects.filter(id=comp_ids[0]).first()
                     if first_comp:
                         parent_item.lot_size = first_comp.lot_size
                         parent_item.lot_with_box = first_comp.lot_with_box
+                        if not parent_item.client and first_comp.client:
+                            parent_item.client = first_comp.client
+                        if not parent_item.category or parent_item.category == 'OTHER':
+                            parent_item.category = first_comp.category
+                        if not parent_item.material:
+                            parent_item.material = first_comp.material
                 
                 parent_item.save()
                 
@@ -1404,8 +1410,8 @@ def master_data(request):
     if client_filter_id and client_filter_id.strip():
         items_to_display = all_items.filter(client_id=client_filter_id)
     
-    # Items for the BOM tab (only those marked as SET)
-    bom_items = Item.objects.filter(item_type='SET').prefetch_related('components__component_item')
+    # Items for the BOM tab (only those marked as SET that actually have components)
+    bom_items = Item.objects.filter(item_type='SET', components__isnull=False).distinct().prefetch_related('components__component_item')
 
     # Client Stats for the dashboard
     from django.db.models import Count
