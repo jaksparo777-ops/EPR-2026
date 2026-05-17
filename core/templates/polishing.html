@@ -738,6 +738,51 @@
         event.currentTarget.classList.add('active');
     }
 
+    function filterItemSelect(id, filterType) {
+        const allBtn = document.getElementById(`filter-all-${id}`);
+        const setBtn = document.getElementById(`filter-set-${id}`);
+        const singleBtn = document.getElementById(`filter-single-${id}`);
+        
+        if (!allBtn || !setBtn || !singleBtn) return;
+        
+        [allBtn, setBtn, singleBtn].forEach(btn => {
+            btn.classList.remove('active');
+            btn.style.background = 'transparent';
+            btn.style.color = 'var(--text-secondary)';
+        });
+        
+        const activeBtn = document.getElementById(`filter-${filterType}-${id}`);
+        activeBtn.classList.add('active');
+        activeBtn.style.background = 'rgba(255, 255, 255, 0.05)';
+        activeBtn.style.color = 'white';
+        
+        const ts = rowTomSelects[id];
+        if (!ts) return;
+        
+        const currentVal = ts.getValue();
+        ts.clearOptions();
+        
+        let filtered = itemsMaster;
+        if (filterType === 'set') {
+            filtered = itemsMaster.filter(it => it.is_set);
+        } else if (filterType === 'single') {
+            filtered = itemsMaster.filter(it => !it.is_set);
+        }
+        
+        const optionsToAdd = filtered.map(it => ({
+            value: it.id,
+            text: `${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}`
+        }));
+        
+        ts.addOptions(optionsToAdd);
+        
+        if (currentVal && filtered.some(it => it.id == currentVal)) {
+            ts.setValue(currentVal, true);
+        } else {
+            ts.setValue('', true);
+        }
+    }
+
     function addItemRow() {
         const id = rowCount++;
 
@@ -749,7 +794,14 @@
                 
                 <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; margin-bottom: 16px;">
                     <div>
-                        <label class="stat-label">SELECT ITEM / SET</label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <label class="stat-label" style="margin-bottom:0;">SELECT ITEM / SET</label>
+                            <div style="display:flex; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); border-radius:8px; padding:2px; height:24px; align-items:center;">
+                                <button type="button" class="filter-btn active" style="padding:0 8px; height:20px; border-radius:6px; font-size:9px; font-weight:800; border:none; background:rgba(255,255,255,0.05); color:white; cursor:pointer; outline:none;" id="filter-all-${id}" onclick="filterItemSelect(${id}, 'all')">ALL</button>
+                                <button type="button" class="filter-btn" style="padding:0 8px; height:20px; border-radius:6px; font-size:9px; font-weight:800; border:none; background:transparent; color:var(--text-secondary); cursor:pointer; outline:none;" id="filter-set-${id}" onclick="filterItemSelect(${id}, 'set')">SET</button>
+                                <button type="button" class="filter-btn" style="padding:0 8px; height:20px; border-radius:6px; font-size:9px; font-weight:800; border:none; background:transparent; color:var(--text-secondary); cursor:pointer; outline:none;" id="filter-single-${id}" onclick="filterItemSelect(${id}, 'single')">SINGLE</button>
+                            </div>
+                        </div>
                         <select name="item[]" class="item-select" onchange="handleItemChange(${id}, this)">
                             <option value="">Search...</option>
                             ${itemsMaster.map(it => `<option value="${it.id}">${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}</option>`).join('')}
