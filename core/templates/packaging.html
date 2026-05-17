@@ -39,12 +39,145 @@
 
 <div style="
     display:grid;
-    grid-template-columns:1.2fr 1fr;
+    grid-template-columns:1fr 1.2fr;
     gap:24px;
     align-items:start;
 ">
 
-    <!-- LEFT -->
+    <!-- LEFT (Queue Card) -->
+
+    <div class="card">
+
+<div class="card">
+
+    <h2 style="
+        font-size:38px;
+        font-weight:800;
+        margin-bottom:24px;
+    ">
+        Packaging Queue
+    </h2>
+
+    <table>
+
+        <thead>
+
+            <tr>
+
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Wt</th>
+                <th>Action</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {% for row in packaging_queue %}
+
+            <tr>
+
+                <td>
+                    {{ row.item.code }} - {{ row.item.name }}
+                </td>
+
+                <td>
+                    {{ row.quantity }}
+                </td>
+
+                <td>
+                    {{ row.weight }}
+                </td>
+
+                <td>
+
+                    {% if row.id in completed_ids %}
+
+                        <span style="
+                        color:#16a34a;
+                        font-size:13px;
+                        font-weight:700;
+                        ">
+                            ✓ Packed
+                        </span>
+
+                    {% else %}
+
+                        <a href="?pack={{ row.id }}"
+                           style="
+                           background:#0f172a;
+                           color:white;
+                           padding:8px 14px;
+                           border-radius:10px;
+                           text-decoration:none;
+                           font-size:13px;
+                           font-weight:700;
+                           display:inline-block;
+                           ">
+
+                            Pack Now
+
+                        </a>
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Wt</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for row in queue %}
+
+                <tr>
+
+                    <td>
+                        {{ row.item.code }} - {{ row.item.name }}
+                    </td>
+
+                    <td>
+                        {{ row.available }}
+                    </td>
+
+                    <td>
+                        {{ row.weight }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- RIGHT (Process Card) -->
 
     <div class="card">
 
@@ -269,140 +402,6 @@
             </button>
 
         </form>
-
-    </div>
-
-
-
-    <!-- RIGHT -->
-
-    <div class="card">
-
-<div class="card">
-
-    <h2 style="
-        font-size:38px;
-        font-weight:800;
-        margin-bottom:24px;
-    ">
-        Packaging Queue
-    </h2>
-
-    <table>
-
-        <thead>
-
-            <tr>
-
-                <th>Item</th>
-                <th>Qty</th>
-                <th>Wt</th>
-                <th>Action</th>
-
-            </tr>
-
-        </thead>
-
-        <tbody>
-
-            {% for row in packaging_queue %}
-
-            <tr>
-
-                <td>
-                    {{ row.item.code }} - {{ row.item.name }}
-                </td>
-
-                <td>
-                    {{ row.quantity }}
-                </td>
-
-                <td>
-                    {{ row.weight }}
-                </td>
-
-                <td>
-
-                    {% if row.id in completed_ids %}
-
-                        <span style="
-                        color:#16a34a;
-                        font-size:13px;
-                        font-weight:700;
-                        ">
-                            ✓ Packed
-                        </span>
-
-                    {% else %}
-
-                        <a href="?pack={{ row.id }}"
-                           style="
-                           background:#0f172a;
-                           color:white;
-                           padding:8px 14px;
-                           border-radius:10px;
-                           text-decoration:none;
-                           font-size:13px;
-                           font-weight:700;
-                           display:inline-block;
-                           ">
-
-                            Pack Now
-
-                        </a>
-
-                    {% endif %}
-
-                </td>
-
-            </tr>
-
-            {% endfor %}
-
-        </tbody>
-
-    </table>
-
-</div>
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>Item</th>
-                    <th>Qty</th>
-                    <th>Wt</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                {% for row in queue %}
-
-                <tr>
-
-                    <td>
-                        {{ row.item.code }} - {{ row.item.name }}
-                    </td>
-
-                    <td>
-                        {{ row.available }}
-                    </td>
-
-                    <td>
-                        {{ row.weight }}
-                    </td>
-
-                </tr>
-
-                {% endfor %}
-
-            </tbody>
-
-        </table>
 
     </div>
 
