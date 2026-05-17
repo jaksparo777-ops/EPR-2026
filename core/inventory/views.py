@@ -916,6 +916,54 @@ def polishing_entry(request):
             if done:
                 completed_ids.append(row.id)
 
+    # Calculate Polishing WIP Stock
+    from django.db.models import Sum
+    polishing_stock = []
+    for item in items:
+        # 1. Internal Workers WIP for this item
+        internal_wip_rows = StockTransaction.objects.filter(
+            item=item, 
+            transaction_type="polishing_out", 
+            worker__isnull=False
+        ).values('worker', 'worker__name').annotate(issued=Sum('quantity'))
+
+        for row in internal_wip_rows:
+            w_id = row['worker']
+            w_name = row['worker__name']
+            received = StockTransaction.objects.filter(item=item, worker_id=w_id, transaction_type="polishing_in").aggregate(total=Sum('quantity'))['total'] or 0
+            
+            under_process = row['issued'] - received
+            if under_process > 0:
+                polishing_stock.append({
+                    "item_id": item.id,
+                    "item_name": f"{item.code} - {item.name}",
+                    "worker_id": f"w_{w_id}",
+                    "worker_name": f"{w_name} (INT)",
+                    "under_process": under_process,
+                })
+
+        # 2. External Job Workers WIP for this item
+        external_wip_rows = StockTransaction.objects.filter(
+            item=item, 
+            transaction_type="polishing_out", 
+            job_worker__isnull=False
+        ).values('job_worker', 'job_worker__name').annotate(issued=Sum('quantity'))
+
+        for row in external_wip_rows:
+            jw_id = row['job_worker']
+            jw_name = row['job_worker__name']
+            received = StockTransaction.objects.filter(item=item, job_worker_id=jw_id, transaction_type="polishing_in").aggregate(total=Sum('quantity'))['total'] or 0
+            
+            under_process = row['issued'] - received
+            if under_process > 0:
+                polishing_stock.append({
+                    "item_id": item.id,
+                    "item_name": f"{item.code} - {item.name}",
+                    "worker_id": f"jw_{jw_id}",
+                    "worker_name": jw_name,
+                    "under_process": under_process,
+                })
+
     from .models import ItemWorkerAllocation
     allocations = ItemWorkerAllocation.objects.all().select_related('item', 'worker', 'job_worker')
 
@@ -928,6 +976,7 @@ def polishing_entry(request):
         "available_data": available_data,
         "completed_ids": completed_ids,
         "allocations": allocations,
+        "polishing_stock": polishing_stock,
 
     }
 
