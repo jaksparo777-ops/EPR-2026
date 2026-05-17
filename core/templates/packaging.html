@@ -27,16 +27,27 @@
 <!-- TOP BUTTONS -->
 
 <div style="display:flex; gap:10px; margin-bottom:24px;">
-    <button style="background: var(--accent-blue); color:white; border:none; padding:15px 25px; border-radius:12px; font-weight:700; font-size:22px;">
+    <a href="?tab=entry" style="text-decoration:none; display:inline-block; border-radius:12px; font-weight:700; font-size:22px; padding:15px 25px; 
+        {% if active_tab == 'entry' %}
+            background: var(--accent-blue); color:white; border:none;
+        {% else %}
+            background: rgba(255,255,255,0.03); color: var(--text-secondary); border: 1px solid var(--border-soft);
+        {% endif %}">
         Packaging Entry
-    </button>
-    <button style="background: rgba(255,255,255,0.03); color: var(--text-secondary); border: 1px solid var(--border-soft); padding:15px 25px; border-radius:12px; font-weight:700; font-size:22px;">
+    </a>
+    <a href="?tab=ready" style="text-decoration:none; display:inline-block; border-radius:12px; font-weight:700; font-size:22px; padding:15px 25px; 
+        {% if active_tab == 'ready' %}
+            background: var(--accent-blue); color:white; border:none;
+        {% else %}
+            background: rgba(255,255,255,0.03); color: var(--text-secondary); border: 1px solid var(--border-soft);
+        {% endif %}">
         Ready Stock
-    </button>
+    </a>
 </div>
 
 
 
+{% if active_tab == 'entry' %}
 <div style="
     display:grid;
     grid-template-columns:1fr 1.2fr;
@@ -407,27 +418,15 @@
 
 </div>
 
-
-
-<!-- RECENT -->
-
-<div class="card"
-     style="margin-top:24px;">
+<!-- RECENT PACKING LOG -->
+<div class="card" style="margin-top:24px;">
 
     <h2 style="
         font-size:38px;
         font-weight:800;
         margin-bottom:24px;
     ">
-<div class="card"
-     style="margin-top:24px;">
-
-    <h2 style="
-        font-size:38px;
-        font-weight:800;
-        margin-bottom:24px;
-    ">
-        Ready Stock
+        Recent Packaging Logs
     </h2>
 
     <table>
@@ -452,11 +451,11 @@
             <tr>
 
                 <td>
-                    {{ row.created_at|date:"d/m/Y" }}
+                    {{ row.created_at|date:"d/m/Y H:i" }}
                 </td>
 
                 <td>
-                    {{ row.item }}
+                    {{ row.item.code }} - {{ row.item.name }}
                 </td>
 
                 <td>
@@ -476,6 +475,147 @@
     </table>
 
 </div>
+{% elif active_tab == 'ready' %}
+    <!-- READY STOCK ANALYTICS DASHBOARD -->
+    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px; margin-bottom:30px;">
+        <!-- Pieces Packed -->
+        <div class="card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.02) 100%); border: 1px solid rgba(59, 130, 246, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
+            <div style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">Total Ready Pieces</div>
+            <div style="font-size:42px; font-weight:800; color:#3b82f6;">{{ metrics.total_pieces }}</div>
+            <div style="font-size:14px; color:#64748b; margin-top:5px;">Packed & ready for dispatch</div>
+        </div>
+        
+        <!-- Total Cartons -->
+        <div class="card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.02) 100%); border: 1px solid rgba(16, 185, 129, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
+            <div style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">Total Ready Cartons</div>
+            <div style="font-size:42px; font-weight:800; color:#10b981;">{{ metrics.total_cartons }}</div>
+            <div style="font-size:14px; color:#64748b; margin-top:5px;">In master cartons</div>
+        </div>
+
+        <!-- Total Weight -->
+        <div class="card" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.02) 100%); border: 1px solid rgba(245, 158, 11, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
+            <div style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">Total Ready Weight</div>
+            <div style="font-size:42px; font-weight:800; color:#f59e0b;">{{ metrics.total_weight }} <span style="font-size:20px; font-weight:500;">kg</span></div>
+            <div style="font-size:14px; color:#64748b; margin-top:5px;">Total net weight</div>
+        </div>
+
+        <!-- Active Item Types -->
+        <div class="card" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.02) 100%); border: 1px solid rgba(139, 92, 246, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
+            <div style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">Ready Items</div>
+            <div style="font-size:42px; font-weight:800; color:#8b5cf6;">{{ metrics.ready_items_count }}</div>
+            <div style="font-size:14px; color:#64748b; margin-top:5px;">Unique active SKUs</div>
+        </div>
+    </div>
+
+    <div style="display:flex; gap:24px; align-items:start; width:100%;">
+        <!-- Left: Inventory Status -->
+        <div class="card" style="flex: 1.5; min-width:0;">
+            <h2 style="font-size:32px; font-weight:800; margin-bottom:24px;">Packed Stock Inventory Status</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item Details</th>
+                        <th>Status</th>
+                        <th>Carton Composition</th>
+                        <th style="text-align:right;">Ready Pcs</th>
+                        <th style="text-align:right;">Ready Weight</th>
+                        <th>Last Packed/Activity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in ready_analytics %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:700; font-size:18px; color: var(--text-primary);">{{ entry.item.code }}</div>
+                            <div style="font-size:14px; color: var(--text-secondary);">{{ entry.item.name }}</div>
+                        </td>
+                        <td>
+                            <span style="background: {{ entry.status_color }}1a; color: {{ entry.status_color }}; padding:6px 12px; border-radius:30px; font-size:12px; font-weight:700; border: 1px solid {{ entry.status_color }}33;">
+                                {{ entry.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="font-weight:600; color: var(--text-primary);">
+                                {% if entry.cartons > 0 %}
+                                    {{ entry.cartons }} Cartons
+                                    {% if entry.loose > 0 %}
+                                        <span style="font-size:13px; color: var(--text-secondary);">+ {{ entry.loose }} Pcs loose</span>
+                                    {% endif %}
+                                {% else %}
+                                    {{ entry.loose }} Pcs <span style="font-size:12px; color: var(--text-secondary); font-style:italic;">(Loose)</span>
+                                {% endif %}
+                            </div>
+                            <div style="font-size:12px; color: var(--text-secondary);">Lot Size: {{ entry.item.lot_with_box|default:"--" }}</div>
+                        </td>
+                        <td style="text-align:right; font-weight:700; font-size:18px; color: var(--text-primary);">
+                            {{ entry.qty }}
+                        </td>
+                        <td style="text-align:right; font-weight:700; font-size:18px; color: var(--text-primary);">
+                            {{ entry.weight }} kg
+                        </td>
+                        <td style="color: var(--text-secondary); font-size:14px;">
+                            {{ entry.last_activity|date:"d/m/Y H:i"|default:"--" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:40px; color: var(--text-secondary);">
+                            <div style="font-size:48px; margin-bottom:10px;">📦</div>
+                            <div style="font-weight:700; font-size:20px;">No Packed Ready Stock Available</div>
+                            <div>Stock is empty or has already been dispatched.</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Right: Charts and Sidebars -->
+        <div style="display:flex; flex-direction:column; gap:24px; flex: 1; min-width:0;">
+            <!-- Top Packed Items -->
+            <div class="card" style="width:100%;">
+                <h2 style="font-size:28px; font-weight:800; margin-bottom:20px;">Top Packed Items</h2>
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                    {% for entry in ready_analytics|slice:":5" %}
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="font-weight:700; color: var(--text-primary);">{{ entry.item.code }}</span>
+                            <span style="font-size:14px; font-weight:700; color: var(--text-secondary);">{{ entry.qty }} pcs</span>
+                        </div>
+                        <!-- Mini Progress Bar -->
+                        <div style="width:100%; height:8px; background: rgba(255,255,255,0.03); border-radius:4px; overflow:hidden;">
+                            <div style="height:100%; width: {% widthratio entry.qty metrics.total_pieces 100 %}%; background: var(--accent-blue); border-radius:4px;"></div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="text-align:center; color: var(--text-secondary); padding:20px 0;">No chart data</div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Recent Packing Log -->
+            <div class="card" style="width:100%;">
+                <h2 style="font-size:28px; font-weight:800; margin-bottom:20px;">Recent Packing Log</h2>
+                <div style="display:flex; flex-direction:column; gap:12px; max-height: 400px; overflow-y: auto; padding-right:5px;">
+                    {% for log in ready_stock|slice:":10" %}
+                    <div style="display:flex; justify-content:space-between; align-items:center; background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 16px;">
+                        <div>
+                            <div style="font-weight:700; font-size:15px; color: var(--text-primary);">{{ log.item.code }}</div>
+                            <div style="font-size:12px; color: var(--text-secondary);">{{ log.created_at|date:"d/m H:i" }}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight:700; color:#10b981; font-size:16px;">+{{ log.quantity }} pcs</div>
+                            <div style="font-size:11px; color: var(--text-secondary);">{{ log.weight }} kg</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="text-align:center; color: var(--text-secondary); padding:20px 0;">No logs yet</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
 
 
 <script>
@@ -484,6 +624,7 @@ function updatePackagingInfo(){
 
     const select =
         document.getElementById('itemSelect');
+    if (!select || !select.options) return;
 
     const option =
         select.options[select.selectedIndex];
@@ -522,6 +663,7 @@ function calculatePackaging(){
 
     const select =
         document.getElementById('itemSelect');
+    if (!select || !select.options) return;
 
     const option =
         select.options[select.selectedIndex];

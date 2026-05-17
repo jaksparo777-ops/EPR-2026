@@ -1018,6 +1018,7 @@ def packaging_view(request):
     # =====================================
     # READY STOCK
     # =====================================
+    active_tab = request.GET.get("tab", "entry")
 
     ready_stock = StockTransaction.objects.filter(
         transaction_type="packaging_in"
@@ -1034,13 +1035,86 @@ def packaging_view(request):
         if done:
             completed_ids.append(row.id)
 
-    context = {
+    # Rich Ready Stock Analytics
+    ready_analytics = []
+    total_pieces = 0
+    total_weight = 0.0
+    total_cartons = 0
+    
+    from django.db.models import Sum
+    from . import services
+    from .models import TransactionType
+    
+    for item in items:
+        item_stock = services.get_stock_by_item(item)
+        ready_qty = item_stock.get('ready', 0)
+        
+        if ready_qty > 0:
+            cartons = 0
+            loose = ready_qty
+            if item.lot_with_box and item.lot_with_box > 0:
+                cartons = ready_qty // item.lot_with_box
+                loose = ready_qty % item.lot_with_box
+                
+            # Precise weight calculations
+            txs = StockTransaction.objects.filter(item=item)
+            pack_wt = txs.filter(transaction_type=TransactionType.PACKAGING_IN).aggregate(total=Sum('weight'))['total'] or 0
+            kit_wt = txs.filter(transaction_type=TransactionType.KITTING_PRODUCE).aggregate(total=Sum('weight'))['total'] or 0
+            disp_wt = txs.filter(transaction_type=TransactionType.DISPATCH_OUT).aggregate(total=Sum('weight'))['total'] or 0
+            ready_wt = max(0.0, (pack_wt + kit_wt) - disp_wt)
+            
+            # Status allocation
+            if ready_qty > 500:
+                status = "High Stock"
+                status_color = "#10b981"
+            elif ready_qty > 100:
+                status = "Healthy"
+                status_color = "#3b82f6"
+            else:
+                status = "Low Stock"
+                status_color = "#f59e0b"
+                
+            # Last packed or dispatch action
+            last_tx = StockTransaction.objects.filter(
+                item=item,
+                transaction_type__in=[TransactionType.PACKAGING_IN, TransactionType.DISPATCH_OUT]
+            ).order_by('-created_at').first()
+            last_activity = last_tx.created_at if last_tx else None
+            
+            ready_analytics.append({
+                'item': item,
+                'qty': ready_qty,
+                'weight': round(ready_wt, 3),
+                'cartons': cartons,
+                'loose': loose,
+                'status': status,
+                'status_color': status_color,
+                'last_activity': last_activity
+            })
+            
+            total_pieces += ready_qty
+            total_weight += ready_wt
+            total_cartons += cartons
 
+    # Sort items by quantity descending for top item analysis
+    ready_analytics = sorted(ready_analytics, key=lambda x: x['qty'], reverse=True)
+
+    metrics = {
+        'total_pieces': total_pieces,
+        'total_weight': round(total_weight, 3),
+        'total_cartons': total_cartons,
+        'ready_items_count': len(ready_analytics),
+        'active_queue_count': len(packaging_queue)
+    }
+
+    context = {
         "items": items,
         "packaging_queue": packaging_queue,
         "ready_stock": ready_stock,
         "completed_ids": completed_ids,
-
+        "active_tab": active_tab,
+        "ready_analytics": ready_analytics,
+        "metrics": metrics
     }
 
     return render(
