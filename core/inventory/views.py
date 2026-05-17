@@ -705,6 +705,13 @@ def polishing_entry(request):
             tx = StockTransaction.objects.get(id=delete_id)
             # Delete child auto-consumed transactions for sets
             StockTransaction.objects.filter(notes__startswith=f"Auto-consumed for Set Transaction #{tx.id}").delete()
+            
+            # Find and delete component extras and their associated polishing_in transactions
+            comp_extras = StockTransaction.objects.filter(notes=f"Component Extra for Set Transaction #{tx.id}")
+            for comp_tx in comp_extras:
+                StockTransaction.objects.filter(notes=f"IN for OUT #{comp_tx.id}").delete()
+            comp_extras.delete()
+            
             StockTransaction.objects.filter(notes=f"IN for OUT #{tx.id}").delete()
             # Delete the transaction itself
             tx.delete()
@@ -846,28 +853,47 @@ def polishing_entry(request):
                         # Delete old component consumptions
                         StockTransaction.objects.filter(notes__startswith=f"Auto-consumed for Set Transaction #{tx.id}").delete()
 
-                        # Re-create child auto-consumption if applicable
+                        # Delete old component extras and their associated polishing_in transactions
+                        comp_extras = StockTransaction.objects.filter(notes=f"Component Extra for Set Transaction #{tx.id}")
+                        for comp_tx in comp_extras:
+                            StockTransaction.objects.filter(notes=f"IN for OUT #{comp_tx.id}").delete()
+                        comp_extras.delete()
+
+                        # Re-create child auto-consumption and component extras if applicable
                         if direction == "polishing_out" and item.item_type == 'SET':
                             from .models import Warehouse
                             from_wh = Warehouse.objects.filter(code='MACHINING').first()
                             components = row.get("components", [])
                             for comp_row in components:
                                 comp_id = comp_row.get("component_id")
-                                total_qty = int(comp_row.get("total_qty") or 0)
-                                if total_qty <= 0:
-                                    continue
+                                qty_per_set = int(comp_row.get("qty_per_set") or 0)
+                                extra_qty = int(comp_row.get("extra_qty") or 0)
+                                
+                                base_qty = qty_per_set * total_quantity
                                 try:
                                     comp_item = Item.objects.get(id=comp_id)
                                 except Item.DoesNotExist:
                                     continue
                                 
-                                StockTransaction.objects.create(
-                                    transaction_type="kitting_consume",
-                                    item=comp_item,
-                                    quantity=total_qty,
-                                    from_warehouse=from_wh,
-                                    notes=f"Auto-consumed for Set Transaction #{tx.id}"
-                                )
+                                if base_qty > 0:
+                                    StockTransaction.objects.create(
+                                        transaction_type="kitting_consume",
+                                        item=comp_item,
+                                        quantity=base_qty,
+                                        from_warehouse=from_wh,
+                                        notes=f"Auto-consumed for Set Transaction #{tx.id}"
+                                    )
+                                
+                                if extra_qty > 0:
+                                    StockTransaction.objects.create(
+                                        transaction_type="polishing_out",
+                                        item=comp_item,
+                                        worker=worker_obj,
+                                        job_worker=job_worker_obj,
+                                        quantity=extra_qty,
+                                        weight=extra_qty * (comp_item.machining_weight or 0.0),
+                                        notes=f"Component Extra for Set Transaction #{tx.id}"
+                                    )
                         messages.success(request, "Polishing entry updated successfully.")
                     except StockTransaction.DoesNotExist:
                         messages.error(request, "Selected polishing entry not found.")
@@ -889,23 +915,34 @@ def polishing_entry(request):
                         components = row.get("components", [])
                         for comp_row in components:
                             comp_id = comp_row.get("component_id")
-                            total_qty = int(comp_row.get("total_qty") or 0)
+                            qty_per_set = int(comp_row.get("qty_per_set") or 0)
+                            extra_qty = int(comp_row.get("extra_qty") or 0)
                             
-                            if total_qty <= 0:
-                                continue
-                                
+                            base_qty = qty_per_set * total_quantity
                             try:
                                 comp_item = Item.objects.get(id=comp_id)
                             except Item.DoesNotExist:
                                 continue
                                 
-                            StockTransaction.objects.create(
-                                transaction_type="kitting_consume",
-                                item=comp_item,
-                                quantity=total_qty,
-                                from_warehouse=from_wh,
-                                notes=f"Auto-consumed for Set Transaction #{parent_tx.id}"
-                            )
+                            if base_qty > 0:
+                                StockTransaction.objects.create(
+                                    transaction_type="kitting_consume",
+                                    item=comp_item,
+                                    quantity=base_qty,
+                                    from_warehouse=from_wh,
+                                    notes=f"Auto-consumed for Set Transaction #{parent_tx.id}"
+                                )
+                                
+                            if extra_qty > 0:
+                                StockTransaction.objects.create(
+                                    transaction_type="polishing_out",
+                                    item=comp_item,
+                                    worker=worker_obj,
+                                    job_worker=job_worker_obj,
+                                    quantity=extra_qty,
+                                    weight=extra_qty * (comp_item.machining_weight or 0.0),
+                                    notes=f"Component Extra for Set Transaction #{parent_tx.id}"
+                                )
                     messages.success(request, f"Polishing { 'Issue' if direction == 'polishing_out' else 'Receipt' } saved successfully.")
 
             return redirect("polishing_entry")
