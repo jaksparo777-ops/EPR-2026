@@ -558,6 +558,7 @@
             "code": "{{ item.code }}",
             "name": "{{ item.name }}",
             "lot_size": {{ item.lot_size|default:0 }},
+            "lot_with_box": {{ item.lot_with_box|default:0 }},
             "weight": {{ item.machining_weight|default:0 }},
             "available": {{ item.available_stock|default:0 }},
             "is_set": {% if item.item_type == 'SET' %}true{% else %}false{% endif %},
