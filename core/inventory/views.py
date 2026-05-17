@@ -649,22 +649,14 @@ def polishing_entry(request):
     job_workers = JobWorker.objects.filter(process="polishing", active=True)
     items = Item.objects.all()
 
+    from . import services
+
     piece_stock = {}
     set_capacity = {}
 
     for item in items:
-        # Machining IN - Polishing OUT = What is currently in Machining warehouse
-        machining_in_qty = StockTransaction.objects.filter(
-            item=item,
-            transaction_type="machining_in"
-        ).aggregate(total=Sum("quantity"))["total"] or 0
-
-        polishing_out_qty = StockTransaction.objects.filter(
-            item=item,
-            transaction_type="polishing_out"
-        ).aggregate(total=Sum("quantity"))["total"] or 0
-
-        current_machining_stock = machining_in_qty - polishing_out_qty
+        stock = services.get_stock_by_item(item)
+        current_machining_stock = stock.get('machining', 0)
         
         # Store individual piece stock
         piece_stock[item.id] = current_machining_stock
@@ -799,14 +791,16 @@ def polishing_entry(request):
 
             # If it's a SET item, consume components (only for OUT transactions)
             if direction == "polishing_out" and item.item_type == 'SET':
-                from .models import ItemComposition
+                from .models import ItemComposition, Warehouse
                 comps = ItemComposition.objects.filter(parent_item=item)
+                from_wh = Warehouse.objects.filter(code='MACHINING').first()
                 for comp in comps:
                     comp_total_qty = comp.quantity * total_quantity
                     StockTransaction.objects.create(
                         transaction_type="kitting_consume",
                         item=comp.component_item,
                         quantity=comp_total_qty,
+                        from_warehouse=from_wh,
                         notes=f"Auto-consumed for Set: {item.name} (Polishing Out)"
                     )
 
@@ -1759,11 +1753,14 @@ def assembly_view(request):
                 messages.error(request, f"Insufficient component stock: {', '.join(missing)}")
             else:
                 # Create Transactions
+                from .models import Warehouse
+                from_wh = Warehouse.objects.filter(code='POLISHING').first()
                 for comp in compositions:
                     StockTransaction.objects.create(
                         item=comp.component_item,
                         transaction_type=TransactionType.KITTING_CONSUME,
-                        quantity=comp.quantity * quantity
+                        quantity=comp.quantity * quantity,
+                        from_warehouse=from_wh
                     )
                 StockTransaction.objects.create(
                     item=item,

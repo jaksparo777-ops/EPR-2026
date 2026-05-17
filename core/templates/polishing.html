@@ -510,8 +510,7 @@
                             <div style="font-size:12px;color:var(--text-secondary);">{{ item.name }}</div>
                         </td>
                         <td><span class="badge"
-                                style="background:rgba(180,83,9,0.1); color:var(--accent-gold); font-size:16px;">{{
-                                item.set_capacity }}</span></td>
+                                style="background:rgba(180,83,9,0.1); color:var(--accent-gold); font-size:16px;">{{ item.set_capacity }}</span></td>
                         <td>
                             {% if item.set_capacity > 0 %}
                             <span style="color:#10b981; font-size:12px; font-weight:700;">● READY</span>
@@ -571,7 +570,7 @@
             "lot_size": {{ item.lot_size|default:0 }},
             "weight": {{ item.machining_weight|default:0 }},
             "available": {{ item.available_stock|default:0 }},
-            "is_set": {% if item.components.exists %}true{% else %}false{% endif %},
+            "is_set": {% if item.item_type == 'SET' %}true{% else %}false{% endif %},
             "components": [
                 {% if item.components.exists %}
                     {% for comp in item.components.all %}
