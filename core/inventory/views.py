@@ -916,6 +916,9 @@ def polishing_entry(request):
             if done:
                 completed_ids.append(row.id)
 
+    from .models import ItemWorkerAllocation
+    allocations = ItemWorkerAllocation.objects.all().select_related('item', 'worker', 'job_worker')
+
     context = {
 
         "workers": workers,
@@ -924,6 +927,7 @@ def polishing_entry(request):
         "recent": recent,
         "available_data": available_data,
         "completed_ids": completed_ids,
+        "allocations": allocations,
 
     }
 

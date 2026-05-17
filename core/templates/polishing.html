@@ -594,11 +594,26 @@
     }
 </script>
 
+<script id="allocation-data" type="application/json">
+    [
+        {% for alloc in allocations %}
+        {
+            "item_id": "{{ alloc.item.id }}",
+            "worker_id": "{% if alloc.worker %}w_{{ alloc.worker.id }}{% elif alloc.job_worker %}jw_{{ alloc.job_worker.id }}{% endif %}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+</script>
+
 <script>
     const itemsMaster = JSON.parse(document.getElementById('item-data').textContent);
     const stockMaster = JSON.parse(document.getElementById('stock-data').textContent);
     const capacityMaster = JSON.parse(document.getElementById('set-capacity-data').textContent);
+    const allocationsMaster = JSON.parse(document.getElementById('allocation-data').textContent || '[]');
     let rowCount = 0;
+    let workerTS = null;
+    const rowTomSelects = {};
+    let lastAllocatedItemId = null;
 
     function toggleDirection() {
         const container = document.querySelector('.dir-toggle-pill');
@@ -723,6 +738,12 @@
             placeholder: 'Search...',
             allowEmptyOption: true,
         });
+        rowTomSelects[id] = ts;
+
+        // Auto-populate item if a worker allocation is active
+        if (lastAllocatedItemId) {
+            ts.setValue(lastAllocatedItemId);
+        }
 
         // Ensure TomSelect change reliably triggers handleItemChange and recalculates quantities
         ts.on('change', function() {
@@ -733,6 +754,7 @@
 
     function removeRow(id) {
         document.getElementById(`row-${id}`).remove();
+        delete rowTomSelects[id];
     }
 
     function handleItemChange(id, select) {
@@ -740,6 +762,16 @@
         if (compList) {
             compList.innerHTML = '';
         }
+
+        // Auto-select allocated worker when an item is selected
+        if (select && select.value) {
+            const itemId = select.value;
+            const alloc = allocationsMaster.find(a => a.item_id == itemId);
+            if (alloc && workerTS) {
+                workerTS.setValue(alloc.worker_id);
+            }
+        }
+
         calculateRow(id);
     }
 
@@ -844,7 +876,7 @@
     document.addEventListener("DOMContentLoaded", () => {
         addItemRow(); // Start with one row
 
-        const workerTS = new TomSelect("#workerSelect", {
+        workerTS = new TomSelect("#workerSelect", {
             create: false,
             placeholder: 'Select Worker',
             render: {
@@ -884,6 +916,27 @@
                                 <span style="font-size:24px;font-weight:600;">${escape(text)}</span>
                             </div>`;
                 }
+            }
+        });
+
+        // Auto-select allocated item when a worker is chosen
+        workerTS.on('change', function(val) {
+            if (!val) {
+                lastAllocatedItemId = null;
+                return;
+            }
+            const alloc = allocationsMaster.find(a => a.worker_id === val);
+            if (alloc) {
+                lastAllocatedItemId = alloc.item_id;
+                // Auto-fill empty rows with this item
+                Object.keys(rowTomSelects).forEach(id => {
+                    const ts = rowTomSelects[id];
+                    if (ts && !ts.getValue()) {
+                        ts.setValue(alloc.item_id);
+                    }
+                });
+            } else {
+                lastAllocatedItemId = null;
             }
         });
 
