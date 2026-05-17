@@ -423,6 +423,16 @@ def machining_entry(request):
     job_workers = JobWorker.objects.filter(process="machining", active=True)
     items = Item.objects.all()
 
+    delete_id = request.GET.get("delete_id")
+    if delete_id:
+        try:
+            tx = StockTransaction.objects.get(id=delete_id)
+            tx.delete()
+            messages.success(request, "Machining entry deleted successfully.")
+        except StockTransaction.DoesNotExist:
+            messages.error(request, "Machining transaction not found.")
+        return redirect("machining_entry")
+
     if request.method == "POST":
 
         direction = request.POST.get("direction")
@@ -687,6 +697,23 @@ def polishing_entry(request):
     available_data = {**piece_stock, **set_capacity}
 
     # ======================================
+    # DELETE TRANSACTION
+    # ======================================
+    delete_id = request.GET.get("delete_id")
+    if delete_id:
+        try:
+            tx = StockTransaction.objects.get(id=delete_id)
+            # Delete child auto-consumed transactions for sets
+            StockTransaction.objects.filter(notes__startswith=f"Auto-consumed for Set Transaction #{tx.id}").delete()
+            StockTransaction.objects.filter(notes=f"IN for OUT #{tx.id}").delete()
+            # Delete the transaction itself
+            tx.delete()
+            messages.success(request, "Polishing entry and all associated auto-consumed/receipt transactions deleted successfully.")
+        except StockTransaction.DoesNotExist:
+            messages.error(request, "Selected transaction not found.")
+        return redirect("polishing_entry")
+
+    # ======================================
     # MARK IN BUTTON
     # ======================================
 
@@ -804,45 +831,83 @@ def polishing_entry(request):
                 if total_quantity <= 0:
                     continue
 
-                # If it's a SET item, consume components (only for OUT transactions)
-                if direction == "polishing_out" and item.item_type == 'SET':
-                    from .models import Warehouse
-                    from_wh = Warehouse.objects.filter(code='MACHINING').first()
-                    
-                    components = row.get("components", [])
-                    for comp_row in components:
-                        comp_id = comp_row.get("component_id")
-                        total_qty = int(comp_row.get("total_qty") or 0)
+                edit_id = request.POST.get("edit_id")
+                if edit_id:
+                    try:
+                        tx = StockTransaction.objects.get(id=edit_id)
+                        tx.transaction_type = direction
+                        tx.item = item
+                        tx.worker = worker_obj
+                        tx.job_worker = job_worker_obj
+                        tx.quantity = total_quantity
+                        tx.weight = weight
+                        tx.save()
+
+                        # Delete old component consumptions
+                        StockTransaction.objects.filter(notes__startswith=f"Auto-consumed for Set Transaction #{tx.id}").delete()
+
+                        # Re-create child auto-consumption if applicable
+                        if direction == "polishing_out" and item.item_type == 'SET':
+                            from .models import Warehouse
+                            from_wh = Warehouse.objects.filter(code='MACHINING').first()
+                            components = row.get("components", [])
+                            for comp_row in components:
+                                comp_id = comp_row.get("component_id")
+                                total_qty = int(comp_row.get("total_qty") or 0)
+                                if total_qty <= 0:
+                                    continue
+                                try:
+                                    comp_item = Item.objects.get(id=comp_id)
+                                except Item.DoesNotExist:
+                                    continue
+                                
+                                StockTransaction.objects.create(
+                                    transaction_type="kitting_consume",
+                                    item=comp_item,
+                                    quantity=total_qty,
+                                    from_warehouse=from_wh,
+                                    notes=f"Auto-consumed for Set Transaction #{tx.id}"
+                                )
+                        messages.success(request, "Polishing entry updated successfully.")
+                    except StockTransaction.DoesNotExist:
+                        messages.error(request, "Selected polishing entry not found.")
+                else:
+                    # Creating a new transaction
+                    parent_tx = StockTransaction.objects.create(
+                        transaction_type=direction,
+                        item=item,
+                        worker=worker_obj,
+                        job_worker=job_worker_obj,
+                        quantity=total_quantity,
+                        weight=weight
+                    )
+
+                    if direction == "polishing_out" and item.item_type == 'SET':
+                        from .models import Warehouse
+                        from_wh = Warehouse.objects.filter(code='MACHINING').first()
                         
-                        if total_qty <= 0:
-                            continue
+                        components = row.get("components", [])
+                        for comp_row in components:
+                            comp_id = comp_row.get("component_id")
+                            total_qty = int(comp_row.get("total_qty") or 0)
                             
-                        try:
-                            comp_item = Item.objects.get(id=comp_id)
-                        except Item.DoesNotExist:
-                            continue
-                            
-                        StockTransaction.objects.create(
-                            transaction_type="kitting_consume",
-                            item=comp_item,
-                            quantity=total_qty,
-                            from_warehouse=from_wh,
-                            notes=f"Auto-consumed for Set: {item.name} (Polishing Out)"
-                        )
+                            if total_qty <= 0:
+                                continue
+                                
+                            try:
+                                comp_item = Item.objects.get(id=comp_id)
+                            except Item.DoesNotExist:
+                                continue
+                                
+                            StockTransaction.objects.create(
+                                transaction_type="kitting_consume",
+                                item=comp_item,
+                                quantity=total_qty,
+                                from_warehouse=from_wh,
+                                notes=f"Auto-consumed for Set Transaction #{parent_tx.id}"
+                            )
+                    messages.success(request, f"Polishing { 'Issue' if direction == 'polishing_out' else 'Receipt' } saved successfully.")
 
-                StockTransaction.objects.create(
-                    transaction_type=direction,
-                    item=item,
-                    worker=worker_obj,
-                    job_worker=job_worker_obj,
-                    quantity=total_quantity,
-                    weight=weight
-                )
-
-            messages.success(
-                request,
-                f"Polishing { 'Issue' if direction == 'polishing_out' else 'Receipt' } saved successfully."
-            )
             return redirect("polishing_entry")
         else:
             # Fallback to standard form fields (legacy support)

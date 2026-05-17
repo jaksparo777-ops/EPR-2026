@@ -331,6 +331,7 @@
 
             <form method="POST" id="polishingForm">
                 {% csrf_token %}
+                <input type="hidden" name="edit_id" id="editIdInput" value="">
                 <input type="hidden" name="direction" id="dirInput" value="polishing_out">
 
                 <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-bottom: 20px;">
@@ -472,18 +473,37 @@
                             <div style="font-weight:700;">{{ row.quantity }} pcs</div>
                             <div style="font-size:12px;color:var(--text-secondary);">{{ row.weight }} kg</div>
                         </td>
-                        <td>
-                            {% if row.transaction_type == "polishing_out" %}
-                            {% if row.id in completed_ids %}
-                            <span style="color:#10b981;font-size:12px;font-weight:700;">✓ RECEIVED</span>
-                            {% else %}
-                            <a href="?mark_in={{ row.id }}"
-                                style="color:var(--indigo-primary);font-size:12px;font-weight:700;text-decoration:none;">MARK
-                                IN</a>
-                            {% endif %}
-                            {% else %}
-                            —
-                            {% endif %}
+                        <td style="text-align:right;">
+                            <div style="display:flex; gap:8px; justify-content:flex-end; align-items:center;">
+                                {% if row.transaction_type == "polishing_out" %}
+                                    {% if row.id in completed_ids %}
+                                        <span style="color:#10b981;font-size:12px;font-weight:700;margin-right:8px;">✓ RECEIVED</span>
+                                    {% else %}
+                                        <a href="?mark_in={{ row.id }}" class="btn-primary"
+                                            style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.2); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; text-decoration:none; display:inline-block; line-height:1.2;">MARK IN</a>
+                                    {% endif %}
+                                {% endif %}
+
+                                <button type="button" class="btn-secondary"
+                                    style="background:rgba(79, 70, 229, 0.1); color:#818cf8; border:1px solid rgba(79, 70, 229, 0.2); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; cursor:pointer;"
+                                    onclick='editPolishingTransaction({
+                                        id: "{{ row.id }}",
+                                        type: "{{ row.transaction_type }}",
+                                        item_id: "{{ row.item.id }}",
+                                        item_name: "{{ row.item.code }} - {{ row.item.name }}",
+                                        worker_id: "{% if row.worker %}w_{{ row.worker.id }}{% elif row.job_worker %}jw_{{ row.job_worker.id }}{% endif %}",
+                                        qty: "{{ row.quantity }}",
+                                        weight: "{{ row.weight }}"
+                                    })'>
+                                    EDIT
+                                </button>
+
+                                <a href="?delete_id={{ row.id }}" class="btn-secondary"
+                                    style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; text-decoration:none; cursor:pointer;"
+                                    onclick="return confirm('Are you sure you want to delete this Polishing transaction? Deleting parent set transactions will also remove auto-consumed component inventory entries.');">
+                                    DELETE
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -1062,6 +1082,135 @@
         calculateRow(0);
     }
     window.quickReceivePolishing = quickReceivePolishing;
+
+    function editPolishingTransaction(data) {
+        // 1. Smooth Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // 2. Set direction
+        setDirection(data.type);
+
+        // 3. Set edit_id value
+        document.getElementById('editIdInput').value = data.id;
+
+        // 4. Clear container & Add exactly one fresh item row
+        const container = document.getElementById('items-container');
+        container.innerHTML = '';
+        
+        // Reset the dynamic TomSelect instances map
+        Object.keys(rowTomSelects).forEach(id => {
+            delete rowTomSelects[id];
+        });
+        
+        rowCount = 0;
+        addItemRow(); // This creates row with id 0
+
+        // 5. Set Worker
+        if (workerTS) {
+            workerTS.setValue(data.worker_id);
+        }
+
+        // 6. Select Item on row 0
+        const ts = rowTomSelects[0];
+        if (ts) {
+            const item_id_str = data.item_id.toString();
+            let originalOpt = itemsMaster.find(item => item.id.toString() === item_id_str);
+            if (!originalOpt && data.item_name) {
+                originalOpt = {
+                    id: item_id_str,
+                    name: data.item_name,
+                    code: data.item_name.split(' - ')[0] || data.item_name,
+                    is_set: data.item_name.includes('[SET]'),
+                    components: []
+                };
+            }
+            if (originalOpt) {
+                if (!ts.options[item_id_str]) {
+                    ts.addOption({
+                        value: item_id_str,
+                        text: (originalOpt.is_set ? '📦 [SET] ' : '🧩 [SINGLE] ') + originalOpt.code + ' - ' + originalOpt.name
+                    });
+                }
+            }
+            ts.setValue(item_id_str);
+        }
+
+        // 7. Set lots, manual pieces and weight
+        const item = itemsMaster.find(it => it.id.toString() === data.item_id.toString());
+        if (item) {
+            const lotSize = item.lot_size || 1;
+            const lots = Math.floor(data.qty / lotSize);
+            const remainder = data.qty % lotSize;
+            
+            const row = document.getElementById('row-0');
+            if (row) {
+                const lotsInput = row.querySelector('[name="lots[]"]');
+                if (lotsInput) lotsInput.value = lots;
+
+                const manualInput = row.querySelector('[name="manual[]"]');
+                if (manualInput) manualInput.value = remainder;
+
+                const weightInput = row.querySelector('[name="weight[]"]');
+                if (weightInput) weightInput.value = data.weight;
+            }
+        }
+
+        calculateRow(0);
+
+        // 8. Update button text & insert cancel button if not present
+        const submitBtn = document.querySelector('#polishingForm button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.textContent = 'UPDATE TRANSACTION';
+            submitBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            submitBtn.style.boxShadow = '0 0 15px rgba(245, 158, 11, 0.4)';
+        }
+
+        let cancelBtn = document.getElementById('cancelEditBtn');
+        if (!cancelBtn) {
+            cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.id = 'cancelEditBtn';
+            cancelBtn.className = 'btn-secondary';
+            cancelBtn.textContent = 'CANCEL EDIT';
+            cancelBtn.style.marginTop = '8px';
+            cancelBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+            cancelBtn.style.color = '#ef4444';
+            cancelBtn.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+            cancelBtn.onclick = clearPolishingEdit;
+            submitBtn.parentNode.insertBefore(cancelBtn, submitBtn.nextSibling);
+        }
+    }
+    window.editPolishingTransaction = editPolishingTransaction;
+
+    function clearPolishingEdit() {
+        document.getElementById('editIdInput').value = '';
+        
+        const submitBtn = document.querySelector('#polishingForm button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.textContent = 'SAVE TRANSACTION';
+            submitBtn.style.background = '';
+            submitBtn.style.boxShadow = '';
+        }
+
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        if (cancelBtn) {
+            cancelBtn.remove();
+        }
+
+        // Reset inputs
+        const container = document.getElementById('items-container');
+        container.innerHTML = '';
+        Object.keys(rowTomSelects).forEach(id => {
+            delete rowTomSelects[id];
+        });
+        rowCount = 0;
+        addItemRow();
+
+        if (workerTS) {
+            workerTS.clear();
+        }
+    }
+    window.clearPolishingEdit = clearPolishingEdit;
 
     document.addEventListener("DOMContentLoaded", () => {
         addItemRow(); // Start with one row
