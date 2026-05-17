@@ -1603,93 +1603,126 @@ def master_data(request):
 # =====================================================
 
 def casting_stock(request):
-
     from collections import defaultdict
+    from django.db.models import Sum
+    from django.utils import timezone
+    from .models import StockTransaction, Item, Client
 
-    rows = []
+    # 1. Fetch casting entry (production) transactions
+    casting_txs = StockTransaction.objects.filter(
+        transaction_type__in=["casting_in", "casting_entry"]
+    ).select_related("client", "item")
 
-    transactions = StockTransaction.objects.filter(
-        transaction_type__in=[
-            "casting_in",
-            "casting_entry"
-        ]
-    ).select_related(
-        "client",
-        "item"
-    )
+    # 2. Fetch machining issue transactions
+    machining_out_txs = StockTransaction.objects.filter(
+        transaction_type="machining_out"
+    ).select_related("client", "item")
 
     grouped = defaultdict(lambda: {
-        "pcs": 0,
-        "weight": 0
+        "cast_qty": 0,
+        "cast_weight": 0.0,
+        "issued_qty": 0,
+        "issued_weight": 0.0,
     })
 
-    for tx in transactions:
+    # Aggregate casting production
+    for tx in casting_txs:
+        client_name = tx.client.name if tx.client else "NO CLIENT"
+        item_code = tx.item.code if tx.item else "-"
+        item_name = tx.item.name if tx.item else "-"
+        key = (client_name, item_code, item_name)
+        
+        grouped[key]["cast_qty"] += tx.quantity or 0
+        grouped[key]["cast_weight"] += float(tx.weight or 0)
 
-        client_name = (
-            tx.client.name
-            if tx.client else "NO CLIENT"
-        )
+    # Aggregate machining issues
+    for tx in machining_out_txs:
+        client_name = tx.client.name if tx.client else "NO CLIENT"
+        item_code = tx.item.code if tx.item else "-"
+        item_name = tx.item.name if tx.item else "-"
+        key = (client_name, item_code, item_name)
 
-        item_code = (
-            tx.item.code
-            if tx.item else "-"
-        )
+        grouped[key]["issued_qty"] += tx.quantity or 0
+        grouped[key]["issued_weight"] += float(tx.weight or 0)
 
-        item_name = (
-            tx.item.name
-            if tx.item else "-"
-        )
-
-        key = (
-            client_name,
-            item_code,
-            item_name
-        )
-
-        grouped[key]["pcs"] += tx.quantity or 0
-
-        grouped[key]["weight"] += float(
-            tx.weight or 0
-        )
+    rows = []
+    total_cast_pcs = 0
+    total_cast_wt = 0.0
+    total_issued_pcs = 0
+    total_issued_wt = 0.0
+    total_stock_pcs = 0
+    total_stock_wt = 0.0
 
     for key, value in grouped.items():
+        cast_qty = value["cast_qty"]
+        cast_wt = round(value["cast_weight"], 3)
+        issued_qty = value["issued_qty"]
+        issued_wt = round(value["issued_weight"], 3)
+        
+        stock_qty = max(0, cast_qty - issued_qty)
+        stock_wt = max(0.0, round(value["cast_weight"] - value["issued_weight"], 3))
 
         rows.append({
-
             "client": key[0],
             "code": key[1],
             "item": key[2],
-
-            "pcs": value["pcs"],
-
-            "weight": round(
-                value["weight"],
-                3
-            )
-
+            "cast_pcs": cast_qty,
+            "cast_weight": cast_wt,
+            "issued_pcs": issued_qty,
+            "issued_weight": issued_wt,
+            "pcs": stock_qty,
+            "weight": stock_wt,
         })
 
-    graph_labels = []
-    graph_values = []
+        total_cast_pcs += cast_qty
+        total_cast_wt += value["cast_weight"]
+        total_issued_pcs += issued_qty
+        total_issued_wt += value["issued_weight"]
+        total_stock_pcs += stock_qty
+        total_stock_wt += (value["cast_weight"] - value["issued_weight"])
 
-    item_summary = defaultdict(int)
+    # Graph distributions
+    client_stock = defaultdict(int)
+    item_stock = defaultdict(lambda: {"cast": 0, "issued": 0, "net": 0})
 
     for row in rows:
+        client_stock[row["client"]] += row["pcs"]
+        item_stock[row["item"]]["cast"] += row["cast_pcs"]
+        item_stock[row["item"]]["issued"] += row["issued_pcs"]
+        item_stock[row["item"]]["net"] += row["pcs"]
 
-        item_summary[row["item"]] += row["pcs"]
+    # Graph Client Stock Distribution
+    graph_client_labels = list(client_stock.keys())
+    graph_client_values = list(client_stock.values())
 
-    for item_name, pcs in item_summary.items():
+    # Graph Item stock comparison
+    graph_item_labels = list(item_stock.keys())
+    graph_item_cast = [d["cast"] for d in item_stock.values()]
+    graph_item_issued = [d["issued"] for d in item_stock.values()]
+    graph_item_net = [d["net"] for d in item_stock.values()]
 
-        graph_labels.append(item_name)
-        graph_values.append(pcs)
+    # Production run this month (casting_entry from 1st day of current month)
+    first_day_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_prod_qty = StockTransaction.objects.filter(
+        transaction_type__in=["casting_in", "casting_entry"],
+        created_at__gte=first_day_of_month
+    ).aggregate(total=Sum('quantity'))['total'] or 0
 
     context = {
-
         "rows": rows,
-
-        "graph_labels": graph_labels,
-        "graph_values": graph_values,
-
+        "total_cast_pcs": total_cast_pcs,
+        "total_cast_wt": round(total_cast_wt, 3),
+        "total_issued_pcs": total_issued_pcs,
+        "total_issued_wt": round(total_issued_wt, 3),
+        "total_stock_pcs": max(0, total_stock_pcs),
+        "total_stock_wt": max(0.0, round(total_stock_wt, 3)),
+        "month_prod_qty": month_prod_qty,
+        "graph_client_labels": graph_client_labels,
+        "graph_client_values": graph_client_values,
+        "graph_item_labels": graph_item_labels,
+        "graph_item_cast": graph_item_cast,
+        "graph_item_issued": graph_item_issued,
+        "graph_item_net": graph_item_net,
     }
 
     return render(
