@@ -1088,24 +1088,12 @@
         <input type="hidden" name="form_type" value="item">
         <input type="hidden" name="edit_id" value="{{ edit_item_data.id|default:'' }}">
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
             <div class="form-group"><label>ITEM NAME</label><input type="text" name="name"
                     value="{{ edit_item_data.name|default:'' }}" required></div>
             <div class="form-group"><label>ITEM CODE</label><input type="text" name="code"
                     value="{{ edit_item_data.code|default:'' }}" required></div>
-            <div class="form-group">
-                <label>BOM / SET</label>
-                <div class="toggle-container">
-                    <span class="toggle-label">NO</span>
-                    <label class="switch">
-                        <input type="checkbox" id="itemTypeToggle" onchange="updateItemType(this)">
-                        <span class="slider"></span>
-                    </label>
-                    <span class="toggle-label" style="color:var(--accent-blue);">YES</span>
-                </div>
-                <input type="hidden" name="item_type" id="id_item_type"
-                    value="{% if edit_item_data.item_type == 'SET' %}SET{% else %}SINGLE{% endif %}">
-            </div>
+            <input type="hidden" name="item_type" id="id_item_type" value="SET">
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
@@ -1281,10 +1269,6 @@
         });
     }
 
-    function updateItemType(checkbox) {
-        document.getElementById('id_item_type').value = checkbox.checked ? 'SET' : 'SINGLE';
-    }
-
     // Auto-load workers if editing
     {% if edit_item_data %}
     {% for alloc in edit_item_data.worker_allocations.all %}
@@ -1294,10 +1278,6 @@
     addWorkerRow('jw_{{ alloc.job_worker.id }}', '{{ alloc.rate_per_piece }}');
     {% endif %}
     {% endfor %}
-
-    // Set toggle state
-    const isSet = "{{ edit_item_data.item_type }}" === "SET";
-    document.getElementById('itemTypeToggle').checked = isSet;
     {% endif %}
 </script>
 

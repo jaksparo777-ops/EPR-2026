@@ -674,7 +674,7 @@ def polishing_entry(request):
 
     # Second pass: Calculate Set Capacity based on piece stock
     for item in items:
-        if item.item_type == 'SET':
+        if item.components.exists():
             from .models import ItemComposition
             comps = ItemComposition.objects.filter(parent_item=item)
             if comps.exists():
@@ -860,7 +860,7 @@ def polishing_entry(request):
                         comp_extras.delete()
 
                         # Re-create child auto-consumption and component extras if applicable
-                        if direction == "polishing_out" and item.item_type == 'SET':
+                        if direction == "polishing_out" and item.components.exists():
                             from .models import Warehouse
                             from_wh = Warehouse.objects.filter(code='MACHINING').first()
                             components = row.get("components", [])
@@ -908,7 +908,7 @@ def polishing_entry(request):
                         weight=weight
                     )
 
-                    if direction == "polishing_out" and item.item_type == 'SET':
+                    if direction == "polishing_out" and item.components.exists():
                         from .models import Warehouse
                         from_wh = Warehouse.objects.filter(code='MACHINING').first()
                         
@@ -969,7 +969,7 @@ def polishing_entry(request):
                     continue
 
                 # If it's a SET item, consume components (only for OUT transactions)
-                if direction == "polishing_out" and item.item_type == 'SET':
+                if direction == "polishing_out" and item.components.exists():
                     from .models import ItemComposition, Warehouse
                     comps = ItemComposition.objects.filter(parent_item=item)
                     from_wh = Warehouse.objects.filter(code='MACHINING').first()
@@ -1293,6 +1293,7 @@ def master_data(request):
         
         if form_type == "item":
             data = request.POST.copy()
+            data['item_type'] = 'SET'
             
             # Default empty numeric fields to 0
             if not data.get('casting_weight'): data['casting_weight'] = 0
@@ -1349,19 +1350,18 @@ def master_data(request):
 
                 # Handle Item Composition (BOM)
                 ItemComposition.objects.filter(parent_item=item).delete()
-                if item.item_type == 'SET':
-                    comp_ids = request.POST.getlist('component_id[]')
-                    comp_qtys = request.POST.getlist('component_qty[]')
-                    for cid, qty in zip(comp_ids, comp_qtys):
-                        if cid and qty:
-                            try:
-                                ItemComposition.objects.create(
-                                    parent_item=item,
-                                    component_item_id=cid,
-                                    quantity=int(qty)
-                                )
-                            except Exception:
-                                pass
+                comp_ids = request.POST.getlist('component_id[]')
+                comp_qtys = request.POST.getlist('component_qty[]')
+                for cid, qty in zip(comp_ids, comp_qtys):
+                    if cid and qty:
+                        try:
+                            ItemComposition.objects.create(
+                                parent_item=item,
+                                component_item_id=cid,
+                                quantity=int(qty)
+                            )
+                        except Exception:
+                            pass
                             
                 messages.success(request, f"Item {'updated' if edit_item else 'created'} successfully.")
                 return redirect(f"{reverse('master_data')}?tab=items")
@@ -1566,8 +1566,8 @@ def master_data(request):
     if client_filter_id and client_filter_id.strip():
         items_to_display = all_items.filter(client_id=client_filter_id)
     
-    # Items for the BOM tab (only those marked as SET that actually have components)
-    bom_items = Item.objects.filter(item_type='SET', components__isnull=False).distinct().prefetch_related('components__component_item')
+    # Items for the BOM tab (only those that actually have components)
+    bom_items = Item.objects.filter(components__isnull=False).distinct().prefetch_related('components__component_item')
 
     # Client Stats for the dashboard
     from django.db.models import Count
@@ -2164,8 +2164,8 @@ def assembly_view(request):
                 messages.error(request, f"Error: {str(e)}")
                 return redirect(f"{reverse('assembly')}?tab=entry")
             
-    items = Item.objects.filter(item_type='SET', active=True).order_by('code')
-    bom_items = Item.objects.filter(item_type='SET', components__isnull=False).distinct().prefetch_related('components__component_item').order_by('code')
+    items = Item.objects.filter(components__isnull=False, active=True).distinct().order_by('code')
+    bom_items = Item.objects.filter(components__isnull=False).distinct().prefetch_related('components__component_item').order_by('code')
     all_items = Item.objects.filter(active=True).order_by('code')
     recent_assemblies = StockTransaction.objects.filter(transaction_type='kitting_produce').order_by('-created_at')[:20]
     clients = Client.objects.filter(active=True).order_by('name')

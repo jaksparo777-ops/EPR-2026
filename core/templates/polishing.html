@@ -564,7 +564,7 @@
                 </thead>
                 <tbody>
                     {% for item in items %}
-                    {% if item.item_type == 'SET' %}
+                    {% if item.components.exists %}
                     <tr>
                         <td>
                             <div style="font-weight:700;">{{ item.code }}</div>
@@ -632,7 +632,7 @@
             "lot_with_box": {{ item.lot_with_box|default:0 }},
             "weight": {{ item.machining_weight|default:0 }},
             "available": {{ item.available_stock|default:0 }},
-            "is_set": {% if item.item_type == 'SET' %}true{% else %}false{% endif %},
+            "is_set": {% if item.components.exists %}true{% else %}false{% endif %},
             "components": [
                 {% if item.components.exists %}
                     {% for comp in item.components.all %}
