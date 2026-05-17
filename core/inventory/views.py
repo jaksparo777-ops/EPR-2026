@@ -1334,10 +1334,15 @@ def master_data(request):
             
             try:
                 if new_set_name:
+                    code = request.POST.get('new_set_code', '').strip()
+                    if Item.objects.filter(code=code).exists():
+                        messages.error(request, f"Error saving BOM: An item with code '{code}' already exists in the Item Master. Please choose a unique code.")
+                        return redirect(f"{reverse('master_data')}?tab=items&sub=bom")
+                    
                     # Create a NEW Item for the Set
                     parent_item = Item.objects.create(
                         name=new_set_name,
-                        code=request.POST.get('new_set_code'),
+                        code=code,
                         category=request.POST.get('category', 'OTHER'),
                         item_type='SET'
                     )

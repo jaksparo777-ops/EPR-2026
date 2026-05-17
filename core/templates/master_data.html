@@ -2066,6 +2066,13 @@
     }
 
     function updateGeneratedName() {
+        const mode = document.getElementById('setParentMode').value;
+        if (mode === 'existing') {
+            document.getElementById('generatedSetName').value = '';
+            document.getElementById('generatedSetCode').value = '';
+            return;
+        }
+
         const rows = document.querySelectorAll('.quick-bom-row');
         let names = [];
         let codes = [];
