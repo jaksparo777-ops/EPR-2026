@@ -1,0 +1,221 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<style>
+
+.grid-2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+</style>
+
+<h1 style="font-size:58px; margin-bottom:10px;">
+    Dispatch & Sales
+</h1>
+
+<p style="color:#64748b; margin-bottom:30px; font-size:24px;">
+    Dispatch ready stock to clients and track sales out.
+</p>
+
+<div class="grid-2">
+
+    <!-- DISPATCH FORM -->
+    <div class="card">
+        
+        <h3 style="margin-bottom:20px; font-size:32px;">
+            Create New Dispatch
+        </h3>
+
+        <form method="POST" action="{% url 'dispatch' %}">
+            {% csrf_token %}
+
+            <div style="margin-bottom:15px;">
+                <label style="display:block; margin-bottom:8px; font-size:18px; font-weight:bold;">
+                    Client
+                </label>
+                <select name="client" required style="width:100%; padding:14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius:12px; color: var(--text-primary); outline:none; font-size:22px;">
+                    <option value="">Select Client</option>
+                    {% for client in clients %}
+                        <option value="{{ client.id }}">{{ client.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <label style="display:block; margin-bottom:8px; font-size:18px; font-weight:700; color: var(--text-secondary); text-transform: uppercase;">
+                    Item
+                </label>
+                <select name="item" id="itemSelect" required style="width:100%; padding:14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius:12px; color: var(--text-primary); outline:none; font-size:22px;" onchange="updateWeight()">
+                    <option value="" data-weight="0">Select Item</option>
+                    {% for item in items %}
+                        <option value="{{ item.id }}" data-weight="{{ item.machining_weight|default:0 }}" data-lot="{{ item.lot_with_box|default:1 }}">
+                            {{ item.code }} - {{ item.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid-2" style="margin-bottom:20px;">
+                <div>
+                    <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color: var(--text-secondary); text-transform: uppercase;">
+                        Cartons
+                    </label>
+                    <input type="number" name="cartons" id="cartonsInput" min="0" value="0"
+                           style="width:100%; padding:14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius:12px; color: var(--text-primary); outline:none;"
+                           oninput="updateCalculations()">
+                </div>
+                <div>
+                    <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color: var(--text-secondary); text-transform: uppercase;">
+                        Loose Pieces
+                    </label>
+                    <input type="number" name="loose_pieces" id="loosePiecesInput" min="0" value="0"
+                           style="width:100%; padding:14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius:12px; color: var(--text-primary); outline:none;"
+                           oninput="updateCalculations()">
+                </div>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <small id="cartonHelper" style="color: var(--accent-blue); font-weight:700; font-size:14px; display:block; background: rgba(79, 70, 229, 0.1); padding: 10px; border-radius: 8px;">
+                    Total Pieces: 0
+                </small>
+            </div>
+
+            <div style="margin-bottom:30px;">
+                <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color: var(--text-secondary); text-transform: uppercase;">
+                    Total Weight (KG)
+                </label>
+                <input type="number" step="0.001" name="weight" id="weightInput" required 
+                       style="width:100%; padding:14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius:12px; color: var(--text-primary); outline:none; font-size:22px;">
+                <small style="color: var(--text-secondary); font-size:12px; margin-top:8px; display:block;">
+                    Auto-calculated based on item master, but can be overridden.
+                </small>
+            </div>
+
+            <button type="submit" style="width:100%;">
+                Dispatch Stock
+            </button>
+        </form>
+
+    </div>
+
+
+    <!-- READY STOCK SUMMARY -->
+    <div class="card">
+        
+        <h3 style="margin-bottom:20px;">
+            Available Ready Stock
+        </h3>
+
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item Code</th>
+                        <th>Item Name</th>
+                        <th>Cartons</th>
+                        <th>Loose Pcs</th>
+                        <th>Total Pcs</th>
+                        <th>Weight (KG)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in stock_rows %}
+                    <tr>
+                        <td style="font-weight:bold;">{{ row.item.code }}</td>
+                        <td>{{ row.item.name }}</td>
+                        <td style="color:#16a34a; font-weight:bold;">{{ row.cartons|default:"0" }}</td>
+                        <td>{{ row.loose_pieces|default:"0" }}</td>
+                        <td style="font-weight:bold;">{{ row.total_pieces|default:"0" }}</td>
+                        <td>{{ row.weight }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding:30px; color:#64748b;">
+                            No items are currently packed and ready for dispatch.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- RECENT DISPATCHES -->
+<div class="card" style="margin-top:20px;">
+    
+    <h3 style="margin-bottom:20px;">
+        Recent Dispatches
+    </h3>
+
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Client</th>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Weight</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in recent_dispatches %}
+                <tr>
+                    <td>{{ tx.created_at|date:"M d, Y H:i" }}</td>
+                    <td style="font-weight:bold;">{{ tx.client.name }}</td>
+                    <td>{{ tx.item.code }} - {{ tx.item.name }}</td>
+                    <td>{{ tx.quantity }}</td>
+                    <td>{{ tx.weight }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:30px; color:#64748b;">
+                        No dispatches recorded yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    function updateCalculations() {
+        const itemSelect = document.getElementById('itemSelect');
+        const cartonsInput = document.getElementById('cartonsInput');
+        const loosePiecesInput = document.getElementById('loosePiecesInput');
+        const weightInput = document.getElementById('weightInput');
+        const cartonHelper = document.getElementById('cartonHelper');
+        
+        const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+        const weightPerPiece = parseFloat(selectedOption.getAttribute('data-weight')) || 0;
+        const lotSize = parseInt(selectedOption.getAttribute('data-lot')) || 0;
+        
+        const cartons = parseInt(cartonsInput.value) || 0;
+        const loosePieces = parseInt(loosePiecesInput.value) || 0;
+        
+        const totalPieces = (cartons * lotSize) + loosePieces;
+        
+        cartonHelper.textContent = `Total Pieces: ${totalPieces}`;
+
+        // Auto-calculate weight
+        if (weightPerPiece > 0 && totalPieces > 0) {
+            weightInput.value = (weightPerPiece * totalPieces).toFixed(3);
+        } else {
+            weightInput.value = "";
+        }
+    }
+
+    // Attach to select change as well
+    document.getElementById('itemSelect').addEventListener('change', updateCalculations);
+</script>
+
+{% endblock %}

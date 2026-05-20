@@ -425,15 +425,16 @@ function addItemRow(data = null) {
         <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-bottom: 15px;">
             <div class="form-group">
                 <label style="font-size: 10px; opacity: 0.6;">Client</label>
-                <select name="${isEditing ? 'client' : 'client[]'}" class="client-select" id="client-select-${id}" onchange="handleRowClientChange(${id})" required>
+                <select name="${isEditing ? 'client' : 'client[]'}" class="client-select" id="client-select-${id}" required>
                     <option value="">Select Client</option>
                     ${clientsMaster.map(c => `<option value="${c.id}" ${initialClientId == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
                 </select>
             </div>
             <div class="form-group">
                 <label style="font-size: 10px; opacity: 0.6;">Item</label>
-                <select name="${isEditing ? 'item' : 'item[]'}" class="item-select" id="item-select-${id}" required onchange="handleItemChange(${id})">
+                <select name="${isEditing ? 'item' : 'item[]'}" class="item-select" id="item-select-${id}" required>
                     <option value="">Select Item</option>
+                    ${itemsMaster.map(it => `<option value="${it.id}">${it.code} - ${it.name}</option>`).join('')}
                 </select>
             </div>
         </div>
@@ -455,36 +456,95 @@ function addItemRow(data = null) {
     const cTS = new TomSelect(`#client-select-${id}`, { create: false, placeholder: 'Client...' });
     const iTS = new TomSelect(`#item-select-${id}`, { create: false, placeholder: 'Item...' });
     
-    if (initialClientId || (data && data.item_id)) {
-        handleRowClientChange(id, data ? data.item_id : null);
-    }
-}
+    let rowUpdating = false;
 
-function handleRowClientChange(rowId, selectedItemId = null) {
-    const cTS = document.getElementById(`client-select-${rowId}`).tomselect;
-    const iTS = document.getElementById(`item-select-${rowId}`).tomselect;
-    const clientId = cTS.getValue();
-    
-    iTS.clearOptions();
-    iTS.addOption({value: '', text: 'Select Item'});
-    
-    const filtered = clientId 
-        ? itemsMaster.filter(it => it.client_id == clientId)
-        : [];
+    cTS.on('change', function(clientId) {
+        if (rowUpdating) return;
+        rowUpdating = true;
         
-    filtered.forEach(it => {
-        iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+        const itemId = iTS.getValue();
+        
+        if (clientId) {
+            // Filter Item options to only those for this client
+            const filtered = itemsMaster.filter(it => it.client_id == clientId);
+            
+            iTS.clearOptions();
+            iTS.addOption({value: '', text: 'Select Item'});
+            filtered.forEach(it => {
+                iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+            });
+            
+            const currentItem = itemsMaster.find(it => it.id == itemId);
+            if (currentItem && currentItem.client_id == clientId) {
+                iTS.setValue(itemId);
+            } else {
+                iTS.setValue('');
+            }
+        } else {
+            // Restore all items
+            iTS.clearOptions();
+            iTS.addOption({value: '', text: 'Select Item'});
+            itemsMaster.forEach(it => {
+                iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+            });
+            iTS.setValue(itemId);
+        }
+        
+        rowUpdating = false;
+    });
+
+    iTS.on('change', function(itemId) {
+        calculateWeight(id);
+
+        if (rowUpdating) return;
+        rowUpdating = true;
+        
+        if (itemId) {
+            const item = itemsMaster.find(it => it.id == itemId);
+            if (item && item.client_id) {
+                const currentClient = cTS.getValue();
+                if (currentClient != item.client_id) {
+                    cTS.setValue(item.client_id);
+                    
+                    const filtered = itemsMaster.filter(it => it.client_id == item.client_id);
+                    iTS.clearOptions();
+                    iTS.addOption({value: '', text: 'Select Item'});
+                    filtered.forEach(it => {
+                        iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+                    });
+                    iTS.setValue(itemId);
+                }
+            }
+        }
+        
+        rowUpdating = false;
     });
     
-    if (selectedItemId) {
-        iTS.setValue(selectedItemId);
-    } else {
-        iTS.setValue('');
+    // Handle initial state for editing / cloning / inheritance
+    if (initialClientId || (data && data.item_id)) {
+        rowUpdating = true;
+        if (data && data.client_id) {
+            cTS.setValue(data.client_id);
+            const filtered = itemsMaster.filter(it => it.client_id == data.client_id);
+            iTS.clearOptions();
+            iTS.addOption({value: '', text: 'Select Item'});
+            filtered.forEach(it => {
+                iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+            });
+        } else if (initialClientId) {
+            cTS.setValue(initialClientId);
+            const filtered = itemsMaster.filter(it => it.client_id == initialClientId);
+            iTS.clearOptions();
+            iTS.addOption({value: '', text: 'Select Item'});
+            filtered.forEach(it => {
+                iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+            });
+        }
+        if (data && data.item_id) {
+            iTS.setValue(data.item_id);
+        }
+        rowUpdating = false;
     }
-}
-
-function handleItemChange(id) {
-    calculateWeight(id);
 }
 
 function removeRow(id) {

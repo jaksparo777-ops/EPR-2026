@@ -401,31 +401,45 @@
                 <table class="recent-table">
                     <thead>
                         <tr>
-                            <th>Worker</th>
-                            <th>Item</th>
-                            <th style="text-align:right;">Pending</th>
+                            <th style="padding-left: 16px;">Item Details</th>
+                            <th colspan="2" style="text-align:right; padding-right:24px;">Pending Qty</th>
                             <th style="text-align:right;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for row in polishing_stock %}
+                        {% for worker_name, items_list in polishing_stock.items %}
+                        <!-- Worker Header -->
+                        <tr style="background: rgba(99, 102, 241, 0.08); border-left: 4px solid var(--accent-blue);">
+                            <td colspan="4" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:14px; text-shadow: 0 0 10px rgba(59, 130, 246, 0.4);">👤</span>
+                                        <span style="font-weight:800; color:var(--text-primary); font-size:12px; text-transform:uppercase; letter-spacing:0.8px;">{{ worker_name }}</span>
+                                    </div>
+                                    <span style="background:rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); color:var(--text-secondary); font-size:10px; padding:2px 8px; border-radius:4px; font-weight:800;">{{ items_list|length }} items pending</span>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        {% for row in items_list %}
+                        <!-- Item Row -->
                         <tr>
-                            <td style="font-weight:600; font-size:13px;">{{ row.worker_name }}</td>
-                            <td style="font-weight:700; color:var(--text-primary); font-size:14px; letter-spacing:0.5px;">{{ row.item_name }}</td>
-                            <td style="text-align:right; font-weight:800; color:var(--accent-blue);">{{ row.under_process }} pcs</td>
-                            <td style="text-align:right;">
+                            <td style="padding-left: 28px; vertical-align:middle;">
+                                <div style="font-weight:700; color:var(--text-primary); font-size:14px; letter-spacing:0.5px;">{{ row.item_code }}</div>
+                                <div style="font-size:12px; color:var(--text-secondary);">{{ row.item_name }}</div>
+                            </td>
+                            <td colspan="2" style="text-align:right; font-weight:800; color:var(--accent-blue); vertical-align:middle; padding-right:24px;">
+                                {{ row.under_process }} pcs
+                            </td>
+                            <td style="text-align:right; vertical-align:middle;">
                                 <button type="button" class="btn-primary"
                                     style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.2); padding:6px 12px; font-size:11px; font-weight:800; border-radius:8px; cursor:pointer;"
-                                    onclick='quickReceivePolishing({
-                                        worker_id: "{{ row.worker_id }}",
-                                        item_id: "{{ row.item_id }}",
-                                        item_name: "{{ row.item_name }}",
-                                        qty: "{{ row.under_process }}"
-                                    })'>
+                                    onclick="handleMarkInClick(event, '?mark_in_group=true&worker_id={{ row.worker_id }}&item_id={{ row.item_id }}', '{{ row.item_code }}', {{ row.under_process }})">
                                     Mark IN
                                 </button>
                             </td>
                         </tr>
+                        {% endfor %}
                         {% empty %}
                         <tr>
                             <td colspan="4" style="text-align:center; padding:24px; color:var(--text-secondary); font-style:italic;">
@@ -483,7 +497,8 @@
                                     {% if row.id in completed_ids %}
                                         <span style="color:#10b981;font-size:12px;font-weight:700;margin-right:8px;">✓ RECEIVED</span>
                                     {% else %}
-                                        <a href="?mark_in={{ row.id }}" class="btn-primary"
+                                        <a href="#" class="btn-primary"
+                                            onclick="handleMarkInClick(event, '?mark_in={{ row.id }}', '{{ row.item.code }}', {{ row.quantity }})"
                                             style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.2); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; text-decoration:none; display:inline-block; line-height:1.2;">MARK IN</a>
                                     {% endif %}
                                 {% endif %}
@@ -742,55 +757,65 @@
         event.currentTarget.classList.add('active');
     }
 
-    function filterItemSelect(id, filterType) {
-        const allBtn = document.getElementById(`filter-all-${id}`);
-        const setBtn = document.getElementById(`filter-set-${id}`);
-        const singleBtn = document.getElementById(`filter-single-${id}`);
-        
-        if (!allBtn || !setBtn || !singleBtn) return;
-        
-        [allBtn, setBtn, singleBtn].forEach(btn => {
-            btn.classList.remove('active');
-            btn.style.background = 'transparent';
-            btn.style.color = 'var(--text-secondary)';
+    function filterPolishingItemsByWorker(workerId) {
+        let allowedItems = itemsMaster;
+        if (workerId) {
+            const allocatedIds = allocationsMaster.filter(a => a.worker_id === workerId).map(a => a.item_id);
+            const allowedItemIds = new Set(allocatedIds.map(id => id.toString()));
+            itemsMaster.forEach(it => {
+                if (it.is_set && it.components && it.components.length > 0) {
+                    const hasAllocatedComponent = it.components.some(c => allowedItemIds.has(c.id.toString()));
+                    if (hasAllocatedComponent) {
+                        allowedItemIds.add(it.id.toString());
+                    }
+                }
+            });
+            allowedItems = itemsMaster.filter(it => allowedItemIds.has(it.id.toString()));
+            if (allowedItems.length === 0) allowedItems = itemsMaster;
+        }
+
+        Object.keys(rowTomSelects).forEach(id => {
+            const ts = rowTomSelects[id];
+            if (ts) {
+                const currentVal = ts.getValue();
+                ts.clearOptions();
+
+                const optionsToAdd = allowedItems.map(it => ({
+                    value: it.id,
+                    text: `${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}`
+                }));
+                ts.addOptions(optionsToAdd);
+
+                if (currentVal && allowedItems.some(it => it.id == currentVal)) {
+                    ts.setValue(currentVal, true);
+                } else {
+                    ts.setValue('', true);
+                }
+            }
         });
-        
-        const activeBtn = document.getElementById(`filter-${filterType}-${id}`);
-        activeBtn.classList.add('active');
-        activeBtn.style.background = 'rgba(255, 255, 255, 0.05)';
-        activeBtn.style.color = 'white';
-        
-        const ts = rowTomSelects[id];
-        if (!ts) return;
-        
-        const currentVal = ts.getValue();
-        ts.clearOptions();
-        
-        let filtered = itemsMaster;
-        if (filterType === 'set') {
-            filtered = itemsMaster.filter(it => it.is_set);
-        } else if (filterType === 'single') {
-            filtered = itemsMaster.filter(it => !it.is_set);
-        }
-        
-        const optionsToAdd = filtered.map(it => ({
-            value: it.id,
-            text: `${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}`
-        }));
-        
-        ts.addOptions(optionsToAdd);
-        
-        if (currentVal && filtered.some(it => it.id == currentVal)) {
-            ts.setValue(currentVal, true);
-        } else {
-            ts.setValue('', true);
-        }
     }
 
     function addItemRow() {
         const id = rowCount++;
 
-        console.log(`Adding dynamic mixed row. Items count: ${itemsMaster.length}`);
+        const workerId = workerTS ? workerTS.getValue() : '';
+        let allowedItems = itemsMaster;
+        if (workerId) {
+            const allocatedIds = allocationsMaster.filter(a => a.worker_id === workerId).map(a => a.item_id);
+            const allowedItemIds = new Set(allocatedIds.map(id => id.toString()));
+            itemsMaster.forEach(it => {
+                if (it.is_set && it.components && it.components.length > 0) {
+                    const hasAllocatedComponent = it.components.some(c => allowedItemIds.has(c.id.toString()));
+                    if (hasAllocatedComponent) {
+                        allowedItemIds.add(it.id.toString());
+                    }
+                }
+            });
+            allowedItems = itemsMaster.filter(it => allowedItemIds.has(it.id.toString()));
+            if (allowedItems.length === 0) allowedItems = itemsMaster;
+        }
+
+        console.log(`Adding dynamic mixed row. Items count: ${allowedItems.length}`);
 
         const html = `
             <div class="item-row" id="row-${id}" style="border-left: 4px solid #fbbf24; padding: 20px;">
@@ -800,21 +825,16 @@
                 <div style="margin-bottom: 16px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                         <label class="stat-label" style="margin-bottom:0;">SELECT ITEM / SET</label>
-                        <div style="display:flex; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); border-radius:8px; padding:2px; height:24px; align-items:center;">
-                            <button type="button" class="filter-btn active" style="padding:0 8px; height:20px; border-radius:6px; font-size:9px; font-weight:800; border:none; background:rgba(255,255,255,0.05); color:white; cursor:pointer; outline:none;" id="filter-all-${id}" onclick="filterItemSelect(${id}, 'all')">ALL</button>
-                            <button type="button" class="filter-btn" style="padding:0 8px; height:20px; border-radius:6px; font-size:9px; font-weight:800; border:none; background:transparent; color:var(--text-secondary); cursor:pointer; outline:none;" id="filter-set-${id}" onclick="filterItemSelect(${id}, 'set')">SET</button>
-                            <button type="button" class="filter-btn" style="padding:0 8px; height:20px; border-radius:6px; font-size:9px; font-weight:800; border:none; background:transparent; color:var(--text-secondary); cursor:pointer; outline:none;" id="filter-single-${id}" onclick="filterItemSelect(${id}, 'single')">SINGLE</button>
-                        </div>
                     </div>
                     <select name="item[]" class="item-select" onchange="handleItemChange(${id}, this)">
                         <option value="">Search...</option>
-                        ${itemsMaster.map(it => `<option value="${it.id}">${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}</option>`).join('')}
+                        ${allowedItems.map(it => `<option value="${it.id}">${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}</option>`).join('')}
                     </select>
                 </div>
-
+                
                 <!-- Row 2: Inputs Grid (3 Columns: Packaging, Lots, Extra Pieces) -->
-                <div style="display:grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; margin-bottom: 16px; align-items: end;">
-                    <div>
+                <div id="input-grid-${id}" style="display:grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; margin-bottom: 16px; align-items: end;">
+                    <div id="pkg-container-${id}">
                         <label class="stat-label">PACKAGING</label>
                         <div style="display:flex; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); border-radius:10px; padding:2px; height:38px; align-items:center;">
                             <button type="button" class="pkg-btn active pkg-regular-btn" style="flex:1; height:32px; border-radius:8px; font-size:10px; font-weight:800; border:none; background:rgba(255,255,255,0.05); color:white; cursor:pointer;" id="pkg-reg-${id}" onclick="togglePackaging(${id}, 'regular')">REGULAR</button>
@@ -823,7 +843,7 @@
                         <input type="hidden" id="pkg-input-${id}" class="pkg-toggle-pill" data-pkg="regular" value="regular">
                     </div>
                     
-                    <div class="input-group" style="margin-bottom:0;">
+                    <div class="input-group" id="lot-container-${id}" style="margin-bottom:0;">
                         <label class="stat-label" id="lot-label-${id}">BULK LOTS <span style="font-size:8px; color:var(--text-secondary); font-weight:normal;" id="lot-size-span-${id}">(Lot: 0)</span></label>
                         <input type="number" name="lots[]" value="0" min="0" oninput="calculateRow(${id})" style="height:38px; margin:0;">
                     </div>
@@ -861,15 +881,18 @@
 
         const ts = new TomSelect(`#row-${id} .item-select`, {
             create: false,
+            valueField: 'value',
+            labelField: 'text',
+            searchField: ['text'],
+            options: allowedItems.map(it => ({
+                value: it.id,
+                text: `${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}`
+            })),
             placeholder: 'Search...',
             allowEmptyOption: true,
+            sortField: { field: 'text', direction: 'asc' }
         });
         rowTomSelects[id] = ts;
-
-        // Auto-populate item if a worker allocation is active
-        if (lastAllocatedItemId) {
-            ts.setValue(lastAllocatedItemId);
-        }
 
         // Ensure TomSelect change reliably triggers handleItemChange and recalculates quantities
         ts.on('change', function() {
@@ -878,7 +901,7 @@
                 selectEl.nextElementSibling.style.border = '';
                 selectEl.nextElementSibling.style.boxShadow = '';
             }
-            handleItemChange(id, selectEl);
+            handleItemChange(id);
         });
     }
 
@@ -887,30 +910,40 @@
         delete rowTomSelects[id];
     }
 
-    function handleItemChange(id, select) {
+    function handleItemChange(id) {
         const compList = document.getElementById(`components-list-${id}`);
         if (compList) {
             compList.innerHTML = '';
         }
 
+        const ts = rowTomSelects[id];
+        const itemId = ts ? ts.getValue() : '';
+
         // Auto-select allocated worker when an item is selected
-        if (select && select.value) {
-            const itemId = select.value;
-            let alloc = allocationsMaster.find(a => a.item_id == itemId);
+        if (itemId) {
+            let alloc = allocationsMaster.find(a => {
+                if (a.item_id == itemId) {
+                    const optExists = document.querySelector(`#workerSelect option[value="${a.worker_id}"]`);
+                    return !!optExists;
+                }
+                return false;
+            });
 
             // Component Fallback: If it's a SET and has no direct allocation, check components' allocations
             if (!alloc) {
                 const item = itemsMaster.find(it => it.id == itemId);
                 if (item && item.is_set && item.components && item.components.length > 0) {
                     for (const comp of item.components) {
-                        const compAlloc = allocationsMaster.find(a => a.item_id == comp.id);
-                        if (compAlloc) {
-                            // Verify if the allocated worker is available in the dropdown
-                            const optExists = document.querySelector(`#workerSelect option[value="${compAlloc.worker_id}"]`);
-                            if (optExists) {
-                                alloc = compAlloc;
-                                break;
+                        const compAlloc = allocationsMaster.find(a => {
+                            if (a.item_id == comp.id) {
+                                const optExists = document.querySelector(`#workerSelect option[value="${a.worker_id}"]`);
+                                return !!optExists;
                             }
+                            return false;
+                        });
+                        if (compAlloc) {
+                            alloc = compAlloc;
+                            break;
                         }
                     }
                 }
@@ -927,13 +960,22 @@
     function calculateRow(id) {
         const row = document.getElementById(`row-${id}`);
         if (!row) return;
-        const select = row.querySelector('.item-select');
+        const ts = rowTomSelects[id];
+        const selectedValue = ts ? ts.getValue() : '';
         const lots = parseInt(row.querySelector('[name="lots[]"]').value || 0);
         const extra = parseInt(row.querySelector('[name="manual[]"]').value || 0);
         const bomDisplay = document.getElementById(`bom-display-${id}`);
         const pkgType = document.getElementById(`pkg-input-${id}`).value;
 
-        const item = itemsMaster.find(it => it.id == select.value);
+        const pkgContainer = document.getElementById(`pkg-container-${id}`);
+        const lotContainer = document.getElementById(`lot-container-${id}`);
+        const extraGroup = document.getElementById(`extra-group-${id}`);
+        const extraLabel = document.getElementById(`extra-label-${id}`);
+        const inputGrid = document.getElementById(`input-grid-${id}`);
+        const lotsInput = row.querySelector('[name="lots[]"]');
+        const manualInput = row.querySelector('[name="manual[]"]');
+
+        const item = itemsMaster.find(it => it.id == selectedValue);
         if (!item) {
             document.getElementById(`lot-size-span-${id}`).innerText = '(Lot: 0)';
             document.getElementById(`components-drawer-${id}`).style.display = 'none';
@@ -942,42 +984,46 @@
             document.getElementById(`wt-input-${id}`).value = 0;
             bomDisplay.innerHTML = '';
 
-            const extraGroup = document.getElementById(`extra-group-${id}`);
-            const inputGrid = document.getElementById(`input-grid-${id}`);
-            if (extraGroup && inputGrid) {
-                extraGroup.style.display = 'block';
-                inputGrid.style.gridTemplateColumns = '1fr 1fr';
-            }
+            if (pkgContainer) pkgContainer.style.display = 'block';
+            if (lotContainer) lotContainer.style.display = 'block';
+            if (extraGroup) extraGroup.style.display = 'block';
+            if (extraLabel) extraLabel.innerText = '+ EXTRA PCS';
+            if (inputGrid) inputGrid.style.gridTemplateColumns = '1.4fr 1fr 1fr';
             return;
         }
 
         // Update lot size multiplier based on packaging choice (with fallback to lot_size if lot_with_box is 0/undefined)
-        let lotSize = item.lot_size;
+        let lotSize = item.lot_size || 1;
         if (pkgType === 'box') {
-            lotSize = (item.lot_with_box && item.lot_with_box > 0) ? item.lot_with_box : item.lot_size;
+            lotSize = (item.lot_with_box && item.lot_with_box > 0) ? item.lot_with_box : (item.lot_size || 1);
         }
         document.getElementById(`lot-size-span-${id}`).innerText = `(Lot: ${lotSize})`;
 
         // Visual feedback based on item type
         row.style.borderLeftColor = item.is_set ? '#6366f1' : '#fbbf24';
 
-        // Dynamic visibility of Extra Pieces field: HIDE for Sets, SHOW for Single items
-        const extraGroup = document.getElementById(`extra-group-${id}`);
-        const inputGrid = document.getElementById(`input-grid-${id}`);
-        const manualInput = row.querySelector('[name="manual[]"]');
+        let currentLots = lots;
         let currentExtra = extra;
 
         if (item.is_set) {
-            if (extraGroup) extraGroup.style.display = 'none';
-            if (inputGrid) inputGrid.style.gridTemplateColumns = '1fr';
-            if (manualInput) manualInput.value = 0;
-            currentExtra = 0;
-        } else {
+            // SET Item: Show Packaging, Lots, and Extra Pcs
+            if (pkgContainer) pkgContainer.style.display = 'block';
+            if (lotContainer) lotContainer.style.display = 'block';
             if (extraGroup) extraGroup.style.display = 'block';
-            if (inputGrid) inputGrid.style.gridTemplateColumns = '1fr 1fr';
+            if (extraLabel) extraLabel.innerText = '+ EXTRA PCS';
+            if (inputGrid) inputGrid.style.gridTemplateColumns = '1.4fr 1fr 1fr';
+        } else {
+            // SINGLE Item: Hide Packaging & Lots, Show ONLY Extra Pcs renamed to "PCS"
+            if (pkgContainer) pkgContainer.style.display = 'none';
+            if (lotContainer) lotContainer.style.display = 'none';
+            if (extraGroup) extraGroup.style.display = 'block';
+            if (extraLabel) extraLabel.innerText = 'PCS';
+            if (inputGrid) inputGrid.style.gridTemplateColumns = '1fr';
+            if (lotsInput) lotsInput.value = 0;
+            currentLots = 0;
         }
 
-        const totalQty = (lots * lotSize) + currentExtra;
+        const totalQty = (currentLots * lotSize) + currentExtra;
         const totalWt = (totalQty * item.weight).toFixed(3);
 
         document.getElementById(`qty-display-${id}`).innerText = totalQty;
@@ -1114,31 +1160,38 @@
         const item = itemsMaster.find(it => it.id.toString() === data.item_id.toString());
         if (item) {
             const lotSize = item.lot_size || 1;
-            const lots = Math.ceil(data.qty / lotSize);
             const row = document.getElementById('row-0');
             if (row) {
                 const lotsInput = row.querySelector('[name="lots[]"]');
-                if (lotsInput) {
-                    lotsInput.value = lots;
-                }
+                const manualInput = row.querySelector('[name="manual[]"]');
                 
-                if (!item.is_set) {
-                    const manualInput = row.querySelector('[name="manual[]"]');
-                    if (manualInput) {
-                        const calculatedTotal = lots * lotSize;
-                        if (calculatedTotal > data.qty) {
-                            const adjustedLots = Math.floor(data.qty / lotSize);
-                            lotsInput.value = adjustedLots;
-                            manualInput.value = data.qty - (adjustedLots * lotSize);
-                        } else {
-                            manualInput.value = 0;
-                        }
-                    }
+                if (lotsInput && manualInput) {
+                    const lots = Math.floor(data.qty / lotSize);
+                    const remainder = data.qty % lotSize;
+                    lotsInput.value = lots;
+                    manualInput.value = remainder;
+                } else if (lotsInput) {
+                    lotsInput.value = Math.ceil(data.qty / lotSize);
                 }
             }
         }
 
         calculateRow(0);
+
+        // 7. Directly save/submit the transaction!
+        const form = document.getElementById('polishingForm');
+        if (form) {
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.click();
+                } else {
+                    form.submit();
+                }
+            }
+        }
     }
     window.quickReceivePolishing = quickReceivePolishing;
 
@@ -1326,9 +1379,19 @@
             }
             if (!val) {
                 lastAllocatedItemId = null;
+                filterPolishingItemsByWorker('');
                 return;
             }
-            const alloc = allocationsMaster.find(a => a.worker_id === val);
+            
+            filterPolishingItemsByWorker(val);
+            
+            const alloc = allocationsMaster.find(a => {
+                if (a.worker_id === val) {
+                    const optExists = document.querySelector(`#workerSelect option[value="${a.worker_id}"]`);
+                    return !!optExists;
+                }
+                return false;
+            });
             if (alloc) {
                 let itemId = alloc.item_id;
 
@@ -1418,7 +1481,7 @@
                         const extraInput = compRow.querySelector('.comp-extra-input');
                         const extraQty = parseInt(extraInput.value || 0);
                         
-                        const setLotSize = packaging === 'box' ? item.lot_with_box : item.lot_size;
+                        const setLotSize = (packaging === 'box' ? (item.lot_with_box && item.lot_with_box > 0 ? item.lot_with_box : item.lot_size) : item.lot_size) || 1;
                         const setTotalQty = (lots * setLotSize) + manual;
                         const totalQty = (qtyPerSet * setTotalQty) + extraQty;
                         
@@ -1443,6 +1506,78 @@
             document.getElementById('transaction-data-input').value = JSON.stringify(rowsData);
         });
     });
+
+    let markInClickTimer = null;
+    function handleMarkInClick(event, url, itemName, maxQty) {
+        event.preventDefault();
+        const targetUrl = url;
+        
+        if (event.detail === 2) {
+            // Double click detected! Clear single-click timer and show the modal
+            if (markInClickTimer) {
+                clearTimeout(markInClickTimer);
+                markInClickTimer = null;
+            }
+            openMarkInRejectionModal(targetUrl, itemName, maxQty);
+        } else if (event.detail === 1) {
+            // Single click - set timer to redirect in 250ms unless a second click arrives
+            markInClickTimer = setTimeout(() => {
+                window.location.href = targetUrl;
+            }, 250);
+        }
+    }
+
+    function openMarkInRejectionModal(targetUrl, itemName, maxQty) {
+        document.getElementById('rejectionModalTargetUrl').value = targetUrl;
+        document.getElementById('rejectionModalTitle').textContent = `Rejections for ${itemName}`;
+        document.getElementById('rejectionPcsInput').value = '0';
+        document.getElementById('rejectionPcsInput').max = maxQty;
+        document.getElementById('rejectionModalSubtitle').innerHTML = `Enter Defective/Rejected pieces found in this lot.<br><span style="color:var(--accent-gold); font-weight:700;">Max Available Qty: ${maxQty} pcs</span>`;
+        
+        const modal = document.getElementById('markInRejectionModal');
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            document.getElementById('rejectionPcsInput').focus();
+        }, 50);
+    }
+
+    function closeMarkInRejectionModal() {
+        document.getElementById('markInRejectionModal').style.display = 'none';
+    }
+
+    function submitRejectionModal(event) {
+        event.preventDefault();
+        const targetUrl = document.getElementById('rejectionModalTargetUrl').value;
+        const rejections = parseInt(document.getElementById('rejectionPcsInput').value || 0);
+        
+        const separator = targetUrl.includes('?') ? '&' : '?';
+        window.location.href = `${targetUrl}${separator}rejections=${rejections}`;
+    }
 </script>
+
+<!-- Glassmorphic Rejection Modal -->
+<div id="markInRejectionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center; transition: all 0.3s ease;">
+    <div style="background:rgba(20, 20, 30, 0.85); border:1px solid rgba(255,255,255,0.08); box-shadow:0 24px 60px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.02); border-radius:24px; padding:32px; width:420px; box-sizing:border-box; text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px; filter: drop-shadow(0 0 10px rgba(239,68,68,0.5));">🔍</div>
+        <h3 id="rejectionModalTitle" style="color:white; margin:0 0 8px 0; font-size:20px; font-weight:800; letter-spacing:0.5px;">Declare Rejections</h3>
+        <p id="rejectionModalSubtitle" style="color:var(--text-secondary); margin:0 0 24px 0; font-size:13px; line-height:1.4;">Enter any defective or rejected pieces found during inspection of this lot.</p>
+        
+        <form id="rejectionModalForm" onsubmit="submitRejectionModal(event)">
+            <input type="hidden" id="rejectionModalTargetUrl" value="">
+            
+            <div style="text-align:left; margin-bottom:24px;">
+                <label style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--text-secondary); letter-spacing:1px; display:block; margin-bottom:8px;">Defective Pieces (Rejections)</label>
+                <input type="number" id="rejectionPcsInput" value="0" min="0" required
+                    style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); border-radius:12px; color:white; padding:12px 16px; font-size:18px; font-weight:800; text-align:center; width:100%; box-sizing:border-box; transition:all 0.2s;"
+                    onfocus="this.select();">
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:12px;">
+                <button type="button" onclick="closeMarkInRejectionModal()" class="btn-secondary" style="margin:0; padding:12px 0; border-radius:12px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:1px;">Cancel</button>
+                <button type="submit" class="btn-primary" style="margin:0; padding:12px 0; border-radius:12px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:1px;">Save & Mark IN</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 {% endblock %}

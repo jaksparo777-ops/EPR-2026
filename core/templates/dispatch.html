@@ -3,137 +3,358 @@
 {% block content %}
 
 <style>
+    /* Premium Theme Variables matching global look */
+    :root {
+        --card-bg: rgba(15, 23, 42, 0.45);
+        --accent-blue-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        --accent-green-gradient: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        --accent-gold-gradient: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+        --accent-purple-gradient: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    }
 
-.grid-2{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:20px;
-}
+    .glass-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--border-soft);
+        border-radius: 18px;
+        padding: 24px;
+        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
+    .glass-card:hover {
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5);
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 24px;
+    }
+
+    @media (max-width: 1200px) {
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Tabs Styling */
+    .dispatch-tabs {
+        display: flex;
+        gap: 12px;
+        border-bottom: 1px solid var(--border-soft);
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+    }
+
+    .dispatch-tab-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        padding: 10px 18px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+
+    .dispatch-tab-btn:hover {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .dispatch-tab-btn.active {
+        color: var(--accent-blue);
+        background: rgba(59, 130, 246, 0.15);
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Table styling */
+    .dispatch-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .dispatch-table th {
+        background: rgba(255, 255, 255, 0.015);
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-soft);
+    }
+
+    .dispatch-table td {
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        font-size: 13px;
+        color: var(--text-primary);
+        vertical-align: middle;
+    }
+
+    .dispatch-table tr:hover td {
+        background: rgba(255, 255, 255, 0.01);
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        border: none;
+        color: white;
+        padding: 14px 24px;
+        font-size: 16px;
+        font-weight: 800;
+        border-radius: 12px;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.3s;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
 </style>
 
-<h1 style="font-size:58px; margin-bottom:10px;">
-    Dispatch & Sales
-</h1>
-
-<p style="color:#64748b; margin-bottom:30px; font-size:24px;">
-    Dispatch ready stock to clients and track sales out.
-</p>
+<!-- HEADER SECTION -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+    <div>
+        <h1 style="font-size:42px; font-weight:800; margin:0; letter-spacing:-0.5px; font-family:'Outfit', sans-serif;">
+            Dispatch & Sales
+        </h1>
+        <p style="color:var(--text-secondary); margin:6px 0 0; font-size:14px;">
+            Symmetrically dispatch physical cartons or loose pieces to clients
+        </p>
+    </div>
+</div>
 
 <div class="grid-2">
 
     <!-- DISPATCH FORM -->
-    <div class="card">
-        
-        <h3 style="margin-bottom:20px; font-size:32px;">
-            Create New Dispatch
+    <div class="glass-card">
+        <h3 style="margin-bottom:24px; font-size:22px; font-family:'Outfit', sans-serif; display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--accent-blue);">●</span> Dispatch Goods
         </h3>
 
         <form method="POST" action="{% url 'dispatch' %}">
             {% csrf_token %}
+            <input type="hidden" name="dispatch_type" id="dispatchTypeInput" value="cartons">
 
-            <div style="margin-bottom:15px;">
-                <label style="display:block; margin-bottom:8px; font-size:18px; font-weight:bold;">
-                    Client
+            <!-- Shared Client Selector -->
+            <div style="margin-bottom:24px;">
+                <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                    Select Client
                 </label>
-                <select name="client" required style="width:100%; padding:14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius:12px; color: var(--text-primary); outline:none; font-size:22px;">
-                    <option value="">Select Client</option>
+                <select name="client" required style="width:100%; padding:14px; background:rgba(15,23,42,0.6); border:1px solid var(--border-soft); border-radius:12px; color:var(--text-primary); outline:none; font-size:16px; transition:border 0.3s;">
+                    <option value="">Choose a client...</option>
                     {% for client in clients %}
                         <option value="{{ client.id }}">{{ client.name }}</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <div style="margin-bottom:20px;">
-                <label style="display:block; margin-bottom:8px; font-size:18px; font-weight:700; color: var(--text-secondary); text-transform: uppercase;">
-                    Item
-                </label>
-                <select name="item" id="itemSelect" required style="width:100%; padding:14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius:12px; color: var(--text-primary); outline:none; font-size:22px;" onchange="updateWeight()">
-                    <option value="" data-weight="0">Select Item</option>
-                    {% for item in items %}
-                        <option value="{{ item.id }}" data-weight="{{ item.machining_weight|default:0 }}" data-lot="{{ item.lot_with_box|default:1 }}">
-                            {{ item.code }} - {{ item.name }}
-                        </option>
-                    {% endfor %}
-                </select>
+            <!-- Tab Headers -->
+            <div class="dispatch-tabs">
+                <button type="button" onclick="switchDispatchTab('cartons')" id="tabBtnCartons" class="dispatch-tab-btn active">
+                    📦 Select Ready Cartons
+                </button>
+                <button type="button" onclick="switchDispatchTab('manual')" id="tabBtnManual" class="dispatch-tab-btn">
+                    ✍️ Manual Pieces Override
+                </button>
             </div>
 
-            <div class="grid-2" style="margin-bottom:20px;">
-                <div>
-                    <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color: var(--text-secondary); text-transform: uppercase;">
-                        Cartons
-                    </label>
-                    <input type="number" name="cartons" id="cartonsInput" min="0" value="0"
-                           style="width:100%; padding:14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius:12px; color: var(--text-primary); outline:none;"
-                           oninput="updateCalculations()">
+            <!-- Tab 1: Carton Selection -->
+            <div id="tabContentCartons" class="tab-content active">
+                <div style="max-height:450px; overflow-y:auto; border:1px solid var(--border-soft); border-radius:12px; margin-bottom:20px; background:rgba(15,23,42,0.3);">
+                    <table class="dispatch-table">
+                        <thead style="position:sticky; top:0; z-index:1; background:#0f172a;">
+                            <tr>
+                                <th style="width:40px; text-align:center;">Select</th>
+                                <th>Carton</th>
+                                <th>Type</th>
+                                <th>Breakdown Contents</th>
+                                <th style="text-align:right;">Pcs</th>
+                                <th style="text-align:right;">Wt (Kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for carton in available_cartons %}
+                            <tr style="cursor:pointer;" onclick="toggleCartonRow(event, 'chk_{{ carton.id }}')">
+                                <td style="text-align:center;" onclick="event.stopPropagation();">
+                                    <input type="checkbox" name="cartons_selected" id="chk_{{ carton.id }}" value="{{ carton.id }}" 
+                                           data-qty="{{ carton.total_quantity }}" data-weight="{{ carton.total_weight }}"
+                                           onchange="recalculateCartonSelection()" style="width:18px; height:18px; cursor:pointer;">
+                                </td>
+                                <td style="font-weight:700; color:var(--text-primary);">{{ carton.carton_number }}</td>
+                                <td>
+                                    <span class="badge" style="font-size:9px; padding:2px 6px;
+                                        {% if carton.carton_type == 'MIXED' %}background:rgba(168,85,247,0.15); color:#a855f7;
+                                        {% elif carton.carton_type == 'SET' %}background:rgba(59,130,246,0.15); color:#3b82f6;
+                                        {% else %}background:rgba(16,185,129,0.15); color:#10b981;{% endif %}">
+                                        {{ carton.carton_type }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:2px;">
+                                        {% for ci in carton.items.all %}
+                                            <span>• {{ ci.item.code }} ({{ ci.quantity }} pcs)</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td style="text-align:right; font-weight:700;">{{ carton.total_quantity }}</td>
+                                <td style="text-align:right; color:var(--text-secondary);">{{ carton.total_weight }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                                    <i>✨</i> No ready physical cartons currently in warehouse.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <div>
-                    <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color: var(--text-secondary); text-transform: uppercase;">
-                        Loose Pieces
-                    </label>
-                    <input type="number" name="loose_pieces" id="loosePiecesInput" min="0" value="0"
-                           style="width:100%; padding:14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius:12px; color: var(--text-primary); outline:none;"
-                           oninput="updateCalculations()">
+
+                <!-- Carton Selection Live Metrics Footer -->
+                <div id="selectionSummaryBar" style="background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:16px; margin-bottom:24px;">
+                    <div style="font-size:11px; font-weight:700; color:#60a5fa; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">
+                        Carton Selection Summary
+                    </div>
+                    <div style="display:flex; justify-content:space-between; gap:20px; text-align:center;">
+                        <div style="flex:1;">
+                            <div style="font-size:12px; color:var(--text-secondary);">Cartons Selected</div>
+                            <div id="selCartonsCount" style="font-size:20px; font-weight:800; color:var(--text-primary);">0</div>
+                        </div>
+                        <div style="flex:1; border-left:1px solid rgba(255,255,255,0.05); border-right:1px solid rgba(255,255,255,0.05);">
+                            <div style="font-size:12px; color:var(--text-secondary);">Total Pieces</div>
+                            <div id="selTotalPieces" style="font-size:20px; font-weight:800; color:#34d399;">0 Pcs</div>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:12px; color:var(--text-secondary);">Total Weight</div>
+                            <div id="selTotalWeight" style="font-size:20px; font-weight:800; color:#f59e0b;">0.000 Kg</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div style="margin-bottom:20px;">
-                <small id="cartonHelper" style="color: var(--accent-blue); font-weight:700; font-size:14px; display:block; background: rgba(79, 70, 229, 0.1); padding: 10px; border-radius: 8px;">
-                    Total Pieces: 0
-                </small>
+            <!-- Tab 2: Manual Pieces Override -->
+            <div id="tabContentManual" class="tab-content">
+                <!-- Select Item -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                        Item
+                    </label>
+                    <select name="item" id="itemSelect" style="width:100%; padding:14px; background:rgba(15,23,42,0.6); border:1px solid var(--border-soft); border-radius:12px; color:var(--text-primary); outline:none; font-size:16px;" onchange="updateCalculations()">
+                        <option value="" data-weight="0" data-lot="1">Select finished item...</option>
+                        {% for item in items %}
+                            <option value="{{ item.id }}" data-weight="{{ item.machining_weight|default:0 }}" data-lot="{{ item.lot_with_box|default:1 }}">
+                                {{ item.code }} - {{ item.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Quantities -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                            Cartons
+                        </label>
+                        <input type="number" name="cartons" id="cartonsInput" min="0" value="0"
+                               style="width:100%; padding:14px; background:rgba(15,23,42,0.6); border:1px solid var(--border-soft); border-radius:12px; color:var(--text-primary); outline:none;"
+                               oninput="updateCalculations()">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                            Loose Pieces
+                        </label>
+                        <input type="number" name="loose_pieces" id="loosePiecesInput" min="0" value="0"
+                               style="width:100%; padding:14px; background:rgba(15,23,42,0.6); border:1px solid var(--border-soft); border-radius:12px; color:var(--text-primary); outline:none;"
+                               oninput="updateCalculations()">
+                    </div>
+                </div>
+
+                <!-- Helper total pcs -->
+                <div style="margin-bottom:20px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.15); padding:12px; border-radius:8px; text-align:center;">
+                    <span id="cartonHelper" style="color:#34d399; font-weight:700; font-size:14px;">Total Loose Pieces: 0</span>
+                </div>
+
+                <!-- Weight -->
+                <div style="margin-bottom:30px;">
+                    <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                        Total Weight (KG)
+                    </label>
+                    <input type="number" step="0.001" name="weight" id="weightInput"
+                           style="width:100%; padding:14px; background:rgba(15,23,42,0.6); border:1px solid var(--border-soft); border-radius:12px; color:var(--text-primary); outline:none; font-size:16px;">
+                    <small style="color:var(--text-secondary); font-size:11px; margin-top:8px; display:block;">
+                        Estimated automatically using item weight master, but editable.
+                    </small>
+                </div>
             </div>
 
-            <div style="margin-bottom:30px;">
-                <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color: var(--text-secondary); text-transform: uppercase;">
-                    Total Weight (KG)
-                </label>
-                <input type="number" step="0.001" name="weight" id="weightInput" required 
-                       style="width:100%; padding:14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius:12px; color: var(--text-primary); outline:none; font-size:22px;">
-                <small style="color: var(--text-secondary); font-size:12px; margin-top:8px; display:block;">
-                    Auto-calculated based on item master, but can be overridden.
-                </small>
-            </div>
-
-            <button type="submit" style="width:100%;">
-                Dispatch Stock
+            <!-- Submit Button -->
+            <button type="submit" class="btn-submit">
+                🚚 DISPATCH ITEMS NOW
             </button>
         </form>
-
     </div>
 
-
-    <!-- READY STOCK SUMMARY -->
-    <div class="card">
-        
-        <h3 style="margin-bottom:20px;">
-            Available Ready Stock
+    <!-- AVAILABLE READY STOCK SUMMARY -->
+    <div class="glass-card">
+        <h3 style="margin-bottom:24px; font-size:22px; font-family:'Outfit', sans-serif; display:flex; align-items:center; gap:8px;">
+            <span style="color:#34d399;">●</span> Ledger Ready Stock
         </h3>
 
         <div style="overflow-x:auto;">
-            <table>
+            <table class="dispatch-table">
                 <thead>
                     <tr>
-                        <th>Item Code</th>
-                        <th>Item Name</th>
-                        <th>Cartons</th>
-                        <th>Loose Pcs</th>
-                        <th>Total Pcs</th>
-                        <th>Weight (KG)</th>
+                        <th>Item Details</th>
+                        <th style="text-align:right;">Cartons</th>
+                        <th style="text-align:right;">Loose Pcs</th>
+                        <th style="text-align:right;">Total Pcs</th>
+                        <th style="text-align:right;">Weight</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in stock_rows %}
                     <tr>
-                        <td style="font-weight:bold;">{{ row.item.code }}</td>
-                        <td>{{ row.item.name }}</td>
-                        <td style="color:#16a34a; font-weight:bold;">{{ row.cartons|default:"0" }}</td>
-                        <td>{{ row.loose_pieces|default:"0" }}</td>
-                        <td style="font-weight:bold;">{{ row.total_pieces|default:"0" }}</td>
-                        <td>{{ row.weight }}</td>
+                        <td>
+                            <div style="font-weight:700; color:var(--text-primary);">{{ row.item.code }}</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">{{ row.item.name }}</div>
+                        </td>
+                        <td style="text-align:right; font-weight:700; color:#10b981;">{{ row.cartons|default:"0" }}</td>
+                        <td style="text-align:right;">{{ row.loose_pieces|default:"0" }}</td>
+                        <td style="text-align:right; font-weight:700; color:var(--text-primary);">{{ row.total_pieces|default:"0" }} pcs</td>
+                        <td style="text-align:right; color:var(--text-secondary);">{{ row.weight }} kg</td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" style="text-align:center; padding:30px; color:#64748b;">
+                        <td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">
                             No items are currently packed and ready for dispatch.
                         </td>
                     </tr>
@@ -141,53 +362,98 @@
                 </tbody>
             </table>
         </div>
-
     </div>
-
 </div>
 
-
 <!-- RECENT DISPATCHES -->
-<div class="card" style="margin-top:20px;">
-    
-    <h3 style="margin-bottom:20px;">
-        Recent Dispatches
+<div class="glass-card" style="margin-top:24px;">
+    <h3 style="margin-bottom:24px; font-size:20px; letter-spacing:1px; display:flex; align-items:center; gap:10px;">
+        <span style="color:var(--accent-blue);">●</span> RECENT DISPATCH LOGS
     </h3>
 
     <div style="overflow-x:auto;">
-        <table>
+        <table class="dispatch-table">
             <thead>
                 <tr>
-                    <th>Date</th>
-                    <th>Client</th>
-                    <th>Item</th>
-                    <th>Quantity</th>
-                    <th>Weight</th>
+                    <th>DATE / TIME</th>
+                    <th>CLIENT NAME</th>
+                    <th>ITEM DISPATCHED</th>
+                    <th style="text-align:right;">QUANTITY</th>
+                    <th style="text-align:right;">TOTAL WEIGHT</th>
                 </tr>
             </thead>
             <tbody>
                 {% for tx in recent_dispatches %}
                 <tr>
-                    <td>{{ tx.created_at|date:"M d, Y H:i" }}</td>
-                    <td style="font-weight:bold;">{{ tx.client.name }}</td>
-                    <td>{{ tx.item.code }} - {{ tx.item.name }}</td>
-                    <td>{{ tx.quantity }}</td>
-                    <td>{{ tx.weight }}</td>
+                    <td style="color:var(--text-secondary);">{{ tx.created_at|date:"d M Y, H:i" }}</td>
+                    <td style="font-weight:700; color:var(--text-primary);">👤 {{ tx.client.name }}</td>
+                    <td>
+                        <div style="font-weight:700; color:var(--text-primary);">{{ tx.item.code }}</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">{{ tx.item.name }}</div>
+                    </td>
+                    <td style="text-align:right; font-weight:700; color:#f59e0b;">{{ tx.quantity }} pcs</td>
+                    <td style="text-align:right; color:var(--text-secondary);">{{ tx.weight }} kg</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" style="text-align:center; padding:30px; color:#64748b;">
-                        No dispatches recorded yet.
+                    <td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                        No client dispatches recorded yet.
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-
 </div>
 
 <script>
+    function switchDispatchTab(tab) {
+        document.getElementById('dispatchTypeInput').value = tab;
+        
+        // Toggle buttons
+        document.getElementById('tabBtnCartons').classList.toggle('active', tab === 'cartons');
+        document.getElementById('tabBtnManual').classList.toggle('active', tab === 'manual');
+        
+        // Toggle contents
+        document.getElementById('tabContentCartons').classList.toggle('active', tab === 'cartons');
+        document.getElementById('tabContentManual').classList.toggle('active', tab === 'manual');
+
+        // Adjust form validations
+        const itemSelect = document.getElementById('itemSelect');
+        if (tab === 'manual') {
+            itemSelect.setAttribute('required', 'required');
+        } else {
+            itemSelect.removeAttribute('required');
+        }
+    }
+
+    // Toggle Checkbox when row clicked (avoiding double toggling)
+    function toggleCartonRow(event, chkId) {
+        if (event.target.type === 'checkbox') return;
+        const chk = document.getElementById(chkId);
+        if (chk) {
+            chk.checked = !chk.checked;
+            recalculateCartonSelection();
+        }
+    }
+
+    // Recalculate checked cartons
+    function recalculateCartonSelection() {
+        const checkboxes = document.querySelectorAll('input[name="cartons_selected"]:checked');
+        let totalQty = 0;
+        let totalWt = 0.0;
+        
+        checkboxes.forEach(chk => {
+            totalQty += parseInt(chk.getAttribute('data-qty') || 0);
+            totalWt += parseFloat(chk.getAttribute('data-weight') || 0.0);
+        });
+        
+        document.getElementById('selCartonsCount').textContent = checkboxes.length;
+        document.getElementById('selTotalPieces').textContent = `${totalQty} Pcs`;
+        document.getElementById('selTotalWeight').textContent = `${totalWt.toFixed(3)} Kg`;
+    }
+
+    // Legacy Manual tab calculation logic
     function updateCalculations() {
         const itemSelect = document.getElementById('itemSelect');
         const cartonsInput = document.getElementById('cartonsInput');
@@ -196,8 +462,10 @@
         const cartonHelper = document.getElementById('cartonHelper');
         
         const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+        if (!selectedOption) return;
+
         const weightPerPiece = parseFloat(selectedOption.getAttribute('data-weight')) || 0;
-        const lotSize = parseInt(selectedOption.getAttribute('data-lot')) || 0;
+        const lotSize = parseInt(selectedOption.getAttribute('data-lot')) || 1;
         
         const cartons = parseInt(cartonsInput.value) || 0;
         const loosePieces = parseInt(loosePiecesInput.value) || 0;

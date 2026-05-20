@@ -70,10 +70,21 @@
         pointer-events: none;
     }
 
-    .kpi-card.orange { border-left-color: var(--accent-orange) !important; }
-    .kpi-card.blue { border-left-color: var(--accent-blue) !important; }
-    .kpi-card.purple { border-left-color: var(--accent-purple) !important; }
-    .kpi-card.green { border-left-color: var(--accent-green) !important; }
+    .kpi-card.orange {
+        border-left-color: var(--accent-orange) !important;
+    }
+
+    .kpi-card.blue {
+        border-left-color: var(--accent-blue) !important;
+    }
+
+    .kpi-card.purple {
+        border-left-color: var(--accent-purple) !important;
+    }
+
+    .kpi-card.green {
+        border-left-color: var(--accent-green) !important;
+    }
 
     .kpi-icon {
         width: 44px;
@@ -88,10 +99,29 @@
         border: 1px solid transparent;
     }
 
-    .kpi-card.orange .kpi-icon { background: rgba(234, 88, 12, 0.1); color: #fb923c; border-color: rgba(234, 88, 12, 0.15); }
-    .kpi-card.blue .kpi-icon { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border-color: rgba(59, 130, 246, 0.15); }
-    .kpi-card.purple .kpi-icon { background: rgba(139, 92, 246, 0.1); color: #a78bfa; border-color: rgba(139, 92, 246, 0.15); }
-    .kpi-card.green .kpi-icon { background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.15); }
+    .kpi-card.orange .kpi-icon {
+        background: rgba(234, 88, 12, 0.1);
+        color: #fb923c;
+        border-color: rgba(234, 88, 12, 0.15);
+    }
+
+    .kpi-card.blue .kpi-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: #60a5fa;
+        border-color: rgba(59, 130, 246, 0.15);
+    }
+
+    .kpi-card.purple .kpi-icon {
+        background: rgba(139, 92, 246, 0.1);
+        color: #a78bfa;
+        border-color: rgba(139, 92, 246, 0.15);
+    }
+
+    .kpi-card.green .kpi-icon {
+        background: rgba(16, 185, 129, 0.1);
+        color: #34d399;
+        border-color: rgba(16, 185, 129, 0.15);
+    }
 
     .card-label {
         font-size: 12px;
@@ -213,11 +243,55 @@
     tr:hover td {
         background: rgba(255, 255, 255, 0.01);
     }
+
+    /* Card Details Sub-grid & Analytics */
+    .card-detail-divider {
+        border-top: 1px dashed rgba(255, 255, 255, 0.08);
+        margin: 20px 0 16px 0;
+    }
+
+    .card-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .card-detail-item {
+        background: rgba(255, 255, 255, 0.02);
+        padding: 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        text-align: center;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-detail-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.08);
+        transform: translateY(-1px);
+    }
+
+    .card-detail-label {
+        font-size: 9px;
+        color: var(--text-secondary);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    .card-detail-value {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-primary);
+        font-family: 'Outfit', sans-serif;
+    }
 </style>
 
 <!-- HEADER SECTION -->
 <div style="margin-bottom: 30px;">
-    <h1 style="font-size: 42px; font-weight: 800; margin: 0; letter-spacing: -0.5px; font-family: 'Outfit', sans-serif;">
+    <h1
+        style="font-size: 42px; font-weight: 800; margin: 0; letter-spacing: -0.5px; font-family: 'Outfit', sans-serif;">
         Dashboard
     </h1>
     <p style="color: var(--text-secondary); margin: 6px 0 0; font-size: 14px;">
@@ -227,7 +301,7 @@
 
 <!-- TOP CARDS GRID -->
 <div class="dashboard-grid">
-    
+
     <!-- 1. CASTING STOCK -->
     <a href="/casting-stock/" class="glass-card kpi-card orange">
         <div class="kpi-icon">🔥</div>
@@ -244,7 +318,7 @@
     <!-- 2. MACHINING STOCK -->
     <a href="/machining-stock/" class="glass-card kpi-card blue">
         <div class="kpi-icon">🛠️</div>
-        <div class="card-label">Machining WIP</div>
+        <div class="card-label">Machining Stock</div>
         <div>
             <span class="card-number">{{ machining_stock }}</span>
             <span class="card-unit">pcs</span>
@@ -254,10 +328,10 @@
         </div>
     </a>
 
-    <!-- 3. POLISHING STOCK -->
+    <!-- 3. POLISHED STOCK -->
     <a href="/polishing-stock/" class="glass-card kpi-card purple">
         <div class="kpi-icon">✨</div>
-        <div class="card-label">Polishing WIP</div>
+        <div class="card-label">Polished Stock</div>
         <div>
             <span class="card-number">{{ polishing_stock }}</span>
             <span class="card-unit">pcs</span>
@@ -270,7 +344,7 @@
     <!-- 4. READY TO DISPATCH -->
     <a href="/ready-stock/" class="glass-card kpi-card green">
         <div class="kpi-icon">📦</div>
-        <div class="card-label">Ready Dispatch</div>
+        <div class="card-label">Ready Stock</div>
         <div>
             <span class="card-number">{{ ready_stock }}</span>
             <span class="card-unit">pcs</span>
@@ -285,47 +359,87 @@
 <!-- OPERATIONAL SUMMARY ROW -->
 <div class="summary-grid">
 
-    <!-- TODAY'S CASTING -->
-    <div class="glass-card">
-        <div class="summary-header">
-            🔥 Today's Casting Production
-        </div>
-        <div class="summary-stats">
+    <!-- 1. TODAY'S CASTING PRODUCTION -->
+    <a href="/casting/" class="glass-card kpi-card orange"
+        style="border-left: 4px solid var(--accent-orange) !important;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
-                <div class="summary-label">Heats Run</div>
-                <div class="summary-value">{{ today_heats }}</div>
+                <div class="kpi-icon">🔥</div>
+                <div class="card-label">Today's Casting Production</div>
+                <div>
+                    <span class="card-number" style="color: var(--accent-orange);">{{ today_pieces }}</span>
+                    <span class="card-unit">pcs cast</span>
+                </div>
+                <div class="card-weight">
+                    ⚖️ {{ today_weight }} kg
+                </div>
             </div>
-            <div>
-                <div class="summary-label">Pieces Cast</div>
-                <div class="summary-value" style="color: var(--accent-orange);">{{ today_pieces }}</div>
-            </div>
-            <div>
-                <div class="summary-label">Weight (Kg)</div>
-                <div class="summary-value">{{ today_weight }}</div>
-            </div>
-        </div>
-    </div>
 
-    <!-- TODAY'S DISPATCH -->
-    <div class="glass-card">
-        <div class="summary-header">
-            🚚 Today's Dispatched Goods
-        </div>
-        <div class="summary-stats">
-            <div>
-                <div class="summary-label font-bold">Pieces Out</div>
-                <div class="summary-value" style="color: var(--accent-green);">{{ dispatch_pieces }}</div>
-            </div>
-            <div>
-                <div class="summary-label">Cartons Out</div>
-                <div class="summary-value" style="color: #60a5fa;">{{ dispatch_cartons }}</div>
-            </div>
-            <div>
-                <div class="summary-label">Weight (Kg)</div>
-                <div class="summary-value">{{ dispatch_weight }}</div>
+            <div
+                style="text-align: right; font-size: 11px; color: var(--text-secondary); background: rgba(234,88,12,0.1); border: 1px solid rgba(234,88,12,0.2); padding: 4px 8px; border-radius: 8px; font-weight: 700; letter-spacing: 0.5px;">
+                LIVE ANALYSIS
             </div>
         </div>
-    </div>
+
+        <div class="card-detail-divider"></div>
+
+        <div class="card-detail-grid">
+            <div class="card-detail-item">
+                <div class="card-detail-label">Heats Run</div>
+                <div class="card-detail-value">{{ today_heats }}</div>
+            </div>
+            <div class="card-detail-item">
+                <div class="card-detail-label">Avg Heat Pcs</div>
+                <div class="card-detail-value">{{ casting_avg_heat_pcs }}</div>
+            </div>
+            <div class="card-detail-item">
+                <div class="card-detail-label">Unique Items</div>
+                <div class="card-detail-value">{{ casting_unique_items }}</div>
+            </div>
+        </div>
+    </a>
+
+    <!-- 2. TODAY'S DISPATCHED GOODS -->
+    <a href="/dispatch/" class="glass-card kpi-card green"
+        style="border-left: 4px solid var(--accent-green) !important;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div class="kpi-icon"
+                    style="background: rgba(16,185,129,0.1); color: #34d399; border-color: rgba(16,185,129,0.15);">🚚
+                </div>
+                <div class="card-label">Today's Dispatched Goods</div>
+                <div>
+                    <span class="card-number" style="color: var(--accent-green);">{{ dispatch_pieces }}</span>
+                    <span class="card-unit">pcs out</span>
+                </div>
+                <div class="card-weight">
+                    ⚖️ {{ dispatch_weight }} kg
+                </div>
+            </div>
+
+            <div
+                style="text-align: right; font-size: 11px; color: var(--text-secondary); background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); padding: 4px 8px; border-radius: 8px; font-weight: 700; letter-spacing: 0.5px;">
+                LIVE SUMMARY
+            </div>
+        </div>
+
+        <div class="card-detail-divider"></div>
+
+        <div class="card-detail-grid">
+            <div class="card-detail-item">
+                <div class="card-detail-label">Cartons Out</div>
+                <div class="card-detail-value" style="color: #60a5fa;">{{ dispatch_cartons }}</div>
+            </div>
+            <div class="card-detail-item">
+                <div class="card-detail-label">Unique Items</div>
+                <div class="card-detail-value">{{ dispatch_unique_items }}</div>
+            </div>
+            <div class="card-detail-item">
+                <div class="card-detail-label">Unique Clients</div>
+                <div class="card-detail-value">{{ dispatch_unique_clients }}</div>
+            </div>
+        </div>
+    </a>
 
 </div>
 

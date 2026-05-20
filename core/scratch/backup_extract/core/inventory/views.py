@@ -423,16 +423,6 @@ def machining_entry(request):
     job_workers = JobWorker.objects.filter(process="machining", active=True)
     items = Item.objects.all()
 
-    delete_id = request.GET.get("delete_id")
-    if delete_id:
-        try:
-            tx = StockTransaction.objects.get(id=delete_id)
-            tx.delete()
-            messages.success(request, "Machining entry deleted successfully.")
-        except StockTransaction.DoesNotExist:
-            messages.error(request, "Machining transaction not found.")
-        return redirect("machining_entry")
-
     if request.method == "POST":
 
         direction = request.POST.get("direction")
@@ -659,14 +649,22 @@ def polishing_entry(request):
     job_workers = JobWorker.objects.filter(process="polishing", active=True)
     items = Item.objects.all()
 
-    from . import services
-
     piece_stock = {}
     set_capacity = {}
 
     for item in items:
-        stock = services.get_stock_by_item(item)
-        current_machining_stock = stock.get('machining', 0)
+        # Machining IN - Polishing OUT = What is currently in Machining warehouse
+        machining_in_qty = StockTransaction.objects.filter(
+            item=item,
+            transaction_type="machining_in"
+        ).aggregate(total=Sum("quantity"))["total"] or 0
+
+        polishing_out_qty = StockTransaction.objects.filter(
+            item=item,
+            transaction_type="polishing_out"
+        ).aggregate(total=Sum("quantity"))["total"] or 0
+
+        current_machining_stock = machining_in_qty - polishing_out_qty
         
         # Store individual piece stock
         piece_stock[item.id] = current_machining_stock
@@ -674,7 +672,7 @@ def polishing_entry(request):
 
     # Second pass: Calculate Set Capacity based on piece stock
     for item in items:
-        if item.components.exists():
+        if item.item_type == 'SET':
             from .models import ItemComposition
             comps = ItemComposition.objects.filter(parent_item=item)
             if comps.exists():
@@ -695,30 +693,6 @@ def polishing_entry(request):
 
     # available_data for backward compatibility if needed, but we'll use specific dicts
     available_data = {**piece_stock, **set_capacity}
-
-    # ======================================
-    # DELETE TRANSACTION
-    # ======================================
-    delete_id = request.GET.get("delete_id")
-    if delete_id:
-        try:
-            tx = StockTransaction.objects.get(id=delete_id)
-            # Delete child auto-consumed transactions for sets
-            StockTransaction.objects.filter(notes__startswith=f"Auto-consumed for Set Transaction #{tx.id}").delete()
-            
-            # Find and delete component extras and their associated polishing_in transactions
-            comp_extras = StockTransaction.objects.filter(notes=f"Component Extra for Set Transaction #{tx.id}")
-            for comp_tx in comp_extras:
-                StockTransaction.objects.filter(notes=f"IN for OUT #{comp_tx.id}").delete()
-            comp_extras.delete()
-            
-            StockTransaction.objects.filter(notes=f"IN for OUT #{tx.id}").delete()
-            # Delete the transaction itself
-            tx.delete()
-            messages.success(request, "Polishing entry and all associated auto-consumed/receipt transactions deleted successfully.")
-        except StockTransaction.DoesNotExist:
-            messages.error(request, "Selected transaction not found.")
-        return redirect("polishing_entry")
 
     # ======================================
     # MARK IN BUTTON
@@ -801,202 +775,56 @@ def polishing_entry(request):
             return redirect("polishing_entry")
 
         direction = request.POST.get("direction", "polishing_out")
-        
-        import json
-        transaction_data_str = request.POST.get("transaction_data")
-        
-        if transaction_data_str:
+        rows = request.POST.getlist("item[]")
+
+        for index, item_id in enumerate(rows):
+            if not item_id:
+                continue
+
             try:
-                transaction_data = json.loads(transaction_data_str)
-            except json.JSONDecodeError:
-                messages.error(request, "Invalid transaction data payload.")
-                return redirect("polishing_entry")
+                item = Item.objects.get(id=item_id)
+            except Item.DoesNotExist:
+                continue
 
-            for row in transaction_data:
-                item_id = row.get("item_id")
-                if not item_id:
-                    continue
+            lots = int(request.POST.getlist("lots[]")[index] or 0)
+            manual = int(request.POST.getlist("manual[]")[index] or 0)
+            weight = float(request.POST.getlist("weight[]")[index] or 0)
 
-                try:
-                    item = Item.objects.get(id=item_id)
-                except Item.DoesNotExist:
-                    continue
+            # Combined quantity logic: (Lots * Lot Size) + Extra
+            lot_size = item.lot_size or 0
+            total_quantity = (lots * lot_size) + manual
 
-                lots = int(row.get("lots") or 0)
-                manual = int(row.get("manual") or 0)
-                weight = float(row.get("weight") or 0)
-                packaging = row.get("packaging", "regular")
+            if total_quantity <= 0:
+                continue
 
-                # Get correct lot size based on packaging (with fallback to lot_size if lot_with_box is 0 or None)
-                if packaging == "box":
-                    lot_size = item.lot_with_box if (item.lot_with_box and item.lot_with_box > 0) else item.lot_size
-                else:
-                    lot_size = item.lot_size
-                lot_size = lot_size or 0
-                total_quantity = (lots * lot_size) + manual
-
-                if total_quantity <= 0:
-                    continue
-
-                edit_id = request.POST.get("edit_id")
-                if edit_id:
-                    try:
-                        tx = StockTransaction.objects.get(id=edit_id)
-                        tx.transaction_type = direction
-                        tx.item = item
-                        tx.worker = worker_obj
-                        tx.job_worker = job_worker_obj
-                        tx.quantity = total_quantity
-                        tx.weight = weight
-                        tx.save()
-
-                        # Delete old component consumptions
-                        StockTransaction.objects.filter(notes__startswith=f"Auto-consumed for Set Transaction #{tx.id}").delete()
-
-                        # Delete old component extras and their associated polishing_in transactions
-                        comp_extras = StockTransaction.objects.filter(notes=f"Component Extra for Set Transaction #{tx.id}")
-                        for comp_tx in comp_extras:
-                            StockTransaction.objects.filter(notes=f"IN for OUT #{comp_tx.id}").delete()
-                        comp_extras.delete()
-
-                        # Re-create child auto-consumption and component extras if applicable
-                        if direction == "polishing_out" and item.components.exists():
-                            from .models import Warehouse
-                            from_wh = Warehouse.objects.filter(code='MACHINING').first()
-                            components = row.get("components", [])
-                            for comp_row in components:
-                                comp_id = comp_row.get("component_id")
-                                qty_per_set = int(comp_row.get("qty_per_set") or 0)
-                                extra_qty = int(comp_row.get("extra_qty") or 0)
-                                
-                                base_qty = qty_per_set * total_quantity
-                                try:
-                                    comp_item = Item.objects.get(id=comp_id)
-                                except Item.DoesNotExist:
-                                    continue
-                                
-                                if base_qty > 0:
-                                    StockTransaction.objects.create(
-                                        transaction_type="kitting_consume",
-                                        item=comp_item,
-                                        quantity=base_qty,
-                                        from_warehouse=from_wh,
-                                        notes=f"Auto-consumed for Set Transaction #{tx.id}"
-                                    )
-                                
-                                if extra_qty > 0:
-                                    StockTransaction.objects.create(
-                                        transaction_type="polishing_out",
-                                        item=comp_item,
-                                        worker=worker_obj,
-                                        job_worker=job_worker_obj,
-                                        quantity=extra_qty,
-                                        weight=extra_qty * (comp_item.machining_weight or 0.0),
-                                        notes=f"Component Extra for Set Transaction #{tx.id}"
-                                    )
-                        messages.success(request, "Polishing entry updated successfully.")
-                    except StockTransaction.DoesNotExist:
-                        messages.error(request, "Selected polishing entry not found.")
-                else:
-                    # Creating a new transaction
-                    parent_tx = StockTransaction.objects.create(
-                        transaction_type=direction,
-                        item=item,
-                        worker=worker_obj,
-                        job_worker=job_worker_obj,
-                        quantity=total_quantity,
-                        weight=weight
+            # If it's a SET item, consume components (only for OUT transactions)
+            if direction == "polishing_out" and item.item_type == 'SET':
+                from .models import ItemComposition
+                comps = ItemComposition.objects.filter(parent_item=item)
+                for comp in comps:
+                    comp_total_qty = comp.quantity * total_quantity
+                    StockTransaction.objects.create(
+                        transaction_type="kitting_consume",
+                        item=comp.component_item,
+                        quantity=comp_total_qty,
+                        notes=f"Auto-consumed for Set: {item.name} (Polishing Out)"
                     )
 
-                    if direction == "polishing_out" and item.components.exists():
-                        from .models import Warehouse
-                        from_wh = Warehouse.objects.filter(code='MACHINING').first()
-                        
-                        components = row.get("components", [])
-                        for comp_row in components:
-                            comp_id = comp_row.get("component_id")
-                            qty_per_set = int(comp_row.get("qty_per_set") or 0)
-                            extra_qty = int(comp_row.get("extra_qty") or 0)
-                            
-                            base_qty = qty_per_set * total_quantity
-                            try:
-                                comp_item = Item.objects.get(id=comp_id)
-                            except Item.DoesNotExist:
-                                continue
-                                
-                            if base_qty > 0:
-                                StockTransaction.objects.create(
-                                    transaction_type="kitting_consume",
-                                    item=comp_item,
-                                    quantity=base_qty,
-                                    from_warehouse=from_wh,
-                                    notes=f"Auto-consumed for Set Transaction #{parent_tx.id}"
-                                )
-                                
-                            if extra_qty > 0:
-                                StockTransaction.objects.create(
-                                    transaction_type="polishing_out",
-                                    item=comp_item,
-                                    worker=worker_obj,
-                                    job_worker=job_worker_obj,
-                                    quantity=extra_qty,
-                                    weight=extra_qty * (comp_item.machining_weight or 0.0),
-                                    notes=f"Component Extra for Set Transaction #{parent_tx.id}"
-                                )
-                    messages.success(request, f"Polishing { 'Issue' if direction == 'polishing_out' else 'Receipt' } saved successfully.")
-
-            return redirect("polishing_entry")
-        else:
-            # Fallback to standard form fields (legacy support)
-            rows = request.POST.getlist("item[]")
-            for index, item_id in enumerate(rows):
-                if not item_id:
-                    continue
-
-                try:
-                    item = Item.objects.get(id=item_id)
-                except Item.DoesNotExist:
-                    continue
-
-                lots = int(request.POST.getlist("lots[]")[index] or 0)
-                manual = int(request.POST.getlist("manual[]")[index] or 0)
-                weight = float(request.POST.getlist("weight[]")[index] or 0)
-
-                lot_size = item.lot_size or 0
-                total_quantity = (lots * lot_size) + manual
-
-                if total_quantity <= 0:
-                    continue
-
-                # If it's a SET item, consume components (only for OUT transactions)
-                if direction == "polishing_out" and item.components.exists():
-                    from .models import ItemComposition, Warehouse
-                    comps = ItemComposition.objects.filter(parent_item=item)
-                    from_wh = Warehouse.objects.filter(code='MACHINING').first()
-                    for comp in comps:
-                        comp_total_qty = comp.quantity * total_quantity
-                        StockTransaction.objects.create(
-                            transaction_type="kitting_consume",
-                            item=comp.component_item,
-                            quantity=comp_total_qty,
-                            from_warehouse=from_wh,
-                            notes=f"Auto-consumed for Set: {item.name} (Polishing Out)"
-                        )
-
-                StockTransaction.objects.create(
-                    transaction_type=direction,
-                    item=item,
-                    worker=worker_obj,
-                    job_worker=job_worker_obj,
-                    quantity=total_quantity,
-                    weight=weight
-                )
-
-            messages.success(
-                request,
-                f"Polishing { 'Issue' if direction == 'polishing_out' else 'Receipt' } saved successfully."
+            StockTransaction.objects.create(
+                transaction_type=direction,
+                item=item,
+                worker=worker_obj,
+                job_worker=job_worker_obj,
+                quantity=total_quantity,
+                weight=weight
             )
-            return redirect("polishing_entry")
+
+        messages.success(
+            request,
+            f"Polishing { 'Issue' if direction == 'polishing_out' else 'Receipt' } saved successfully."
+        )
+
+        return redirect("polishing_entry")
 
     recent = StockTransaction.objects.filter(
         transaction_type__in=[
@@ -1018,57 +846,6 @@ def polishing_entry(request):
             if done:
                 completed_ids.append(row.id)
 
-    # Calculate Polishing WIP Stock
-    from django.db.models import Sum
-    polishing_stock = []
-    for item in items:
-        # 1. Internal Workers WIP for this item
-        internal_wip_rows = StockTransaction.objects.filter(
-            item=item, 
-            transaction_type="polishing_out", 
-            worker__isnull=False
-        ).values('worker', 'worker__name').annotate(issued=Sum('quantity'))
-
-        for row in internal_wip_rows:
-            w_id = row['worker']
-            w_name = row['worker__name']
-            received = StockTransaction.objects.filter(item=item, worker_id=w_id, transaction_type="polishing_in").aggregate(total=Sum('quantity'))['total'] or 0
-            
-            under_process = row['issued'] - received
-            if under_process > 0:
-                polishing_stock.append({
-                    "item_id": item.id,
-                    "item_name": f"{item.code} - {item.name}",
-                    "worker_id": f"w_{w_id}",
-                    "worker_name": f"{w_name} (INT)",
-                    "under_process": under_process,
-                })
-
-        # 2. External Job Workers WIP for this item
-        external_wip_rows = StockTransaction.objects.filter(
-            item=item, 
-            transaction_type="polishing_out", 
-            job_worker__isnull=False
-        ).values('job_worker', 'job_worker__name').annotate(issued=Sum('quantity'))
-
-        for row in external_wip_rows:
-            jw_id = row['job_worker']
-            jw_name = row['job_worker__name']
-            received = StockTransaction.objects.filter(item=item, job_worker_id=jw_id, transaction_type="polishing_in").aggregate(total=Sum('quantity'))['total'] or 0
-            
-            under_process = row['issued'] - received
-            if under_process > 0:
-                polishing_stock.append({
-                    "item_id": item.id,
-                    "item_name": f"{item.code} - {item.name}",
-                    "worker_id": f"jw_{jw_id}",
-                    "worker_name": jw_name,
-                    "under_process": under_process,
-                })
-
-    from .models import ItemWorkerAllocation
-    allocations = ItemWorkerAllocation.objects.all().select_related('item', 'worker', 'job_worker')
-
     context = {
 
         "workers": workers,
@@ -1077,8 +854,6 @@ def polishing_entry(request):
         "recent": recent,
         "available_data": available_data,
         "completed_ids": completed_ids,
-        "allocations": allocations,
-        "polishing_stock": polishing_stock,
 
     }
 
@@ -1169,7 +944,6 @@ def packaging_view(request):
     # =====================================
     # READY STOCK
     # =====================================
-    active_tab = request.GET.get("tab", "entry")
 
     ready_stock = StockTransaction.objects.filter(
         transaction_type="packaging_in"
@@ -1186,86 +960,13 @@ def packaging_view(request):
         if done:
             completed_ids.append(row.id)
 
-    # Rich Ready Stock Analytics
-    ready_analytics = []
-    total_pieces = 0
-    total_weight = 0.0
-    total_cartons = 0
-    
-    from django.db.models import Sum
-    from . import services
-    from .models import TransactionType
-    
-    for item in items:
-        item_stock = services.get_stock_by_item(item)
-        ready_qty = item_stock.get('ready', 0)
-        
-        if ready_qty > 0:
-            cartons = 0
-            loose = ready_qty
-            if item.lot_with_box and item.lot_with_box > 0:
-                cartons = ready_qty // item.lot_with_box
-                loose = ready_qty % item.lot_with_box
-                
-            # Precise weight calculations
-            txs = StockTransaction.objects.filter(item=item)
-            pack_wt = txs.filter(transaction_type=TransactionType.PACKAGING_IN).aggregate(total=Sum('weight'))['total'] or 0
-            kit_wt = txs.filter(transaction_type=TransactionType.KITTING_PRODUCE).aggregate(total=Sum('weight'))['total'] or 0
-            disp_wt = txs.filter(transaction_type=TransactionType.DISPATCH_OUT).aggregate(total=Sum('weight'))['total'] or 0
-            ready_wt = max(0.0, (pack_wt + kit_wt) - disp_wt)
-            
-            # Status allocation
-            if ready_qty > 500:
-                status = "High Stock"
-                status_color = "#10b981"
-            elif ready_qty > 100:
-                status = "Healthy"
-                status_color = "#3b82f6"
-            else:
-                status = "Low Stock"
-                status_color = "#f59e0b"
-                
-            # Last packed or dispatch action
-            last_tx = StockTransaction.objects.filter(
-                item=item,
-                transaction_type__in=[TransactionType.PACKAGING_IN, TransactionType.DISPATCH_OUT]
-            ).order_by('-created_at').first()
-            last_activity = last_tx.created_at if last_tx else None
-            
-            ready_analytics.append({
-                'item': item,
-                'qty': ready_qty,
-                'weight': round(ready_wt, 3),
-                'cartons': cartons,
-                'loose': loose,
-                'status': status,
-                'status_color': status_color,
-                'last_activity': last_activity
-            })
-            
-            total_pieces += ready_qty
-            total_weight += ready_wt
-            total_cartons += cartons
-
-    # Sort items by quantity descending for top item analysis
-    ready_analytics = sorted(ready_analytics, key=lambda x: x['qty'], reverse=True)
-
-    metrics = {
-        'total_pieces': total_pieces,
-        'total_weight': round(total_weight, 3),
-        'total_cartons': total_cartons,
-        'ready_items_count': len(ready_analytics),
-        'active_queue_count': len(packaging_queue)
-    }
-
     context = {
+
         "items": items,
         "packaging_queue": packaging_queue,
         "ready_stock": ready_stock,
         "completed_ids": completed_ids,
-        "active_tab": active_tab,
-        "ready_analytics": ready_analytics,
-        "metrics": metrics
+
     }
 
     return render(
@@ -1293,7 +994,6 @@ def master_data(request):
         
         if form_type == "item":
             data = request.POST.copy()
-            data['item_type'] = 'SET'
             
             # Default empty numeric fields to 0
             if not data.get('casting_weight'): data['casting_weight'] = 0
@@ -1350,18 +1050,19 @@ def master_data(request):
 
                 # Handle Item Composition (BOM)
                 ItemComposition.objects.filter(parent_item=item).delete()
-                comp_ids = request.POST.getlist('component_id[]')
-                comp_qtys = request.POST.getlist('component_qty[]')
-                for cid, qty in zip(comp_ids, comp_qtys):
-                    if cid and qty:
-                        try:
-                            ItemComposition.objects.create(
-                                parent_item=item,
-                                component_item_id=cid,
-                                quantity=int(qty)
-                            )
-                        except Exception:
-                            pass
+                if item.item_type == 'SET':
+                    comp_ids = request.POST.getlist('component_id[]')
+                    comp_qtys = request.POST.getlist('component_qty[]')
+                    for cid, qty in zip(comp_ids, comp_qtys):
+                        if cid and qty:
+                            try:
+                                ItemComposition.objects.create(
+                                    parent_item=item,
+                                    component_item_id=cid,
+                                    quantity=int(qty)
+                                )
+                            except Exception:
+                                pass
                             
                 messages.success(request, f"Item {'updated' if edit_item else 'created'} successfully.")
                 return redirect(f"{reverse('master_data')}?tab=items")
@@ -1485,15 +1186,10 @@ def master_data(request):
             
             try:
                 if new_set_name:
-                    code = request.POST.get('new_set_code', '').strip()
-                    if Item.objects.filter(code=code).exists():
-                        messages.error(request, f"Error saving BOM: An item with code '{code}' already exists in the Item Master. Please choose a unique code.")
-                        return redirect(f"{reverse('master_data')}?tab=items&sub=bom")
-                    
                     # Create a NEW Item for the Set
                     parent_item = Item.objects.create(
                         name=new_set_name,
-                        code=code,
+                        code=request.POST.get('new_set_code'),
                         category=request.POST.get('category', 'OTHER'),
                         item_type='SET'
                     )
@@ -1525,18 +1221,12 @@ def master_data(request):
                 # Update parent weight and lot_size from components
                 parent_item.machining_weight = total_weight
                 
-                # PRIMARY COMPONENT RULE: Inherit lot size, client, category, and material from the first component
+                # PRIMARY COMPONENT RULE: Inherit lot size from the first component
                 if comp_ids:
                     first_comp = Item.objects.filter(id=comp_ids[0]).first()
                     if first_comp:
                         parent_item.lot_size = first_comp.lot_size
                         parent_item.lot_with_box = first_comp.lot_with_box
-                        if not parent_item.client and first_comp.client:
-                            parent_item.client = first_comp.client
-                        if not parent_item.category or parent_item.category == 'OTHER':
-                            parent_item.category = first_comp.category
-                        if not parent_item.material:
-                            parent_item.material = first_comp.material
                 
                 parent_item.save()
                 
@@ -1566,8 +1256,8 @@ def master_data(request):
     if client_filter_id and client_filter_id.strip():
         items_to_display = all_items.filter(client_id=client_filter_id)
     
-    # Items for the BOM tab (only those that actually have components)
-    bom_items = Item.objects.filter(components__isnull=False).distinct().prefetch_related('components__component_item')
+    # Items for the BOM tab (only those marked as SET)
+    bom_items = Item.objects.filter(item_type='SET').prefetch_related('components__component_item')
 
     # Client Stats for the dashboard
     from django.db.models import Count
@@ -1603,126 +1293,93 @@ def master_data(request):
 # =====================================================
 
 def casting_stock(request):
+
     from collections import defaultdict
-    from django.db.models import Sum
-    from django.utils import timezone
-    from .models import StockTransaction, Item, Client
-
-    # 1. Fetch casting entry (production) transactions
-    casting_txs = StockTransaction.objects.filter(
-        transaction_type__in=["casting_in", "casting_entry"]
-    ).select_related("client", "item")
-
-    # 2. Fetch machining issue transactions
-    machining_out_txs = StockTransaction.objects.filter(
-        transaction_type="machining_out"
-    ).select_related("client", "item")
-
-    grouped = defaultdict(lambda: {
-        "cast_qty": 0,
-        "cast_weight": 0.0,
-        "issued_qty": 0,
-        "issued_weight": 0.0,
-    })
-
-    # Aggregate casting production
-    for tx in casting_txs:
-        client_name = tx.client.name if tx.client else "NO CLIENT"
-        item_code = tx.item.code if tx.item else "-"
-        item_name = tx.item.name if tx.item else "-"
-        key = (client_name, item_code, item_name)
-        
-        grouped[key]["cast_qty"] += tx.quantity or 0
-        grouped[key]["cast_weight"] += float(tx.weight or 0)
-
-    # Aggregate machining issues
-    for tx in machining_out_txs:
-        client_name = tx.client.name if tx.client else "NO CLIENT"
-        item_code = tx.item.code if tx.item else "-"
-        item_name = tx.item.name if tx.item else "-"
-        key = (client_name, item_code, item_name)
-
-        grouped[key]["issued_qty"] += tx.quantity or 0
-        grouped[key]["issued_weight"] += float(tx.weight or 0)
 
     rows = []
-    total_cast_pcs = 0
-    total_cast_wt = 0.0
-    total_issued_pcs = 0
-    total_issued_wt = 0.0
-    total_stock_pcs = 0
-    total_stock_wt = 0.0
+
+    transactions = StockTransaction.objects.filter(
+        transaction_type__in=[
+            "casting_in",
+            "casting_entry"
+        ]
+    ).select_related(
+        "client",
+        "item"
+    )
+
+    grouped = defaultdict(lambda: {
+        "pcs": 0,
+        "weight": 0
+    })
+
+    for tx in transactions:
+
+        client_name = (
+            tx.client.name
+            if tx.client else "NO CLIENT"
+        )
+
+        item_code = (
+            tx.item.code
+            if tx.item else "-"
+        )
+
+        item_name = (
+            tx.item.name
+            if tx.item else "-"
+        )
+
+        key = (
+            client_name,
+            item_code,
+            item_name
+        )
+
+        grouped[key]["pcs"] += tx.quantity or 0
+
+        grouped[key]["weight"] += float(
+            tx.weight or 0
+        )
 
     for key, value in grouped.items():
-        cast_qty = value["cast_qty"]
-        cast_wt = round(value["cast_weight"], 3)
-        issued_qty = value["issued_qty"]
-        issued_wt = round(value["issued_weight"], 3)
-        
-        stock_qty = max(0, cast_qty - issued_qty)
-        stock_wt = max(0.0, round(value["cast_weight"] - value["issued_weight"], 3))
 
         rows.append({
+
             "client": key[0],
             "code": key[1],
             "item": key[2],
-            "cast_pcs": cast_qty,
-            "cast_weight": cast_wt,
-            "issued_pcs": issued_qty,
-            "issued_weight": issued_wt,
-            "pcs": stock_qty,
-            "weight": stock_wt,
+
+            "pcs": value["pcs"],
+
+            "weight": round(
+                value["weight"],
+                3
+            )
+
         })
 
-        total_cast_pcs += cast_qty
-        total_cast_wt += value["cast_weight"]
-        total_issued_pcs += issued_qty
-        total_issued_wt += value["issued_weight"]
-        total_stock_pcs += stock_qty
-        total_stock_wt += (value["cast_weight"] - value["issued_weight"])
+    graph_labels = []
+    graph_values = []
 
-    # Graph distributions
-    client_stock = defaultdict(int)
-    item_stock = defaultdict(lambda: {"cast": 0, "issued": 0, "net": 0})
+    item_summary = defaultdict(int)
 
     for row in rows:
-        client_stock[row["client"]] += row["pcs"]
-        item_stock[row["item"]]["cast"] += row["cast_pcs"]
-        item_stock[row["item"]]["issued"] += row["issued_pcs"]
-        item_stock[row["item"]]["net"] += row["pcs"]
 
-    # Graph Client Stock Distribution
-    graph_client_labels = list(client_stock.keys())
-    graph_client_values = list(client_stock.values())
+        item_summary[row["item"]] += row["pcs"]
 
-    # Graph Item stock comparison
-    graph_item_labels = list(item_stock.keys())
-    graph_item_cast = [d["cast"] for d in item_stock.values()]
-    graph_item_issued = [d["issued"] for d in item_stock.values()]
-    graph_item_net = [d["net"] for d in item_stock.values()]
+    for item_name, pcs in item_summary.items():
 
-    # Production run this month (casting_entry from 1st day of current month)
-    first_day_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    month_prod_qty = StockTransaction.objects.filter(
-        transaction_type__in=["casting_in", "casting_entry"],
-        created_at__gte=first_day_of_month
-    ).aggregate(total=Sum('quantity'))['total'] or 0
+        graph_labels.append(item_name)
+        graph_values.append(pcs)
 
     context = {
+
         "rows": rows,
-        "total_cast_pcs": total_cast_pcs,
-        "total_cast_wt": round(total_cast_wt, 3),
-        "total_issued_pcs": total_issued_pcs,
-        "total_issued_wt": round(total_issued_wt, 3),
-        "total_stock_pcs": max(0, total_stock_pcs),
-        "total_stock_wt": max(0.0, round(total_stock_wt, 3)),
-        "month_prod_qty": month_prod_qty,
-        "graph_client_labels": graph_client_labels,
-        "graph_client_values": graph_client_values,
-        "graph_item_labels": graph_item_labels,
-        "graph_item_cast": graph_item_cast,
-        "graph_item_issued": graph_item_issued,
-        "graph_item_net": graph_item_net,
+
+        "graph_labels": graph_labels,
+        "graph_values": graph_values,
+
     }
 
     return render(
@@ -1732,346 +1389,155 @@ def casting_stock(request):
     )
 
 def machining_stock(request):
-    from collections import defaultdict
-    from django.db.models import Sum
-    from django.utils import timezone
-    from .models import StockTransaction, Item, JobWorker, Worker
 
-    # Fetch all machining transactions
-    txs = StockTransaction.objects.filter(
-        transaction_type__in=["machining_out", "machining_in"]
-    ).select_related("worker", "job_worker", "item")
+    from collections import defaultdict
+
+    rows = []
+
+    transactions = StockTransaction.objects.filter(
+
+        transaction_type__in=[
+            "machining_out",
+            "machining_in"
+        ]
+
+    ).select_related(
+
+        "worker",
+        "item"
+
+    )
 
     grouped = defaultdict(lambda: {
-        "issued_qty": 0,
-        "issued_weight": 0.0,
-        "received_qty": 0,
-        "received_weight": 0.0,
+
+        "pcs": 0,
+        "weight": 0
+
     })
 
-    for tx in txs:
-        # Support both internal & external
-        if tx.job_worker:
-            worker_name = tx.job_worker.name
-        elif tx.worker:
-            worker_name = tx.worker.name
-        else:
-            worker_name = "NO WORKER"
+    for tx in transactions:
 
-        item_code = tx.item.code if tx.item else "-"
-        item_name = tx.item.name if tx.item else "-"
-        key = (worker_name, item_code, item_name)
+        # =====================================
+        # SUPPORT OLD + NEW DATA
+        # =====================================
+
+        if tx.worker:
+
+            worker_name = tx.worker.name
+
+        else:
+
+            worker_name = "NO JOB WORKER"
+
+        # =====================================
+        # ITEM DETAILS
+        # =====================================
+
+        item_code = (
+            tx.item.code
+            if tx.item else "-"
+        )
+
+        item_name = (
+            tx.item.name
+            if tx.item else "-"
+        )
+
+        key = (
+            worker_name,
+            item_code,
+            item_name
+        )
+
+        # =====================================
+        # STOCK CALCULATION
+        # =====================================
 
         if tx.transaction_type == "machining_out":
-            grouped[key]["issued_qty"] += tx.quantity or 0
-            grouped[key]["issued_weight"] += float(tx.weight or 0)
+
+            grouped[key]["pcs"] += (
+                tx.quantity or 0
+            )
+
+            grouped[key]["weight"] += float(
+                tx.weight or 0
+            )
+
         elif tx.transaction_type == "machining_in":
-            grouped[key]["received_qty"] += tx.quantity or 0
-            grouped[key]["received_weight"] += float(tx.weight or 0)
 
-    rows = []
-    total_issued_pcs = 0
-    total_issued_wt = 0.0
-    total_received_pcs = 0
-    total_received_wt = 0.0
-    total_wip_pcs = 0
-    total_wip_wt = 0.0
+            grouped[key]["pcs"] -= (
+                tx.quantity or 0
+            )
 
-    for key, val in grouped.items():
-        issued_qty = val["issued_qty"]
-        issued_wt = round(val["issued_weight"], 3)
-        received_qty = val["received_qty"]
-        received_wt = round(val["received_weight"], 3)
-        wip_qty = max(0, issued_qty - received_qty)
-        wip_wt = max(0.0, round(val["issued_weight"] - val["received_weight"], 3))
+            grouped[key]["weight"] -= float(
+                tx.weight or 0
+            )
 
-        rows.append({
-            "worker": key[0],
-            "code": key[1],
-            "item": key[2],
-            "issued_pcs": issued_qty,
-            "issued_weight": issued_wt,
-            "received_pcs": received_qty,
-            "received_weight": received_wt,
-            "pcs": wip_qty,
-            "weight": wip_wt,
-        })
+    # =====================================
+    # FINAL TABLE ROWS
+    # =====================================
 
-        total_issued_pcs += issued_qty
-        total_issued_wt += val["issued_weight"]
-        total_received_pcs += received_qty
-        total_received_wt += val["received_weight"]
-        total_wip_pcs += wip_qty
-        total_wip_wt += (val["issued_weight"] - val["received_weight"])
+    for key, value in grouped.items():
 
-    # Graph distributions
-    worker_stock = defaultdict(int)
-    item_stock = defaultdict(lambda: {"issued": 0, "received": 0, "net": 0})
+        if value["pcs"] > 0:
 
-    for row in rows:
-        worker_stock[row["worker"]] += row["pcs"]
-        item_stock[row["item"]]["issued"] += row["issued_pcs"]
-        item_stock[row["item"]]["received"] += row["received_pcs"]
-        item_stock[row["item"]]["net"] += row["pcs"]
+            rows.append({
 
-    # Graph Worker Stock Distribution
-    graph_worker_labels = list(worker_stock.keys())
-    graph_worker_values = list(worker_stock.values())
+                "worker": key[0],
 
-    # Graph Item comparison
-    graph_item_labels = list(item_stock.keys())
-    graph_item_issued = [d["issued"] for d in item_stock.values()]
-    graph_item_received = [d["received"] for d in item_stock.values()]
-    graph_item_net = [d["net"] for d in item_stock.values()]
+                "code": key[1],
 
-    # Production run this month (machining_in from 1st day of current month)
-    first_day_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    month_prod_qty = StockTransaction.objects.filter(
-        transaction_type="machining_in",
-        created_at__gte=first_day_of_month
-    ).aggregate(total=Sum('quantity'))['total'] or 0
+                "item": key[2],
 
-    context = {
-        "rows": rows,
-        "total_issued_pcs": total_issued_pcs,
-        "total_issued_wt": round(total_issued_wt, 3),
-        "total_received_pcs": total_received_pcs,
-        "total_received_wt": round(total_received_wt, 3),
-        "total_wip_pcs": max(0, total_wip_pcs),
-        "total_wip_wt": max(0.0, round(total_wip_wt, 3)),
-        "month_prod_qty": month_prod_qty,
-        "graph_worker_labels": graph_worker_labels,
-        "graph_worker_values": graph_worker_values,
-        "graph_item_labels": graph_item_labels,
-        "graph_item_issued": graph_item_issued,
-        "graph_item_received": graph_item_received,
-        "graph_item_net": graph_item_net,
-    }
+                "pcs": value["pcs"],
 
-    return render(request, "machining_stock.html", context)
+                "weight": round(
+                    value["weight"],
+                    3
+                )
 
-def polishing_stock(request):
-    from collections import defaultdict
-    from django.db.models import Sum
-    from django.utils import timezone
-    from .models import StockTransaction, Item, JobWorker, Worker
+            })
 
-    # Fetch all polishing transactions
-    txs = StockTransaction.objects.filter(
-        transaction_type__in=["polishing_out", "polishing_in"]
-    ).select_related("worker", "job_worker", "item")
+    # =====================================
+    # PIE CHART DATA
+    # =====================================
 
-    grouped = defaultdict(lambda: {
-        "issued_qty": 0,
-        "issued_weight": 0.0,
-        "received_qty": 0,
-        "received_weight": 0.0,
-    })
+    graph_labels = []
+    graph_values = []
 
-    for tx in txs:
-        # Support both internal & external
-        if tx.job_worker:
-            worker_name = tx.job_worker.name
-        elif tx.worker:
-            worker_name = tx.worker.name
-        else:
-            worker_name = "NO WORKER"
-
-        item_code = tx.item.code if tx.item else "-"
-        item_name = tx.item.name if tx.item else "-"
-        key = (worker_name, item_code, item_name)
-
-        if tx.transaction_type == "polishing_out":
-            grouped[key]["issued_qty"] += tx.quantity or 0
-            grouped[key]["issued_weight"] += float(tx.weight or 0)
-        elif tx.transaction_type == "polishing_in":
-            grouped[key]["received_qty"] += tx.quantity or 0
-            grouped[key]["received_weight"] += float(tx.weight or 0)
-
-    rows = []
-    total_issued_pcs = 0
-    total_issued_wt = 0.0
-    total_received_pcs = 0
-    total_received_wt = 0.0
-    total_wip_pcs = 0
-    total_wip_wt = 0.0
-
-    for key, val in grouped.items():
-        issued_qty = val["issued_qty"]
-        issued_wt = round(val["issued_weight"], 3)
-        received_qty = val["received_qty"]
-        received_wt = round(val["received_weight"], 3)
-        wip_qty = max(0, issued_qty - received_qty)
-        wip_wt = max(0.0, round(val["issued_weight"] - val["received_weight"], 3))
-
-        rows.append({
-            "worker": key[0],
-            "code": key[1],
-            "item": key[2],
-            "issued_pcs": issued_qty,
-            "issued_weight": issued_wt,
-            "received_pcs": received_qty,
-            "received_weight": received_wt,
-            "pcs": wip_qty,
-            "weight": wip_wt,
-        })
-
-        total_issued_pcs += issued_qty
-        total_issued_wt += val["issued_weight"]
-        total_received_pcs += received_qty
-        total_received_wt += val["received_weight"]
-        total_wip_pcs += wip_qty
-        total_wip_wt += (val["issued_weight"] - val["received_weight"])
-
-    # Graph distributions
-    worker_stock = defaultdict(int)
-    item_stock = defaultdict(lambda: {"issued": 0, "received": 0, "net": 0})
+    item_summary = defaultdict(int)
 
     for row in rows:
-        worker_stock[row["worker"]] += row["pcs"]
-        item_stock[row["item"]]["issued"] += row["issued_pcs"]
-        item_stock[row["item"]]["received"] += row["received_pcs"]
-        item_stock[row["item"]]["net"] += row["pcs"]
 
-    # Graph Worker Stock Distribution
-    graph_worker_labels = list(worker_stock.keys())
-    graph_worker_values = list(worker_stock.values())
+        item_summary[
+            row["item"]
+        ] += row["pcs"]
 
-    # Graph Item comparison
-    graph_item_labels = list(item_stock.keys())
-    graph_item_issued = [d["issued"] for d in item_stock.values()]
-    graph_item_received = [d["received"] for d in item_stock.values()]
-    graph_item_net = [d["net"] for d in item_stock.values()]
+    for item_name, pcs in item_summary.items():
 
-    # Production run this month (polishing_in from 1st day of current month)
-    first_day_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    month_prod_qty = StockTransaction.objects.filter(
-        transaction_type="polishing_in",
-        created_at__gte=first_day_of_month
-    ).aggregate(total=Sum('quantity'))['total'] or 0
+        graph_labels.append(item_name)
+
+        graph_values.append(pcs)
 
     context = {
+
         "rows": rows,
-        "total_issued_pcs": total_issued_pcs,
-        "total_issued_wt": round(total_issued_wt, 3),
-        "total_received_pcs": total_received_pcs,
-        "total_received_wt": round(total_received_wt, 3),
-        "total_wip_pcs": max(0, total_wip_pcs),
-        "total_wip_wt": max(0.0, round(total_wip_wt, 3)),
-        "month_prod_qty": month_prod_qty,
-        "graph_worker_labels": graph_worker_labels,
-        "graph_worker_values": graph_worker_values,
-        "graph_item_labels": graph_item_labels,
-        "graph_item_issued": graph_item_issued,
-        "graph_item_received": graph_item_received,
-        "graph_item_net": graph_item_net,
+
+        "graph_labels": graph_labels,
+
+        "graph_values": graph_values,
+
     }
 
-    return render(request, "polishing_stock.html", context)
+    return render(
 
-def ready_stock(request):
-    from collections import defaultdict
-    from django.db.models import Sum
-    from django.utils import timezone
-    from .models import StockTransaction, Item
+        request,
 
-    # Ready stock transactions: packaging_in, kitting_produce (inflows) and dispatch_out (outflows)
-    txs = StockTransaction.objects.filter(
-        transaction_type__in=["packaging_in", "kitting_produce", "dispatch_out"]
-    ).select_related("item")
+        "machining_stock.html",
 
-    grouped = defaultdict(lambda: {
-        "received_qty": 0,
-        "received_weight": 0.0,
-        "dispatched_qty": 0,
-        "dispatched_weight": 0.0,
-    })
+        context
 
-    for tx in txs:
-        item_code = tx.item.code if tx.item else "-"
-        item_name = tx.item.name if tx.item else "-"
-        key = (item_code, item_name)
-
-        if tx.transaction_type in ["packaging_in", "kitting_produce"]:
-            grouped[key]["received_qty"] += tx.quantity or 0
-            grouped[key]["received_weight"] += float(tx.weight or 0)
-        elif tx.transaction_type == "dispatch_out":
-            grouped[key]["dispatched_qty"] += tx.quantity or 0
-            grouped[key]["dispatched_weight"] += float(tx.weight or 0)
-
-    rows = []
-    total_received_pcs = 0
-    total_received_wt = 0.0
-    total_dispatched_pcs = 0
-    total_dispatched_wt = 0.0
-    total_net_pcs = 0
-    total_net_wt = 0.0
-
-    for key, val in grouped.items():
-        received_qty = val["received_qty"]
-        received_wt = round(val["received_weight"], 3)
-        dispatched_qty = val["dispatched_qty"]
-        dispatched_wt = round(val["dispatched_weight"], 3)
-        net_qty = max(0, received_qty - dispatched_qty)
-        net_wt = max(0.0, round(val["received_weight"] - val["dispatched_weight"], 3))
-
-        rows.append({
-            "code": key[0],
-            "item": key[1],
-            "received_pcs": received_qty,
-            "received_weight": received_wt,
-            "dispatched_pcs": dispatched_qty,
-            "dispatched_weight": dispatched_wt,
-            "pcs": net_qty,
-            "weight": net_wt,
-        })
-
-        total_received_pcs += received_qty
-        total_received_wt += val["received_weight"]
-        total_dispatched_pcs += dispatched_qty
-        total_dispatched_wt += val["dispatched_weight"]
-        total_net_pcs += net_qty
-        total_net_wt += (val["received_weight"] - val["dispatched_weight"])
-
-    # Graph distributions
-    item_stock = defaultdict(lambda: {"received": 0, "dispatched": 0, "net": 0})
-
-    for row in rows:
-        item_stock[row["item"]]["received"] += row["received_pcs"]
-        item_stock[row["item"]]["dispatched"] += row["dispatched_pcs"]
-        item_stock[row["item"]]["net"] += row["pcs"]
-
-    # Graph Item Wise Stock Percentage (Pie/Doughnut)
-    graph_item_labels = list(item_stock.keys())
-    graph_item_values = [d["net"] for d in item_stock.values()]
-
-    # Graph Item comparison (Bar)
-    graph_item_received = [d["received"] for d in item_stock.values()]
-    graph_item_dispatched = [d["dispatched"] for d in item_stock.values()]
-
-    # Production run this month (packaging_in + kitting_produce from 1st day of current month)
-    first_day_of_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    month_prod_qty = StockTransaction.objects.filter(
-        transaction_type__in=["packaging_in", "kitting_produce"],
-        created_at__gte=first_day_of_month
-    ).aggregate(total=Sum('quantity'))['total'] or 0
-
-    context = {
-        "rows": rows,
-        "total_received_pcs": total_received_pcs,
-        "total_received_wt": round(total_received_wt, 3),
-        "total_dispatched_pcs": total_dispatched_pcs,
-        "total_dispatched_wt": round(total_dispatched_wt, 3),
-        "total_net_pcs": max(0, total_net_pcs),
-        "total_net_wt": max(0.0, round(total_net_wt, 3)),
-        "month_prod_qty": month_prod_qty,
-        "graph_item_labels": graph_item_labels,
-        "graph_item_values": graph_item_values,
-        "graph_item_received": graph_item_received,
-        "graph_item_dispatched": graph_item_dispatched,
-    }
-
-    return render(request, "ready_stock.html", context)
+    )
 # =====================================================
 # OLD URL SUPPORT
 # =====================================================
@@ -2091,8 +1557,6 @@ def delete_item(request, item_id):
     next_url = request.GET.get('next', 'master_data')
     if next_url == 'bom':
         target = f"{reverse('master_data')}?tab=items&sub=bom"
-    elif next_url == 'assembly':
-        target = f"{reverse('assembly')}?tab=bom"
     else:
         target = reverse('master_data')
 
@@ -2267,143 +1731,51 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
 def assembly_view(request):
-    from django.urls import reverse
-    
-    active_tab = request.GET.get('tab', 'entry')
-    
+    items = Item.objects.filter(item_type='SET', active=True)
     if request.method == 'POST':
-        form_type = request.POST.get('form_type')
+        item_id = request.POST.get('item_id')
+        quantity = int(request.POST.get('quantity') or 0)
         
-        if form_type == 'bom':
-            parent_id = request.POST.get('parent_item_id')
-            new_set_name = request.POST.get('new_set_name')
+        if not item_id or quantity <= 0:
+            messages.error(request, "Please select an item and enter a valid quantity.")
+            return redirect('assembly')
+
+        try:
+            item = Item.objects.get(id=item_id)
+            compositions = item.components.all()
             
-            try:
-                if new_set_name:
-                    code = request.POST.get('new_set_code', '').strip()
-                    if Item.objects.filter(code=code).exists():
-                        messages.error(request, f"Error saving BOM: An item with code '{code}' already exists in the Item Master. Please choose a unique code.")
-                        return redirect(f"{reverse('assembly')}?tab=bom")
-                    
-                    # Create a NEW Item for the Set
-                    parent_item = Item.objects.create(
-                        name=new_set_name,
-                        code=code,
-                        category=request.POST.get('category', 'OTHER'),
-                        item_type='SET'
-                    )
-                else:
-                    parent_item = Item.objects.get(id=parent_id)
-
-                ItemComposition.objects.filter(parent_item=parent_item).delete()
-                
-                # Ensure it's marked as SET
-                parent_item.item_type = 'SET'
-                parent_item.save()
-
-                comp_ids = request.POST.getlist('component_id[]')
-                comp_qtys = request.POST.getlist('component_qty[]')
-                
-                total_weight = 0
-                for cid, qty in zip(comp_ids, comp_qtys):
-                    if cid and qty:
-                        comp_obj = Item.objects.get(id=cid)
-                        qty_int = int(qty)
-                        total_weight += (comp_obj.machining_weight * qty_int)
-                        
-                        ItemComposition.objects.create(
-                            parent_item=parent_item,
-                            component_item=comp_obj,
-                            quantity=qty_int
-                        )
-                
-                # Update parent weight and lot_size from components
-                parent_item.machining_weight = total_weight
-                
-                # PRIMARY COMPONENT RULE: Inherit lot size, client, category, and material from the first component
-                if comp_ids:
-                    first_comp = Item.objects.filter(id=comp_ids[0]).first()
-                    if first_comp:
-                        parent_item.lot_size = first_comp.lot_size
-                        parent_item.lot_with_box = first_comp.lot_with_box
-                        if not parent_item.client and first_comp.client:
-                            parent_item.client = first_comp.client
-                        if not parent_item.category or parent_item.category == 'OTHER':
-                            parent_item.category = first_comp.category
-                        if not parent_item.material:
-                            parent_item.material = first_comp.material
-                
-                parent_item.save()
-                
-                messages.success(request, f"BOM for {parent_item.name} saved successfully with calculated weight {total_weight}kg.")
-                return redirect(f"{reverse('assembly')}?tab=bom")
-            except Exception as e:
-                messages.error(request, f"Error saving BOM: {str(e)}")
-                return redirect(f"{reverse('assembly')}?tab=bom")
-                
-        else:
-            item_id = request.POST.get('item_id')
-            quantity = int(request.POST.get('quantity') or 0)
+            # Check stock for components
+            from .services import get_stock_by_item
+            can_assemble = True
+            missing = []
+            for comp in compositions:
+                stock = get_stock_by_item(comp.component_item)
+                needed = comp.quantity * quantity
+                if stock['polishing'] < needed:
+                    can_assemble = False
+                    missing.append(f"{comp.component_item.name} (Need {needed}, Have {stock['polishing']})")
             
-            if not item_id or quantity <= 0:
-                messages.error(request, "Please select an item and enter a valid quantity.")
-                return redirect(f"{reverse('assembly')}?tab=entry")
-
-            try:
-                item = Item.objects.get(id=item_id)
-                compositions = item.components.all()
-                
-                # Check stock for components
-                from .services import get_stock_by_item
-                can_assemble = True
-                missing = []
+            if not can_assemble:
+                messages.error(request, f"Insufficient component stock: {', '.join(missing)}")
+            else:
+                # Create Transactions
                 for comp in compositions:
-                    stock = get_stock_by_item(comp.component_item)
-                    needed = comp.quantity * quantity
-                    if stock['polishing'] < needed:
-                        can_assemble = False
-                        missing.append(f"{comp.component_item.name} (Need {needed}, Have {stock['polishing']})")
-                
-                if not can_assemble:
-                    messages.error(request, f"Insufficient component stock: {', '.join(missing)}")
-                else:
-                    # Create Transactions
-                    from .models import Warehouse
-                    from_wh = Warehouse.objects.filter(code='POLISHING').first()
-                    for comp in compositions:
-                        StockTransaction.objects.create(
-                            item=comp.component_item,
-                            transaction_type=TransactionType.KITTING_CONSUME,
-                            quantity=comp.quantity * quantity,
-                            from_warehouse=from_wh
-                        )
                     StockTransaction.objects.create(
-                        item=item,
-                        transaction_type=TransactionType.KITTING_PRODUCE,
-                        quantity=quantity
+                        item=comp.component_item,
+                        transaction_type=TransactionType.KITTING_CONSUME,
+                        quantity=comp.quantity * quantity
                     )
-                    messages.success(request, f"Successfully assembled {quantity} units of {item.name}.")
-                    return redirect(f"{reverse('assembly')}?tab=entry")
-            except Exception as e:
-                messages.error(request, f"Error: {str(e)}")
-                return redirect(f"{reverse('assembly')}?tab=entry")
+                StockTransaction.objects.create(
+                    item=item,
+                    transaction_type=TransactionType.KITTING_PRODUCE,
+                    quantity=quantity
+                )
+                messages.success(request, f"Successfully assembled {quantity} units of {item.name}.")
+                return redirect('assembly')
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
             
-    items = Item.objects.filter(components__isnull=False, active=True).distinct().order_by('code')
-    bom_items = Item.objects.filter(components__isnull=False).distinct().prefetch_related('components__component_item').order_by('code')
-    all_items = Item.objects.filter(active=True).order_by('code')
-    recent_assemblies = StockTransaction.objects.filter(transaction_type='kitting_produce').order_by('-created_at')[:20]
-    clients = Client.objects.filter(active=True).order_by('name')
-    
-    context = {
-        'items': items,
-        'bom_items': bom_items,
-        'all_items': all_items,
-        'recent_assemblies': recent_assemblies,
-        'clients': clients,
-        'active_tab': active_tab,
-        'active_page': 'assembly'
-    }
-    return render(request, 'assembly.html', context)
+    return render(request, 'assembly.html', {'items': items, 'active_page': 'assembly'})
 
 @require_GET
 def get_item_composition(request, item_id):

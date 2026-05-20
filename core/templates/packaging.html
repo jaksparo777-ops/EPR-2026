@@ -1,6 +1,58 @@
 {% extends "layout/base.html" %}
 
 {% block content %}
+<style>
+    @keyframes pulse-box {
+        0% {
+            transform: scale(1);
+            opacity: 0.8;
+        }
+
+        50% {
+            transform: scale(1.15);
+            opacity: 1;
+            filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.8));
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 0.8;
+        }
+    }
+
+    .drawer {
+        position: fixed;
+        right: -100vw !important;
+        top: 0;
+        width: 550px;
+        height: 100vh;
+        background: #0f172a;
+        border-left: 1px solid var(--border-soft);
+        z-index: 10000;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 40px;
+        overflow-y: auto;
+        box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .drawer.active {
+        right: 0 !important;
+    }
+
+    .drawer-backdrop {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        display: none;
+        z-index: 9999;
+    }
+
+    .drawer-backdrop.active {
+        display: block;
+    }
+</style>
 
 <div style="margin-bottom:28px;">
 
@@ -43,125 +95,41 @@
         {% endif %}">
         Ready Stock
     </a>
+    <a href="?tab=buffer" style="text-decoration:none; display:inline-block; border-radius:12px; font-weight:700; font-size:22px; padding:15px 25px; 
+        {% if active_tab == 'buffer' %}
+            background: var(--accent-blue); color:white; border:none;
+        {% else %}
+            background: rgba(255,255,255,0.03); color: var(--text-secondary); border: 1px solid var(--border-soft);
+        {% endif %}">
+        Loose Buffer Stock
+    </a>
 </div>
 
 
 
 {% if active_tab == 'entry' %}
-<div class="main-grid" style="display:grid; grid-template-columns: 450px 1fr; gap: 24px; align-items: start;">
-
-    <!-- LEFT COLUMN: Packaging Process Form -->
-    <div class="glass-card">
-        <h3 style="margin-bottom:24px; font-size:20px; letter-spacing:1px; display:flex; align-items:center; gap:10px; margin-top:0;">
-            <span style="color:var(--accent-blue);">●</span> RECORD PACKAGING
-        </h3>
-
-        <form method="POST">
-            {% csrf_token %}
-
-            <!-- ITEM -->
-            <div style="margin-bottom:22px;">
-                <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
-                    Item Selection
-                </label>
-                <select name="item" id="itemSelect" onchange="updatePackagingInfo()" required
-                    style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 12px; color: white; padding: 12px 16px; font-size: 16px; width: 100%; cursor: pointer;">
-                    <option value="">Select item...</option>
-                    {% for row in packaging_queue %}
-                    <option value="{{ row.item.id }}"
-                        data-available="{{ row.quantity }}"
-                        data-weight="{{ row.weight }}"
-                        data-lotsize="{{ row.item.lot_size }}"
-                        data-carton="{{ row.item.lot_with_box }}"
-                        data-pieceweight="{{ row.item.machining_weight }}">
-                        {{ row.item.code }} - {{ row.item.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- STOCK INFO -->
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); border-radius:16px; padding:20px; margin-bottom:22px;">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-                    <div>
-                        <div style="font-size:11px; color: var(--text-secondary); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Available Qty</div>
-                        <div id="availableQty" style="font-size:32px; font-weight:800; color: var(--text-primary);">0</div>
-                    </div>
-                    <div>
-                        <div style="font-size:11px; color: var(--text-secondary); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Available Weight</div>
-                        <div id="availableWeight" style="font-size:32px; font-weight:800; color: var(--text-primary);">0 kg</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- LOT INFO -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px;">
-                <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding:16px; border-radius:12px;">
-                    <div style="font-size:11px; color: var(--text-secondary); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Lot Size</div>
-                    <div id="lotSize" style="font-size:24px; font-weight:800; color: var(--text-primary);">0</div>
-                </div>
-                <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding:16px; border-radius:12px;">
-                    <div style="font-size:11px; color: var(--text-secondary); margin-bottom:6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">Carton Size</div>
-                    <div id="cartonSize" style="font-size:24px; font-weight:800; color: var(--text-primary);">0</div>
-                </div>
-            </div>
-
-            <!-- READY CARTONS & AUTO QTY -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px;">
-                <div>
-                    <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
-                        Ready Cartons
-                    </label>
-                    <input type="number" id="readyCartons" onchange="calculatePackaging()" onkeyup="calculatePackaging()" value="0" min="0"
-                        style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 12px; color: white; padding: 12px 16px; font-size: 16px; width: 100%; box-sizing: border-box;">
-                </div>
-                <div>
-                    <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
-                        Auto Quantity
-                    </label>
-                    <input type="number" name="quantity" id="autoQty" readonly
-                        style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius: 12px; color: var(--text-secondary); padding: 12px 16px; font-size: 16px; width: 100%; box-sizing: border-box;">
-                </div>
-            </div>
-
-            <!-- AUTO WEIGHT -->
-            <div style="margin-bottom:22px;">
-                <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
-                    Auto Weight (kg)
-                </label>
-                <input type="number" step="0.001" name="weight" id="autoWeight" readonly
-                    style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius: 12px; color: var(--text-secondary); padding: 12px 16px; font-size: 16px; width: 100%; box-sizing: border-box;">
-            </div>
-
-            <!-- CHECKBOXES -->
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:26px;">
-                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:12px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:700; color: var(--text-primary); font-size:13px; transition: all 0.2s;">
-                    <input type="checkbox" name="cleaning" value="YES" style="cursor:pointer;"> Cleaning
-                </label>
-                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:12px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:700; color: var(--text-primary); font-size:13px; transition: all 0.2s;">
-                    <input type="checkbox" name="labeling" value="YES" style="cursor:pointer;"> Labeling
-                </label>
-                <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:12px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:700; color: var(--text-primary); font-size:13px; transition: all 0.2s;">
-                    <input type="checkbox" name="packing" value="YES" style="cursor:pointer;"> Packing
-                </label>
-            </div>
-
-            <button type="submit" class="btn-primary" style="width: 100%; height:54px; font-size:16px;">
-                COMPLETE PACKAGING
-            </button>
-        </form>
-    </div>
+<div class="main-grid" style="display:grid; grid-template-columns: 1fr; gap: 24px; align-items: start;">
 
     <!-- RIGHT COLUMN: Packaging Queue -->
     <div class="glass-card">
-        <h3 style="margin-bottom:24px; font-size:20px; letter-spacing:1px; display:flex; align-items:center; gap:10px; margin-top:0;">
-            <span style="color:var(--accent-blue);">●</span> PACKAGING QUEUE
-        </h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; margin-top:0;">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <h3
+                    style="margin:0; font-size:20px; letter-spacing:1px; display:flex; align-items:center; gap:10px;">
+                    <span style="color:var(--accent-blue);">●</span> PACKAGING QUEUE
+                </h3>
+                
+                <button type="button" onclick="openPackagingDrawer('single')" class="btn-primary" style="width:auto; padding:8px 16px; font-size:12px; font-weight:700; border-radius:10px; display:flex; align-items:center; gap:6px;">
+                    <span>+ RECORD PACKAGING</span>
+                </button>
+            </div>
+        </div>
 
         <div style="overflow-x:auto;">
             <table class="recent-table">
                 <thead>
                     <tr>
+                        <th style="width: 40px; text-align:center;">Select</th>
                         <th>ITEM</th>
                         <th>QTY PENDING</th>
                         <th>PENDING WT</th>
@@ -169,28 +137,79 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in packaging_queue %}
-                    <tr>
-                        <td>
+                    {% for worker_name, categories in grouped_queue.items %}
+                    <!-- Group Header: Job Worker / Worker -->
+                    <tr style="background: rgba(99, 102, 241, 0.08); border-left: 4px solid var(--accent-blue);">
+                        <td colspan="5" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:14px; text-shadow: 0 0 10px rgba(59, 130, 246, 0.4);">👤</span>
+                                <span
+                                    style="font-weight:800; color:var(--text-primary); font-size:12px; text-transform:uppercase; letter-spacing:0.8px;">{{ worker_name }}</span>
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% for category_name, entries in categories.items %}
+                    <!-- Group Sub-header: Item Category -->
+                    <tr style="background: rgba(255, 255, 255, 0.015);">
+                        <td colspan="5" style="padding: 8px 24px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:11px; color:var(--text-secondary);">📂</span>
+                                <span
+                                    style="font-weight:700; color:var(--text-secondary); font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">{{ category_name }}</span>
+                                <span
+                                    style="background:rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); color:var(--text-secondary); font-size:9px; padding:2px 6px; border-radius:4px; font-weight:800; margin-left:4px;">{{ entries|length }} items</span>
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% for row in entries %}
+                    <tr id="queue_row_{{ row.id }}" style="transition: background 0.2s;">
+                        <td style="text-align:center; vertical-align:middle;">
+                            {% if row.id not in completed_ids %}
+                            <input type="checkbox" class="queue-selector-chk" data-row-id="{{ row.id }}"
+                                data-item-id="{{ row.item.id }}" data-item-code="{{ row.item.code }}"
+                                data-item-name="{{ row.item.name }}" data-qty="{{ row.quantity }}"
+                                data-weight="{{ row.weight }}" onchange="updateQueueBucket()"
+                                style="width:18px; height:18px; cursor:pointer;">
+                            {% else %}
+                            <span style="color:#10b981; font-weight:800;">✓</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding-left: 12px; vertical-align:middle;">
                             <div style="font-weight:700; color:var(--text-primary);">{{ row.item.code }}</div>
                             <div style="font-size:12px; color:var(--text-secondary);">{{ row.item.name }}</div>
                         </td>
-                        <td><span style="font-weight:700;">{{ row.quantity }}</span> pcs</td>
-                        <td style="color:var(--text-secondary);">{{ row.weight }} kg</td>
-                        <td style="text-align:right;">
+                        <td style="vertical-align:middle;"><span style="font-weight:700;">{{ row.quantity }}</span> pcs
+                        </td>
+                        <td style="color:var(--text-secondary); vertical-align:middle;">{{ row.weight }} kg</td>
+                        <td style="text-align:right; vertical-align:middle;">
                             {% if row.id in completed_ids %}
-                                <span style="color:#10b981; font-size:11px; font-weight:800; letter-spacing:0.5px;">✓ PACKED</span>
+                            <span style="color:#10b981; font-size:11px; font-weight:800; letter-spacing:0.5px;">✓
+                                PACKED</span>
                             {% else %}
-                                <a href="?pack={{ row.id }}" class="btn-primary"
-                                   style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.2); padding:6px 12px; font-size:11px; font-weight:800; border-radius:6px; text-decoration:none; display:inline-block; line-height:1.2;">
-                                    PACK NOW
-                                </a>
+                            <button type="button" class="btn-primary"
+                                data-item-id="{{ row.item.id }}"
+                                data-qty="{{ row.quantity }}"
+                                data-is-set="{% if row.item.item_type == 'SET' %}true{% else %}false{% endif %}"
+                                onclick="packNowFromQueue(this)"
+                                style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.2); padding:6px 12px; font-size:11px; font-weight:800; border-radius:6px; cursor:pointer; line-height:1.2; transition: all 0.2s; outline:none; display:inline-block;">
+                                PACK NOW
+                            </button>
+                            <button type="button" class="btn-primary"
+                                onclick="openBufferDialog('{{ row.id }}', '{{ row.item.code }}', '{{ row.quantity }}')"
+                                style="background:rgba(139, 92, 246, 0.1); color:#a78bfa; border:1px solid rgba(139, 92, 246, 0.2); padding:6px 12px; font-size:11px; font-weight:800; border-radius:6px; margin-left:6px; cursor:pointer; line-height:1.2; transition: all 0.2s; outline:none; display:inline-block;">
+                                📂 Spare
+                            </button>
                             {% endif %}
                         </td>
                     </tr>
+                    {% endfor %}
+                    {% endfor %}
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="empty-state" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                        <td colspan="5" class="empty-state"
+                            style="text-align:center; padding:40px; color:var(--text-secondary);">
                             <i>✨</i>
                             No items currently in packaging queue
                         </td>
@@ -217,253 +236,1899 @@
                     <th>ITEM DETAILS</th>
                     <th>PACKED QUANTITY</th>
                     <th>PACKED WEIGHT</th>
+                    <th style="text-align:right;">ACTION</th>
+                </tr>
+            </thead>
+            {% for row in ready_stock %}
+            <tr data-id="{{ row.id }}">
+                <td style="color:var(--text-secondary);">
+                    <div style="font-weight:700;">{{ row.created_at|date:"d M Y, H:i" }}</div>
+                    {% if row.is_carton %}
+                    <div style="font-size:10px; color:#3b82f6; font-weight:700; margin-top:2px;">{{ row.status }}</div>
+                    {% else %}
+                    <div style="font-size:10px; color:#a78bfa; font-weight:700; margin-top:2px;">{{ row.status }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if row.is_carton %}
+                    <div style="font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:16px;">📦 {% if row.carton_label %}{{ row.carton_label }}{% else %}{{ row.carton_number }}{% endif %}</span>
+                        <span
+                            style="font-size:10px; padding:2px 6px; border-radius:4px; font-weight:800;
+                                {% if row.carton_type == 'MIXED' %}background:rgba(168,85,247,0.15); color:#a855f7; border:1px solid rgba(168,85,247,0.2);
+                                {% elif row.carton_type == 'SET' %}background:rgba(59,130,246,0.15); color:#3b82f6; border:1px solid rgba(59,130,246,0.2);
+                                {% else %}background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.2);{% endif %}">
+                            {{ row.carton_type }}
+                        </span>
+                        {% if row.carton_label %}
+                        <span style="font-size:11px; color:var(--text-secondary); font-weight:600; background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); padding:2px 6px; border-radius:6px; letter-spacing:0.5px;">{{ row.carton_number }}</span>
+                        {% endif %}
+                    </div>
+                    <div
+                        style="font-size:12px; color:var(--text-secondary); margin-top:4px; display:flex; flex-direction:column; gap:2px;">
+                        {% for ci in row.items_list %}
+                        <div style="display:flex; justify-content:space-between; max-width:400px;">
+                            <span>• {{ ci.item_code }} - {{ ci.item_name }}</span>
+                            <span style="font-weight:700; color:var(--text-primary);">{{ ci.quantity }} pcs ({{ ci.weight }} kg)</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div
+                        style="font-size:10px; color:#10b981; font-weight:700; margin-top:6px; display:flex; gap:10px;">
+                        {% if row.cleaning %}<span>✓ Cleaning</span>{% endif %}
+                        {% if row.labeling %}<span>✓ Labeling</span>{% endif %}
+                        {% if row.packing %}<span>✓ Packing</span>{% endif %}
+                    </div>
+                    {% else %}
+                    <div style="font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:16px;">📂 {{ row.carton_label }}</span>
+                        <span
+                            style="font-size:10px; padding:2px 6px; border-radius:4px; font-weight:800; background:rgba(139,92,246,0.15); color:#a78bfa; border:1px solid rgba(139,92,246,0.2);">
+                            {{ row.carton_type }}
+                        </span>
+                    </div>
+                    <div
+                        style="font-size:12px; color:var(--text-secondary); margin-top:4px; display:flex; flex-direction:column; gap:2px;">
+                        {% for ci in row.items_list %}
+                        <div style="display:flex; justify-content:space-between; max-width:400px;">
+                            <span>• {{ ci.item_code }} - {{ ci.item_name }}</span>
+                            <span style="font-weight:700; color:var(--text-primary);">{{ ci.quantity }} pcs ({{ ci.weight }} kg)</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div
+                        style="font-size:10px; color:#a78bfa; font-weight:700; margin-top:6px; display:flex; gap:10px;">
+                        <span>✓ Kept loose as Spare stock in Warehouse</span>
+                    </div>
+                    {% endif %}
+                </td>
+                <td><span style="font-weight:800; {% if row.is_carton %}color:#10b981;{% else %}color:#a78bfa;{% endif %}">+{{ row.total_quantity }}</span> pcs</td>
+                <td style="color:var(--text-secondary); font-weight:700;">{{ row.total_weight }} kg</td>
+                <td style="text-align:right; white-space:nowrap; vertical-align:middle;">
+                    {% if row.is_carton %}
+                    <button type="button" class="btn-primary" onclick='editPackagingTransaction({
+                                    id: "{{ row.id }}",
+                                    carton_number: "{{ row.carton_number }}",
+                                    carton_type: "{{ row.carton_type }}",
+                                    carton_label: "{{ row.carton_label|escapejs }}",
+                                    cleaning: {% if row.cleaning %}true{% else %}false{% endif %},
+                                    labeling: {% if row.labeling %}true{% else %}false{% endif %},
+                                    packing: {% if row.packing %}true{% else %}false{% endif %},
+                                    total_quantity: {{ row.total_quantity }},
+                                    total_weight: {{ row.total_weight }},
+                                    contents: [
+                                        {% for ci in row.items_list %}
+                                        {
+                                            item_id: "{{ ci.item_id }}",
+                                            item_code: "{{ ci.item_code|escapejs }}",
+                                            item_name: "{{ ci.item_name|escapejs }}",
+                                            qty: {{ ci.quantity }},
+                                            weight: {{ ci.weight }},
+                                            is_set: {% if ci.is_set %}true{% else %}false{% endif %}
+                                        }{% if not forloop.last %},{% endif %}
+                                        {% endfor %}
+                                    ]
+                                })'
+                        style="background:rgba(245, 158, 11, 0.1); color:#f59e0b; border:1px solid rgba(245, 158, 11, 0.2); padding:6px 12px; font-size:11px; font-weight:800; border-radius:6px; cursor:pointer; margin-right:6px;">
+                        EDIT
+                    </button>
+                    <a href="?delete_id={{ row.id }}" class="btn-secondary"
+                        onclick="return confirm('Are you sure you want to delete Carton {{ row.carton_number }}? Symmetrical stock logs will be deleted and polishing outstanding balance will be restored.');"
+                        style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); padding:6px 12px; font-size:11px; font-weight:800; border-radius:6px; text-decoration:none; display:inline-block;">
+                        DELETE
+                    </a>
+                    {% else %}
+                    <a href="?delete_spare_id={{ row.id }}" class="btn-secondary"
+                        onclick="return confirm('Are you sure you want to delete this Spare stock declaration? The quantity will be restored back to your active Packaging Queue.');"
+                        style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); padding:6px 12px; font-size:11px; font-weight:800; border-radius:6px; text-decoration:none; display:inline-block;">
+                        DELETE SPARE
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="empty-state"
+                    style="text-align:center; padding:40px; color:var(--text-secondary);">
+                    <i>✨</i> No recent cartons packed
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- FLOATING PACKAGING BUCKET DRAWER (Sleek Floating Action Bar) -->
+<div id="floatingBucketDrawer" style="
+    position: fixed;
+    bottom: -120px; /* Hidden by default */
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    border-radius: 20px;
+    padding: 16px 28px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size:24px; display:inline-block; animation: pulse-box 2s infinite;">📦</span>
+        <div>
+            <h4 style="margin:0; font-size:15px; font-weight:800; font-family:'Outfit', sans-serif; color:white;">
+                <span id="bucketTotalPcs">0</span> pieces selected
+            </h4>
+            <p style="margin:2px 0 0; font-size:11px; color:#94a3b8; font-weight:600;" id="bucketTotalWeight">
+                0.00 kg total weight
+            </p>
+        </div>
+    </div>
+    
+    <div style="display:flex; gap:10px;">
+        <button type="button" onclick="packSelectedAsMixed()"
+            style="background:var(--accent-blue); border:none; color:white; font-weight:800; font-size:12px; padding:10px 20px; border-radius:10px; cursor:pointer; transition:all 0.2s; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);">
+            Pack as Mixed Carton
+        </button>
+        <button type="button" onclick="clearQueueBucket()"
+            style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; font-weight:700; font-size:12px; padding:10px 14px; border-radius:10px; cursor:pointer; transition:all 0.2s;">
+            Clear
+        </button>
+    </div>
+</div>
+
+<!-- RECORD PACKAGING DRAWER BACKDROP -->
+<div id="drawerBackdrop" class="drawer-backdrop" onclick="closePackagingDrawer()"></div>
+
+<!-- RECORD PACKAGING DRAWER -->
+<div id="packagingDrawer" class="drawer">
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <h3 id="drawerHeader"
+            style="margin:0; font-size:24px; font-weight:800; font-family:'Outfit', sans-serif; color:white; display:flex; align-items:center; gap:10px;">
+            <span id="drawerHeaderDot" style="color:var(--accent-blue); transition: all 0.3s;">●</span> RECORD PACKAGING
+        </h3>
+        <button type="button" onclick="closePackagingDrawer()"
+            style="background:none; border:none; color:var(--text-secondary); font-size:24px; cursor:pointer; font-weight:bold; transition:color 0.2s;"
+            onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-secondary)'">
+            ✕
+        </button>
+    </div>
+
+    <!-- Multi-Tab Bifurcation -->
+    <div
+        style="display:flex; gap:8px; margin-bottom:24px; background:rgba(255,255,255,0.02); border:1px solid var(--border-soft); padding:6px; border-radius:12px;">
+        <button type="button" id="tab-single-btn" onclick="switchPackTab('single')"
+            style="flex:1; border:none; padding:10px; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; background:var(--accent-blue); color:white; transition:all 0.2s;">
+            SINGLE
+        </button>
+        <button type="button" id="tab-set-btn" onclick="switchPackTab('set')"
+            style="flex:1; border:none; padding:10px; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all 0.2s;">
+            SET
+        </button>
+        <button type="button" id="tab-mixed-btn" onclick="switchPackTab('mixed')"
+            style="flex:1; border:none; padding:10px; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all 0.2s;">
+            MIXED CARTON
+        </button>
+    </div>
+
+    <form method="POST" id="packagingForm">
+        {% csrf_token %}
+        <input type="hidden" name="pack_type" id="pack_type_input" value="single">
+        <input type="hidden" name="edit_id" id="editIdInput" value="">
+
+        <!-- ==================== SINGLE / SET CONTENT ==================== -->
+        <div id="single-set-section">
+            <!-- ITEM -->
+            <div style="margin-bottom:18px;">
+                <label
+                    style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
+                    Item Selection
+                </label>
+                <!-- SINGLE ITEM SELECT -->
+                <div id="single-item-container">
+                    <select name="item" id="singleItemSelect" style="width:100%;">
+                        <option value="">Select Single Item...</option>
+                        {% for row in single_items %}
+                        <option value="{{ row.id }}">
+                            {{ row.code }} - {{ row.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- SET ITEM SELECT (Hidden by default) -->
+                <div id="set-item-container" style="display:none;">
+                    <select id="setItemSelect" style="width:100%;">
+                        <option value="">Select Set Item...</option>
+                        {% for row in set_items %}
+                        <option value="{{ row.id }}">
+                            {{ row.code }} - {{ row.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- STOCK INFO (REPLACED WITH A SLEEK INLINE WIP INFO PANEL BELOW DROPDOWN) -->
+            <div id="wipInfoPanel" style="margin-bottom:18px; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.15); border-radius:12px; display:none;">
+                <div style="font-size:12px; color:var(--text-secondary); display:flex; justify-content:space-between; align-items:center;">
+                    <span>Polishing WIP Available:</span>
+                    <strong id="wipQtyDisplay" style="color:white; font-size:14px;">0 pcs</strong>
+                </div>
+                <div style="font-size:11px; color:var(--text-secondary); margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Estimated Weight:</span>
+                    <span id="wipWeightDisplay" style="color:var(--text-primary); font-weight:600;">0.00 kg</span>
+                </div>
+            </div>
+
+
+
+            <!-- LOT INFO (REMOVED AND MERGED DYNAMICALLY INTO LABEL) -->
+
+            <!-- READY CARTONS & EXTRA PIECES -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px;">
+                <div>
+                    <label id="readyCartonsLabel"
+                        style="display:block; margin-bottom:6px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
+                        Regular
+                    </label>
+                    <input type="number" id="readyCartonsSingle" oninput="calculateSingleSetPackaging()" value="0"
+                        min="0"
+                        style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 12px; color: white; padding: 10px 14px; font-size: 15px; width: 100%; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label
+                        style="display:block; margin-bottom:6px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
+                        + Extra Pieces
+                    </label>
+                    <input type="number" id="extraPiecesSingle" oninput="calculateSingleSetPackaging()" value="0"
+                        min="0"
+                        style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 12px; color: white; padding: 10px 14px; font-size: 15px; width: 100%; box-sizing: border-box;">
+                </div>
+            </div>
+
+            <!-- AUTO QTY & AUTO WEIGHT (HIDDEN FIELDS) -->
+            <input type="hidden" name="quantity" id="autoQtySingle" value="0">
+            <input type="hidden" name="weight" id="autoWeightSingle" value="0.000">
+        </div>
+
+        <!-- ==================== MIXED CARTON CONTENT ==================== -->
+        <div id="mixed-section" style="display:none;">
+            <!-- Carton Label -->
+            <div style="margin-bottom:18px;">
+                <label
+                    style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
+                Carton Label / Reference
+                </label>
+                <input type="text" name="carton_label" id="cartonLabelInput" placeholder="e.g. Mixed SKU Carton #1"
+                    style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 12px; color: white; padding: 12px 16px; font-size: 15px; width: 100%; box-sizing: border-box;">
+            </div>
+
+            <!-- Item Rows Builder -->
+            <label
+                style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
+                Items inside Carton
+            </label>
+            <div id="mixed-items-container"
+                style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
+                <!-- Rows injected dynamically via JS -->
+            </div>
+
+            <button type="button" onclick="addMixedItemRow()"
+                style="width: 100%; background: rgba(59, 130, 246, 0.08); border: 1px dashed rgba(59, 130, 246, 0.4); color: #60a5fa; border-radius: 12px; padding: 12px; font-size: 14px; font-weight:700; cursor: pointer; transition: all 0.2s; margin-bottom:18px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <i>+</i> ADD ITEM TO CARTON
+            </button>
+        </div>
+
+        <!-- PACKAGING TYPE SELECTION (Global) -->
+        <div style="margin-bottom:18px;">
+            <label
+                style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px;">
+                Packaging Type
+            </label>
+            <div
+                style="display:flex; background:rgba(0,0,0,0.2); border:1px solid var(--border-soft); border-radius:10px; padding:2px; height:38px; align-items:center;">
+                <button type="button" class="pkg-choice-btn active" id="pkg-choice-reg"
+                    onclick="switchPkgChoice('regular')"
+                    style="flex:1; height:32px; border-radius:8px; font-size:11px; font-weight:800; border:none; background:var(--accent-blue); color:white; cursor:pointer; transition:all 0.2s;">
+                    Regular
+                </button>
+                <button type="button" class="pkg-choice-btn" id="pkg-choice-box"
+                    onclick="switchPkgChoice('box')"
+                    style="flex:1; height:32px; border-radius:8px; font-size:11px; font-weight:800; border:none; background:transparent; color:var(--text-secondary); cursor:pointer; transition:all 0.2s;">
+                    With box
+                </button>
+            </div>
+            <input type="hidden" name="packaging_type" id="pkg_type_choice_input" value="regular">
+        </div>
+
+        <!-- PROCESS STEPS CHECKBOXES (Unified) -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:26px;">
+            <label
+                style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:12px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:700; color: var(--text-primary); font-size:13px; transition: all 0.2s;">
+                <input type="checkbox" name="cleaning" id="checkCleaning" value="YES" style="cursor:pointer;" checked> Cleaning
+            </label>
+            <label
+                style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:12px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:700; color: var(--text-primary); font-size:13px; transition: all 0.2s;">
+                <input type="checkbox" name="labeling" id="checkLabeling" value="YES" style="cursor:pointer;" checked> Labeling
+            </label>
+            <label
+                style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); padding:12px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:700; color: var(--text-primary); font-size:13px; transition: all 0.2s;">
+                <input type="checkbox" name="packing" id="checkPacking" value="YES" style="cursor:pointer;" checked> Packing
+            </label>
+        </div>
+
+        <!-- QUALITY INSPECTION & BUFFER REPLACEMENTS -->
+        <div style="margin-bottom: 20px; padding: 14px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="font-weight: 700; color: var(--text-primary); font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                    🔍 Quality Inspection
+                </span>
+                <span id="globalLooseBufferBadge" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981; font-size: 10px; padding: 2px 8px; border-radius: 12px; font-weight: 800; display: inline-block;">
+                    Loose Bag Buffer: 0 pcs
+                </span>
+            </div>
+            
+            <input type="hidden" name="component_rejections" id="componentRejectionsJsonInput" value="{}">
+            
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div id="genericRejectionsContainer" style="display: block;">
+                    <label style="display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">Rejections Found</label>
+                    <input type="number" name="rejections" id="rejectionsInput" value="0" min="0" oninput="handleRejectionInput()"
+                        style="width: 100%; padding: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; outline: none; font-weight: 700;">
+                </div>
+                
+                <div id="componentRejectionsContainer" style="display: none; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 12px;"></div>
+                
+                <div id="replaceFromBufferContainer" style="border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="display: block; font-size: 12px; color: var(--text-primary); font-weight: 700;">Replace from Buffer</span>
+                        <span style="display: block; font-size: 9px; color: var(--text-secondary); margin-top: 2px;">Use loose polished stock as replacement</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span id="replaceStatusBadge" style="font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.05); color: var(--text-secondary); transition: all 0.2s;">Unused</span>
+                        <input type="checkbox" name="replace_from_buffer" id="replaceFromBufferChk" value="YES" onchange="handleRejectionInput()"
+                            style="width: 20px; height: 20px; cursor: pointer;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIVE PREVIEW CARD -->
+        <div id="livePreviewCard" style="display:none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; text-align: center; box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); transition: all 0.3s;">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 4px; font-weight:700;">Live Carton Details</div>
+            <div style="font-size: 18px; font-weight: 800; color: white;">
+                <span id="previewQty">0</span> pieces <span style="color:var(--text-secondary); font-weight:500;">|</span> <span id="previewWeight">0.00</span> kg
+            </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; height:54px; font-size:16px;">
+            COMPLETE PACKAGING
+        </button>
+    </form>
+</div>
+
+<!-- JS Item Data Map & Logic -->
+<script>
+    const itemDataMap = {
+    {% for row in items %}
+    "{{ row.id }}": {
+        "code": "{{ row.code|escapejs }}",
+        "name": "{{ row.name|escapejs }}",
+        "available": {{ row.available_polishing|default:0 }},
+        "lotsize": {{ row.lot_size|default:0 }},
+        "carton": {{ row.lot_with_box|default:0 }},
+        "pieceweight": {{ row.machining_weight|default:0.0 }},
+        "is_set": {% if row.item_type == "SET" %}true{% else %}false{% endif %},
+        "components": [
+            {% for comp in row.components.all %}
+            {
+                "id": "{{ comp.component_item.id }}",
+                "code": "{{ comp.component_item.code|escapejs }}",
+                "name": "{{ comp.component_item.name|escapejs }}",
+                "qty_per_set": {{ comp.quantity }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+    },
+    {% endfor %}
+};
+
+    let singleSelectObj = null;
+    let setSelectObj = null;
+    let mixedItemIndex = 0;
+    let editTxId = '';
+    let editItemVal = '';
+    let editQtyVal = 0;
+    let mixedEditItemQuantities = {};
+
+    function openPackagingDrawer(tab = 'single') {
+        const drawer = document.getElementById('packagingDrawer');
+        const backdrop = document.getElementById('drawerBackdrop');
+        if (drawer && backdrop) {
+            drawer.classList.add('active');
+            backdrop.classList.add('active');
+        }
+        switchPackTab(tab);
+        updateDrawerHeaderAccent(tab);
+    }
+
+    function closePackagingDrawer() {
+        const drawer = document.getElementById('packagingDrawer');
+        const backdrop = document.getElementById('drawerBackdrop');
+        if (drawer && backdrop) {
+            drawer.classList.remove('active');
+            backdrop.classList.remove('active');
+        }
+        clearPackagingEdit();
+    }
+
+    function updateDrawerHeaderAccent(tab) {
+        const dot = document.getElementById('drawerHeaderDot');
+        if (!dot) return;
+        if (tab === 'single') {
+            dot.style.color = '#10b981'; // Emerald
+            dot.style.filter = 'drop-shadow(0 0 6px rgba(16, 185, 129, 0.8))';
+        } else if (tab === 'set') {
+            dot.style.color = '#3b82f6'; // Indigo Blue
+            dot.style.filter = 'drop-shadow(0 0 6px rgba(59, 130, 246, 0.8))';
+        } else if (tab === 'mixed') {
+            dot.style.color = '#a855f7'; // Purple
+            dot.style.filter = 'drop-shadow(0 0 6px rgba(168, 85, 247, 0.8))';
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // 1. Initialize Tom Select on Single and Set Select lists if available
+        if (typeof TomSelect !== 'undefined') {
+            singleSelectObj = new TomSelect("#singleItemSelect", {
+                create: false,
+                onChange: function (val) {
+                    updateSingleSetInfo('single');
+                }
+            });
+
+            setSelectObj = new TomSelect("#setItemSelect", {
+                create: false,
+                onChange: function (val) {
+                    updateSingleSetInfo('set');
+                }
+            });
+        } else {
+            const singleSel = document.getElementById('singleItemSelect');
+            if (singleSel) {
+                singleSel.addEventListener('change', function () {
+                    updateSingleSetInfo('single');
+                });
+            }
+            const setSel = document.getElementById('setItemSelect');
+            if (setSel) {
+                setSel.addEventListener('change', function () {
+                    updateSingleSetInfo('set');
+                });
+            }
+        }
+
+        // 2. Pre-add one row to mixed carton
+        addMixedItemRow();
+
+        // 3. Set default tab state
+        switchPackTab('single');
+        switchPkgChoice('regular');
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closePackagingDrawer();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                const form = document.getElementById('packagingForm');
+                if (form) form.requestSubmit();
+            }
+        });
+
+        // 4. Form Validation handler (avoids focus errors on hidden elements)
+        const form = document.getElementById('packagingForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                const type = document.getElementById('pack_type_input').value;
+                if (type === 'single' || type === 'set') {
+                    const selectId = type === 'single' ? 'singleItemSelect' : 'setItemSelect';
+                    const selectEl = document.getElementById(selectId);
+                    if (selectEl && !selectEl.value) {
+                        e.preventDefault();
+                        alert('Please select an item to pack.');
+                        if (selectEl.tomselect) {
+                            selectEl.tomselect.focus();
+                        } else {
+                            selectEl.focus();
+                        }
+                        return;
+                    }
+                    
+                    const qtyVal = parseInt(document.getElementById('autoQtySingle').value || 0);
+                    if (qtyVal <= 0) {
+                        e.preventDefault();
+                        alert('Please enter a carton quantity or extra pieces greater than 0.');
+                        return;
+                    }
+                } else if (type === 'mixed') {
+                    const container = document.getElementById('mixed-items-container');
+                    const selects = container.querySelectorAll('.mixed-item-select');
+                    const qtyInputs = container.querySelectorAll('.mixed-row-qty-input');
+                    
+                    let hasValid = false;
+                    let missingSelection = false;
+                    let missingQty = false;
+
+                    selects.forEach((sel, idx) => {
+                        const qtyVal = parseInt(qtyInputs[idx].value || 0);
+                        if (sel.value) {
+                            hasValid = true;
+                            if (qtyVal <= 0) {
+                                missingQty = true;
+                            }
+                        } else if (qtyVal > 0) {
+                            missingSelection = true;
+                        }
+                    });
+
+                    if (missingSelection) {
+                        e.preventDefault();
+                        alert('Please select an item for all declared quantities.');
+                        return;
+                    }
+                    if (missingQty) {
+                        e.preventDefault();
+                        alert('Please enter a quantity greater than 0 for all selected items.');
+                        return;
+                    }
+                    if (!hasValid) {
+                        e.preventDefault();
+                        alert('Please select at least one item to pack in the mixed carton.');
+                        return;
+                    }
+                }
+            });
+        }
+    });
+
+    function switchPackTab(tab) {
+        document.getElementById('pack_type_input').value = tab;
+
+        const tabs = ['single', 'set', 'mixed'];
+        tabs.forEach(t => {
+            const btn = document.getElementById(`tab-${t}-btn`);
+            if (t === tab) {
+                btn.style.background = 'var(--accent-blue)';
+                btn.style.color = 'white';
+            } else {
+                btn.style.background = 'transparent';
+                btn.style.color = 'var(--text-secondary)';
+            }
+        });
+
+        const singleSetSection = document.getElementById('single-set-section');
+        const mixedSection = document.getElementById('mixed-section');
+        const singleContainer = document.getElementById('single-item-container');
+        const setContainer = document.getElementById('set-item-container');
+
+        if (tab === 'single') {
+            singleSetSection.style.display = 'block';
+            mixedSection.style.display = 'none';
+            singleContainer.style.display = 'block';
+            setContainer.style.display = 'none';
+
+            document.getElementById('singleItemSelect').setAttribute('name', 'item');
+            document.getElementById('setItemSelect').removeAttribute('name');
+
+            updateSingleSetInfo('single');
+        } else if (tab === 'set') {
+            singleSetSection.style.display = 'block';
+            mixedSection.style.display = 'none';
+            singleContainer.style.display = 'none';
+            setContainer.style.display = 'block';
+
+            document.getElementById('setItemSelect').setAttribute('name', 'item');
+            document.getElementById('singleItemSelect').removeAttribute('name');
+
+            updateSingleSetInfo('set');
+        } else if (tab === 'mixed') {
+            singleSetSection.style.display = 'none';
+            mixedSection.style.display = 'block';
+
+            document.getElementById('singleItemSelect').removeAttribute('name');
+            document.getElementById('setItemSelect').removeAttribute('name');
+        }
+        updateDrawerHeaderAccent(tab);
+    }
+
+    function updateSingleSetInfo(type) {
+        const selectId = type === 'single' ? 'singleItemSelect' : 'setItemSelect';
+        const selectEl = document.getElementById(selectId);
+        if (!selectEl) return;
+        const val = selectEl.value;
+        const wipPanel = document.getElementById('wipInfoPanel');
+        
+        const genericRejections = document.getElementById('genericRejectionsContainer');
+        const componentRejections = document.getElementById('componentRejectionsContainer');
+        const componentJsonInput = document.getElementById('componentRejectionsJsonInput');
+        
+        if (componentJsonInput) componentJsonInput.value = '{}';
+
+        if (!val || !itemDataMap[val]) {
+            if (wipPanel) wipPanel.style.display = 'none';
+            const label = document.getElementById('readyCartonsLabel');
+            const pkgChoice = document.getElementById('pkg_type_choice_input').value;
+            if (label) label.textContent = pkgChoice === 'box' ? 'With box' : 'Regular';
+            const bufferBadge = document.getElementById('globalLooseBufferBadge');
+            if (bufferBadge) bufferBadge.textContent = 'Loose Bag Buffer: 0 pcs';
+            if (genericRejections) genericRejections.style.display = 'block';
+            if (componentRejections) {
+                componentRejections.style.display = 'none';
+                componentRejections.innerHTML = '';
+            }
+            calculateSingleSetPackaging();
+            handleRejectionInput();
+            return;
+        }
+
+        const data = itemDataMap[val];
+        let displayQty = data.available;
+        if (editTxId && val.toString() === editItemVal.toString()) {
+            displayQty += editQtyVal;
+        }
+
+        if (wipPanel) {
+            wipPanel.style.display = 'block';
+            document.getElementById('wipQtyDisplay').textContent = displayQty + ' pcs';
+            document.getElementById('wipWeightDisplay').textContent = (displayQty * data.pieceweight).toFixed(2) + ' kg';
+        }
+
+        const bufferBadge = document.getElementById('globalLooseBufferBadge');
+        if (bufferBadge) {
+            bufferBadge.textContent = 'Loose Bag Buffer: ' + displayQty + ' pcs';
+        }
+
+        const pkgChoice = document.getElementById('pkg_type_choice_input').value;
+        const label = document.getElementById('readyCartonsLabel');
+        if (label) {
+            label.textContent = pkgChoice === 'box' ? `With box (Size: ${data.carton || 1})` : `Regular (Size: ${data.lotsize || 1})`;
+        }
+
+        // Render dynamic rejection fields for SET items
+        if (data.is_set && data.components && data.components.length > 0) {
+            if (genericRejections) genericRejections.style.display = 'none';
+            if (componentRejections) {
+                let html = '<div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; margin-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.08); padding-bottom: 6px;">Set Components Rejections</div>';
+                data.components.forEach(comp => {
+                    const compAvailable = itemDataMap[comp.id] ? itemDataMap[comp.id].available : 0;
+                    html += `
+                    <div style="margin-bottom: 10px; display: grid; grid-template-columns: 1fr 100px; align-items: center; gap: 12px;">
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 700; display:block;">Rejection - ${comp.code}</span>
+                            <span style="font-size: 9px; color: var(--text-secondary); display:block;">Buffer Available: ${compAvailable} pcs</span>
+                        </div>
+                        <input type="number" id="comp_rej_${comp.id}" class="comp-rejections-input" data-comp-id="${comp.id}" value="0" min="0" oninput="handleRejectionInput()"
+                            style="width: 100%; padding: 8px 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; outline: none; font-weight: 800; text-align: center;">
+                    </div>
+                    `;
+                });
+                componentRejections.innerHTML = html;
+                componentRejections.style.display = 'block';
+            }
+        } else {
+            if (genericRejections) genericRejections.style.display = 'block';
+            if (componentRejections) {
+                componentRejections.style.display = 'none';
+                componentRejections.innerHTML = '';
+            }
+        }
+
+        calculateSingleSetPackaging();
+        handleRejectionInput();
+    }
+
+    function handleRejectionInput() {
+        const rejectionsInput = document.getElementById('rejectionsInput');
+        const replaceChk = document.getElementById('replaceFromBufferChk');
+        const statusBadge = document.getElementById('replaceStatusBadge');
+        const bufferBadge = document.getElementById('globalLooseBufferBadge');
+        const componentJsonInput = document.getElementById('componentRejectionsJsonInput');
+        
+        if (!replaceChk || !statusBadge || !bufferBadge) return;
+        
+        // Find current selected item
+        const packTypeInput = document.getElementById('pack_type_input');
+        const isSetTab = packTypeInput && packTypeInput.value === 'set';
+        const selectId = isSetTab ? 'setItemSelect' : 'singleItemSelect';
+        const selectEl = document.getElementById(selectId);
+        const selectedVal = selectEl ? selectEl.value : '';
+        const selectedItem = selectedVal ? itemDataMap[selectedVal] : null;
+
+        let totalRejections = 0;
+        let allApproved = true;
+
+        if (selectedItem && selectedItem.is_set && selectedItem.components && selectedItem.components.length > 0) {
+            const compRejections = {};
+            selectedItem.components.forEach(comp => {
+                const input = document.getElementById(`comp_rej_${comp.id}`);
+                if (input) {
+                    const val = parseInt(input.value || 0);
+                    compRejections[comp.id] = val;
+                    totalRejections += val;
+                    const compAvailable = itemDataMap[comp.id] ? itemDataMap[comp.id].available : 0;
+                    if (val > compAvailable) {
+                        allApproved = false;
+                    }
+                }
+            });
+            if (componentJsonInput) {
+                componentJsonInput.value = JSON.stringify(compRejections);
+            }
+        } else {
+            totalRejections = rejectionsInput ? parseInt(rejectionsInput.value || 0) : 0;
+            const match = bufferBadge.textContent.match(/\d+/);
+            const availableBuffer = match ? parseInt(match[0]) : 0;
+            if (totalRejections > availableBuffer) {
+                allApproved = false;
+            }
+            if (componentJsonInput) {
+                componentJsonInput.value = '{}';
+            }
+        }
+        
+        if (totalRejections <= 0) {
+            replaceChk.checked = false;
+            replaceChk.disabled = true;
+            statusBadge.textContent = 'Unused';
+            statusBadge.style.background = 'rgba(255,255,255,0.05)';
+            statusBadge.style.color = 'var(--text-secondary)';
+            return;
+        }
+        
+        // Rejections > 0: Check if we have enough buffer
+        if (allApproved) {
+            replaceChk.disabled = false;
+            if (replaceChk.checked) {
+                statusBadge.textContent = 'Approved (Replaced)';
+                statusBadge.style.background = 'rgba(16, 185, 129, 0.1)';
+                statusBadge.style.color = '#10b981';
+            } else {
+                statusBadge.textContent = 'Deduct Worker';
+                statusBadge.style.background = 'rgba(239, 68, 68, 0.1)';
+                statusBadge.style.color = '#ef4444';
+            }
+        } else {
+            // Insufficient buffer! Disable checkbox
+            replaceChk.checked = false;
+            replaceChk.disabled = true;
+            statusBadge.textContent = 'Insufficient Buffer';
+            statusBadge.style.background = 'rgba(239, 68, 68, 0.1)';
+            statusBadge.style.color = '#ef4444';
+        }
+    }
+
+    function detectRowPackagingType(itemId, qty) {
+        if (!itemId || !itemDataMap[itemId]) return 'regular';
+        const data = itemDataMap[itemId];
+        const lotSize = data.lotsize || 0;
+        const cartonSize = data.carton || 0;
+        
+        if (cartonSize && qty % cartonSize === 0) {
+            return 'box';
+        } else if (lotSize && qty % lotSize === 0) {
+            return 'regular';
+        } else if (cartonSize && lotSize) {
+            if (qty % cartonSize < qty % lotSize) {
+                return 'box';
+            }
+        }
+        return 'regular';
+    }
+
+    function switchPkgChoice(choice, skipLabelUpdate = false) {
+        document.getElementById('pkg_type_choice_input').value = choice;
+
+        const regBtn = document.getElementById('pkg-choice-reg');
+        const boxBtn = document.getElementById('pkg-choice-box');
+
+        if (!regBtn || !boxBtn) return;
+
+        if (choice === 'regular') {
+            regBtn.style.background = 'var(--accent-blue)';
+            regBtn.style.color = 'white';
+            boxBtn.style.background = 'transparent';
+            boxBtn.style.color = 'var(--text-secondary)';
+        } else {
+            boxBtn.style.background = 'var(--accent-blue)';
+            boxBtn.style.color = 'white';
+            regBtn.style.background = 'transparent';
+            regBtn.style.color = 'var(--text-secondary)';
+        }
+
+        if (skipLabelUpdate) return;
+
+        const type = document.getElementById('pack_type_input').value;
+        if (type === 'single' || type === 'set') {
+            updateSingleSetInfo(type);
+        } else if (type === 'mixed') {
+            updateMixedCartonLabel(true);
+        }
+    }
+
+    function calculateSingleSetPackaging() {
+        const type = document.getElementById('pack_type_input').value;
+        if (type === 'mixed') return;
+
+        const selectId = type === 'single' ? 'singleItemSelect' : 'setItemSelect';
+        const selectEl = document.getElementById(selectId);
+        if (!selectEl) return;
+        const val = selectEl.value;
+
+        const cartons = parseInt(document.getElementById('readyCartonsSingle').value || 0);
+        const extra = parseInt(document.getElementById('extraPiecesSingle').value || 0);
+
+        const qtyInput = document.getElementById('autoQtySingle');
+        const weightInput = document.getElementById('autoWeightSingle');
+
+        if (!val || !itemDataMap[val]) {
+            if (qtyInput) qtyInput.value = 0;
+            if (weightInput) weightInput.value = '0.000';
+            const previewCard = document.getElementById('livePreviewCard');
+            if (previewCard) previewCard.style.display = 'none';
+            return;
+        }
+
+        const data = itemDataMap[val];
+        const pieceWeight = data.pieceweight || 0;
+
+        const pkgChoice = document.getElementById('pkg_type_choice_input').value;
+        const lotSize = pkgChoice === 'box' ? (data.carton || data.lotsize || 1) : (data.lotsize || data.carton || 1);
+
+        const totalQty = (cartons * lotSize) + extra;
+        const totalWeight = totalQty * pieceWeight;
+
+        if (qtyInput) qtyInput.value = totalQty;
+        if (weightInput) weightInput.value = totalWeight.toFixed(3);
+
+        const previewCard = document.getElementById('livePreviewCard');
+        if (previewCard) {
+            if (totalQty > 0) {
+                previewCard.style.display = 'block';
+                document.getElementById('previewQty').textContent = totalQty;
+                document.getElementById('previewWeight').textContent = totalWeight.toFixed(3);
+            } else {
+                previewCard.style.display = 'none';
+            }
+        }
+    }
+
+    // ================= MIXED CARTON FUNCTIONS =================
+    function addMixedItemRow(prefilledItemId = '', prefilledQty = '') {
+        const container = document.getElementById('mixed-items-container');
+        const rowId = `mixed-row-${mixedItemIndex}`;
+
+        const rowHtml = `
+        <div id="${rowId}" style="background:rgba(255,255,255,0.015); border:1px solid var(--border-soft); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; position:relative;">
+            <button type="button" onclick="removeMixedItemRow('${rowId}')" 
+                style="position:absolute; top:8px; right:8px; border:none; background:transparent; color:#ef4444; cursor:pointer; font-weight:bold; font-size:14px; padding:4px;">
+                ✕
+            </button>
+            
+            <!-- Item Select -->
+            <div style="padding-right:20px;">
+                <select name="item[]" class="mixed-item-select" onchange="updateMixedRowInfo('${rowId}')" style="width:100%;">
+                    <option value="">Select Item...</option>
+                    {% for row in items %}
+                    <option value="{{ row.id }}" ${prefilledItemId == '{{ row.id }}' ? 'selected' : ''}>
+                        {{ row.code }} - {{ row.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Info & Qty Row -->
+            <div style="display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:8px; align-items:center;">
+                <div>
+                    <span style="font-size:10px; color:var(--text-secondary); text-transform:uppercase; font-weight:700; display:block; margin-bottom:2px;">WIP Stock</span>
+                    <div class="mixed-row-stock-display" style="font-size:14px; font-weight:700; color:var(--text-primary);">0</div>
+                </div>
+                <div>
+                    <span style="font-size:10px; color:var(--text-secondary); text-transform:uppercase; font-weight:700; display:block; margin-bottom:2px;">Qty to Pack</span>
+                    <input type="number" name="quantity[]" class="mixed-row-qty-input" oninput="calculateMixedRowWeight('${rowId}')" value="${prefilledQty || 0}" min="0"
+                        style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); border-radius:8px; color:white; padding:6px 10px; font-size:13px; width:100%; box-sizing:border-box;">
+                </div>
+                <div>
+                    <span style="font-size:10px; color:var(--text-secondary); text-transform:uppercase; font-weight:700; display:block; margin-bottom:2px;">Weight (kg)</span>
+                    <input type="number" step="0.001" name="weight[]" class="mixed-row-weight-input" readonly
+                        style="background:rgba(255,255,255,0.01); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-secondary); padding:6px 10px; font-size:13px; width:100%; box-sizing:border-box;">
+                </div>
+            </div>
+        </div>
+    `;
+
+        container.insertAdjacentHTML('beforeend', rowHtml);
+
+        const selectEl = document.querySelector(`#${rowId} .mixed-item-select`);
+        if (selectEl) {
+            if (typeof TomSelect !== 'undefined') {
+                const ts = new TomSelect(selectEl, {
+                    create: false,
+                    onChange: function (val) {
+                        updateMixedRowInfo(rowId);
+                    }
+                });
+                if (prefilledItemId) {
+                    ts.setValue(prefilledItemId);
+                }
+            } else {
+                selectEl.addEventListener('change', function () {
+                    updateMixedRowInfo(rowId);
+                });
+                if (prefilledItemId) {
+                    selectEl.value = prefilledItemId;
+                }
+            }
+        }
+
+        updateMixedRowInfo(rowId);
+        mixedItemIndex++;
+    }
+
+    function removeMixedItemRow(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            row.remove();
+        }
+        calculateMixedGrandTotal();
+    }
+
+    function updateMixedRowInfo(rowId) {
+        const row = document.getElementById(rowId);
+        if (!row) return;
+
+        const selectEl = row.querySelector('.mixed-item-select');
+        const val = selectEl.value;
+        const stockDisplay = row.querySelector('.mixed-row-stock-display');
+
+        if (!val || !itemDataMap[val]) {
+            stockDisplay.innerHTML = '0';
+            calculateMixedRowWeight(rowId);
+            return;
+        }
+
+        const data = itemDataMap[val];
+        let displayStock = data.available;
+        if (editTxId && mixedEditItemQuantities[val.toString()]) {
+            displayStock += mixedEditItemQuantities[val.toString()];
+        }
+        stockDisplay.innerHTML = displayStock;
+
+        calculateMixedRowWeight(rowId);
+    }
+
+    function calculateMixedRowWeight(rowId) {
+        const row = document.getElementById(rowId);
+        if (!row) return;
+
+        const selectEl = row.querySelector('.mixed-item-select');
+        if (!selectEl) return;
+        const val = selectEl.value;
+        const qtyInput = row.querySelector('.mixed-row-qty-input');
+        const weightInput = row.querySelector('.mixed-row-weight-input');
+
+        const qty = parseInt(qtyInput.value || 0);
+
+        if (!val || !itemDataMap[val]) {
+            if (weightInput) weightInput.value = '0.000';
+            calculateMixedGrandTotal();
+            return;
+        }
+
+        const data = itemDataMap[val];
+        const pieceWeight = data.pieceweight || 0;
+        const weight = qty * pieceWeight;
+
+        if (weightInput) weightInput.value = weight.toFixed(3);
+        calculateMixedGrandTotal();
+    }
+
+    function calculateMixedGrandTotal() {
+        const container = document.getElementById('mixed-items-container');
+        if (!container) return;
+        const qtyInputs = container.querySelectorAll('.mixed-row-qty-input');
+        const weightInputs = container.querySelectorAll('.mixed-row-weight-input');
+        let grandQty = 0;
+        let grandWeight = 0.0;
+
+        qtyInputs.forEach(input => {
+            grandQty += parseInt(input.value || 0);
+        });
+        weightInputs.forEach(input => {
+            grandWeight += parseFloat(input.value || 0.0);
+        });
+
+        const previewCard = document.getElementById('livePreviewCard');
+        if (previewCard) {
+            if (grandQty > 0) {
+                previewCard.style.display = 'block';
+                document.getElementById('previewQty').textContent = grandQty;
+                document.getElementById('previewWeight').textContent = grandWeight.toFixed(3);
+            } else {
+                previewCard.style.display = 'none';
+            }
+        }
+
+        updateMixedCartonLabel();
+    }
+
+    function updateMixedCartonLabel(skipSwitchPkg = false) {
+        const container = document.getElementById('mixed-items-container');
+        if (!container) return;
+        const selectEls = container.querySelectorAll('.mixed-item-select');
+        const qtyInputs = container.querySelectorAll('.mixed-row-qty-input');
+        
+        const setCodes = [];
+        const singleCodes = [];
+        let autoDetectedPkgType = 'regular';
+        let totalBuffer = 0;
+        
+        selectEls.forEach((selectEl, idx) => {
+            const val = selectEl.value;
+            if (val && itemDataMap[val]) {
+                const item = itemDataMap[val];
+                const qtyInput = qtyInputs[idx];
+                const qty = qtyInput ? parseInt(qtyInput.value || 0) : 0;
+                
+                // Collect codes categorized by Set vs Single
+                if (item.is_set) {
+                    if (!setCodes.includes(item.code)) {
+                        setCodes.push(item.code);
+                    }
+                } else {
+                    if (!singleCodes.includes(item.code)) {
+                        singleCodes.push(item.code);
+                    }
+                }
+                
+                // Auto-detect packaging type of this row
+                const rowPkgType = detectRowPackagingType(val, qty);
+                if (rowPkgType === 'box') {
+                    autoDetectedPkgType = 'box';
+                }
+
+                // Add to total loose buffer stock
+                let displayQty = item.available;
+                if (editTxId && val.toString() === editItemVal.toString()) {
+                    displayQty += editQtyVal;
+                } else if (mixedEditItemQuantities[val]) {
+                    displayQty += mixedEditItemQuantities[val];
+                }
+                totalBuffer += displayQty;
+            }
+        });
+        
+        const orderedCodes = setCodes.concat(singleCodes);
+        
+        // Auto-select the packaging type choice if not skipping
+        if (!skipSwitchPkg && orderedCodes.length > 0) {
+            switchPkgChoice(autoDetectedPkgType, true);
+        }
+        
+        const pkgChoice = document.getElementById('pkg_type_choice_input').value;
+        const suffix = pkgChoice === 'box' ? 'BOX' : 'REG';
+        
+        if (orderedCodes.length === 0) {
+            document.getElementById('cartonLabelInput').value = 'Mix-' + suffix;
+        } else {
+            document.getElementById('cartonLabelInput').value = 'Mix ' + orderedCodes.join('/') + '-' + suffix;
+        }
+
+        const bufferBadge = document.getElementById('globalLooseBufferBadge');
+        if (bufferBadge) {
+            bufferBadge.textContent = 'Loose Bag Buffer: ' + totalBuffer + ' pcs';
+        }
+        handleRejectionInput();
+    }
+
+    function addQueueToMixed(button) {
+        const itemId = button.getAttribute('data-item-id');
+        const qty = parseInt(button.getAttribute('data-qty') || 0);
+
+        // Open drawer in mixed mode
+        openPackagingDrawer('mixed');
+
+        // Find all existing mixed row container children
+        const container = document.getElementById('mixed-items-container');
+        const rows = container.children;
+
+        // Check if the very first row is empty/unselected
+        let emptyRowId = null;
+        if (rows.length === 1) {
+            const select = rows[0].querySelector('.mixed-item-select');
+            if (select && !select.value) {
+                emptyRowId = rows[0].id;
+            }
+        }
+
+        if (emptyRowId) {
+            // Find Tom Select instance on this empty row
+            const selectEl = document.querySelector(`#${emptyRowId} .mixed-item-select`);
+            if (selectEl) {
+                if (selectEl.tomselect) {
+                    selectEl.tomselect.setValue(itemId);
+                } else {
+                    selectEl.value = itemId;
+                    updateMixedRowInfo(emptyRowId);
+                }
+            }
+            const qtyInput = document.querySelector(`#${emptyRowId} .mixed-row-qty-input`);
+            if (qtyInput) {
+                qtyInput.value = qty;
+                calculateMixedRowWeight(emptyRowId);
+            }
+        } else {
+            // Create a new pre-filled row
+            addMixedItemRow(itemId, qty);
+        }
+    }
+
+    function packNowFromQueue(button) {
+        const itemId = button.getAttribute('data-item-id');
+        const qty = parseInt(button.getAttribute('data-qty') || 0);
+        const isSet = button.getAttribute('data-is-set') === 'true';
+
+        // 1. Determine whether it's single or set
+        const tab = isSet ? 'set' : 'single';
+
+        // 2. Open drawer in single/set mode
+        openPackagingDrawer(tab);
+
+        // 3. Select the item in the dropdown
+        const selectId = isSet ? 'setItemSelect' : 'singleItemSelect';
+        const selectEl = document.getElementById(selectId);
+        
+        if (selectEl) {
+            if (selectEl.tomselect) {
+                selectEl.tomselect.setValue(itemId);
+            } else {
+                selectEl.value = itemId;
+                updateSingleSetInfo(tab);
+            }
+        }
+
+        // 4. Auto-detect packaging type and update packaging type selection
+        const autoPkgType = detectRowPackagingType(itemId, qty);
+        switchPkgChoice(autoPkgType, true);
+
+        // 5. Fill in the packaging inputs depending on packaging type
+        if (itemDataMap[itemId]) {
+            const item = itemDataMap[itemId];
+            const cartonSize = autoPkgType === 'box' ? (item.carton || 1) : (item.lotsize || 1);
+            const readyCartons = Math.floor(qty / cartonSize);
+            const extraPieces = qty % cartonSize;
+
+            document.getElementById('readyCartonsSingle').value = readyCartons;
+            document.getElementById('extraPiecesSingle').value = extraPieces;
+        }
+
+        // 6. Force calculate packaging totals and update UI
+        calculateSingleSetPackaging();
+    }
+
+    function editPackagingTransaction(data) {
+        // 1. Determine tab type and open drawer
+        const tab = data.carton_type === 'MIXED' ? 'mixed' : (data.contents[0] && data.contents[0].is_set ? 'set' : 'single');
+        openPackagingDrawer(tab);
+
+        // 2. Set hidden edit_id
+        document.getElementById('editIdInput').value = data.id;
+
+        // Set global edit variables
+        editTxId = data.id;
+        mixedEditItemQuantities = {};
+
+        // 3. Setup tabs and fields based on carton type
+        if (data.carton_type === 'MIXED') {
+            document.getElementById('cartonLabelInput').value = data.carton_label;
+
+            // Clear Mixed Carton items container
+            const container = document.getElementById('mixed-items-container');
+            container.innerHTML = '';
+            mixedItemIndex = 0;
+
+            // Populate mixed edit quantities map for live stock adjustments
+            data.contents.forEach(item => {
+                mixedEditItemQuantities[item.item_id.toString()] = parseInt(item.qty) || 0;
+            });
+
+            // Populate matched items in the Mixed builder
+            data.contents.forEach(item => {
+                addMixedItemRow(item.item_id, item.qty);
+            });
+        } else {
+            // This is a Single or Set item transaction!
+            const firstContent = data.contents[0];
+            if (firstContent) {
+                editItemVal = firstContent.item_id;
+                editQtyVal = parseInt(firstContent.qty) || 0;
+
+                if (firstContent.is_set) {
+                    if (setSelectObj) {
+                        setSelectObj.setValue(firstContent.item_id);
+                    } else {
+                        const sel = document.getElementById('setItemSelect');
+                        if (sel) {
+                            sel.value = firstContent.item_id;
+                            updateSingleSetInfo('set');
+                        }
+                    }
+                } else {
+                    if (singleSelectObj) {
+                        singleSelectObj.setValue(firstContent.item_id);
+                    } else {
+                        const sel = document.getElementById('singleItemSelect');
+                        if (sel) {
+                            sel.value = firstContent.item_id;
+                            updateSingleSetInfo('single');
+                        }
+                    }
+                }
+
+                // Parse cartons and extra pieces
+                const itemInfo = itemDataMap[firstContent.item_id];
+                if (itemInfo) {
+                    const cartonSize = itemInfo.carton || 1;
+                    const lotSize = itemInfo.lotsize || 1;
+
+                    // Auto-detect packaging choice based on mathematical divisibility
+                    let preferredChoice = 'regular';
+                    if (firstContent.qty % cartonSize === 0 && cartonSize > 1) {
+                        preferredChoice = 'box';
+                    }
+
+                    switchPkgChoice(preferredChoice);
+
+                    const usedLotSize = preferredChoice === 'box' ? cartonSize : lotSize;
+                    const cartons = Math.floor(firstContent.qty / usedLotSize);
+                    const extra = firstContent.qty % usedLotSize;
+
+                    document.getElementById('readyCartonsSingle').value = cartons;
+                    document.getElementById('extraPiecesSingle').value = extra;
+                    document.getElementById('autoQtySingle').value = firstContent.qty;
+                    document.getElementById('autoWeightSingle').value = firstContent.weight;
+                }
+
+                // Force refresh displayed Single/Set stock with edit offset applied
+                if (firstContent.is_set) {
+                    updateSingleSetInfo('set');
+                } else {
+                    updateSingleSetInfo('single');
+                }
+            }
+        }
+
+        // 4. Set requirements checkboxes
+        document.getElementById('checkCleaning').checked = data.cleaning;
+        document.getElementById('checkLabeling').checked = data.labeling;
+        document.getElementById('checkPacking').checked = data.packing;
+
+        // 5. Update submit button text and add Cancel button
+        const submitBtn = document.querySelector('#packagingForm button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.textContent = 'UPDATE PACKAGING';
+            submitBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            submitBtn.style.boxShadow = '0 0 15px rgba(245, 158, 11, 0.4)';
+        }
+
+        let cancelBtn = document.getElementById('cancelEditBtn');
+        if (!cancelBtn) {
+            cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.id = 'cancelEditBtn';
+            cancelBtn.className = 'btn-secondary';
+            cancelBtn.textContent = 'CANCEL EDIT';
+            cancelBtn.style.marginTop = '8px';
+            cancelBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+            cancelBtn.style.color = '#ef4444';
+            cancelBtn.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+            cancelBtn.onclick = clearPackagingEdit;
+            submitBtn.parentNode.insertBefore(cancelBtn, submitBtn.nextSibling);
+        }
+    }
+
+    function clearPackagingEdit() {
+        document.getElementById('editIdInput').value = '';
+
+        // Clear global edit variables
+        editTxId = '';
+        editItemVal = '';
+        editQtyVal = 0;
+        mixedEditItemQuantities = {};
+
+        // Reset submit button
+        const submitBtn = document.querySelector('#packagingForm button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.textContent = 'COMPLETE PACKAGING';
+            submitBtn.style.background = '';
+            submitBtn.style.boxShadow = '';
+        }
+
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        if (cancelBtn) {
+            cancelBtn.remove();
+        }
+
+        // Reset checkboxes to default checked
+        document.getElementById('checkCleaning').checked = true;
+        document.getElementById('checkLabeling').checked = true;
+        document.getElementById('checkPacking').checked = true;
+
+        // Reset single / set selects
+        if (singleSelectObj) {
+            singleSelectObj.clear();
+        } else {
+            const sel = document.getElementById('singleItemSelect');
+            if (sel) sel.value = '';
+        }
+
+        if (setSelectObj) {
+            setSelectObj.clear();
+        } else {
+            const sel = document.getElementById('setItemSelect');
+            if (sel) sel.value = '';
+        }
+
+        document.getElementById('readyCartonsSingle').value = '0';
+        document.getElementById('extraPiecesSingle').value = '0';
+        document.getElementById('autoQtySingle').value = '0';
+        document.getElementById('autoWeightSingle').value = '0.000';
+
+        const rejectionsInput = document.getElementById('rejectionsInput');
+        if (rejectionsInput) rejectionsInput.value = '0';
+        const replaceChk = document.getElementById('replaceFromBufferChk');
+        if (replaceChk) {
+            replaceChk.checked = false;
+            replaceChk.disabled = true;
+        }
+        const statusBadge = document.getElementById('replaceStatusBadge');
+        if (statusBadge) {
+            statusBadge.textContent = 'Unused';
+            statusBadge.style.background = 'rgba(255,255,255,0.05)';
+            statusBadge.style.color = 'var(--text-secondary)';
+        }
+        const bufferBadge = document.getElementById('globalLooseBufferBadge');
+        if (bufferBadge) {
+            bufferBadge.textContent = 'Loose Bag Buffer: 0 pcs';
+        }
+
+        // Reset mixed carton rows
+        const container = document.getElementById('mixed-items-container');
+        container.innerHTML = '';
+        mixedItemIndex = 0;
+        addMixedItemRow();
+
+        document.getElementById('cartonLabelInput').value = 'Mixed Carton';
+
+        switchPackTab('single');
+        switchPkgChoice('regular');
+    }
+
+    function updateQueueBucket() {
+        const checkboxes = document.querySelectorAll('.queue-selector-chk');
+        const selectedRows = [];
+        let totalPcs = 0;
+        let totalWeight = 0;
+
+        checkboxes.forEach(chk => {
+            const rowId = chk.getAttribute('data-row-id');
+            const rowEl = document.getElementById('queue_row_' + rowId);
+            if (chk.checked) {
+                const itemId = chk.getAttribute('data-item-id');
+                const itemCode = chk.getAttribute('data-item-code');
+                const itemName = chk.getAttribute('data-item-name');
+                const qty = parseInt(chk.getAttribute('data-qty') || '0');
+                const weight = parseFloat(chk.getAttribute('data-weight') || '0.0');
+
+                selectedRows.push({ rowId, itemId, itemCode, itemName, qty, weight });
+                totalPcs += qty;
+                totalWeight += weight;
+
+                if (rowEl) {
+                    rowEl.style.background = 'rgba(59, 130, 246, 0.08)';
+                    rowEl.style.borderLeft = '4px solid #10b981';
+                }
+            } else {
+                if (rowEl) {
+                    rowEl.style.background = '';
+                    rowEl.style.borderLeft = '';
+                }
+            }
+        });
+
+        const drawer = document.getElementById('floatingBucketDrawer');
+        if (selectedRows.length > 0) {
+            drawer.style.bottom = '24px';
+            document.getElementById('bucketTotalPcs').textContent = totalPcs;
+            document.getElementById('bucketTotalWeight').textContent = totalWeight.toFixed(3) + ' kg total weight';
+        } else {
+            drawer.style.bottom = '-120px';
+        }
+    }
+
+    function clearQueueBucket() {
+        const checkboxes = document.querySelectorAll('.queue-selector-chk');
+        checkboxes.forEach(chk => {
+            chk.checked = false;
+        });
+        updateQueueBucket();
+    }
+
+    function packSelectedAsMixed() {
+        const checkboxes = document.querySelectorAll('.queue-selector-chk');
+        const selected = [];
+        checkboxes.forEach(chk => {
+            if (chk.checked) {
+                selected.push({
+                    itemId: chk.getAttribute('data-item-id'),
+                    qty: chk.getAttribute('data-qty')
+                });
+            }
+        });
+
+        if (selected.length === 0) return;
+
+        openPackagingDrawer('mixed');
+
+        const container = document.getElementById('mixed-items-container');
+        container.innerHTML = '';
+        mixedItemIndex = 0;
+
+        selected.forEach(row => {
+            addMixedItemRow(row.itemId, row.qty);
+        });
+
+        updateMixedCartonLabel();
+
+        clearQueueBucket();
+    }
+</script>
+{% elif active_tab == 'ready' %}
+<!-- READY STOCK ANALYTICS DASHBOARD -->
+<div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px; margin-bottom:30px;">
+    <!-- Pieces Packed -->
+    <div class="card"
+        style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.02) 100%); border: 1px solid rgba(59, 130, 246, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
+        <div
+            style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">
+            Total Ready Pieces</div>
+        <div style="font-size:42px; font-weight:800; color:#3b82f6;">{{ metrics.total_pieces }}</div>
+        <div style="font-size:14px; color:#64748b; margin-top:5px;">Packed & ready for dispatch</div>
+    </div>
+
+    <!-- Total Cartons -->
+    <div class="card"
+        style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.02) 100%); border: 1px solid rgba(16, 185, 129, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
+        <div
+            style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">
+            Total Ready Cartons</div>
+        <div style="font-size:42px; font-weight:800; color:#10b981;">{{ metrics.total_cartons }}</div>
+        <div style="font-size:14px; color:#64748b; margin-top:5px;">In master cartons</div>
+    </div>
+
+    <!-- Total Weight -->
+    <div class="card"
+        style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.02) 100%); border: 1px solid rgba(245, 158, 11, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
+        <div
+            style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">
+            Total Ready Weight</div>
+        <div style="font-size:42px; font-weight:800; color:#f59e0b;">{{ metrics.total_weight }} <span
+                style="font-size:20px; font-weight:500;">kg</span></div>
+        <div style="font-size:14px; color:#64748b; margin-top:5px;">Total net weight</div>
+    </div>
+
+    <!-- Active Item Types -->
+    <div class="card"
+        style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.02) 100%); border: 1px solid rgba(139, 92, 246, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
+        <div
+            style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">
+            Ready Items</div>
+        <div style="font-size:42px; font-weight:800; color:#8b5cf6;">{{ metrics.ready_items_count }}</div>
+        <div style="font-size:14px; color:#64748b; margin-top:5px;">Unique active SKUs</div>
+    </div>
+</div>
+
+<div style="display:flex; gap:24px; align-items:start; width:100%;">
+    <!-- Left: Inventory Status -->
+    <div class="card" style="flex: 1.5; min-width:0;">
+        <h2 style="font-size:32px; font-weight:800; margin-bottom:24px;">Packed Stock Inventory Status</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item Details</th>
+                    <th>Status</th>
+                    <th>Carton Composition</th>
+                    <th style="text-align:right;">Ready Pcs</th>
+                    <th style="text-align:right;">Ready Weight</th>
+                    <th>Last Packed/Activity</th>
                 </tr>
             </thead>
             <tbody>
-                {% for row in ready_stock %}
+                {% for entry in ready_analytics %}
                 <tr>
-                    <td style="color:var(--text-secondary);">{{ row.created_at|date:"d M Y, H:i" }}</td>
                     <td>
-                        <div style="font-weight:700; color:var(--text-primary);">{{ row.item.code }}</div>
-                        <div style="font-size:12px; color:var(--text-secondary);">{{ row.item.name }}</div>
+                        <div style="font-weight:800; font-size:18px; color: var(--accent-blue);">
+                            {% if entry.carton_label %}{{ entry.carton_label }}{% else %}{{ entry.carton_number }}{% endif %}
+                        </div>
+                        <div style="font-size:12px; font-weight:600; color: var(--text-secondary); margin-top:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            {% if entry.carton_label %}
+                            <span style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); padding:2px 6px; border-radius:6px; color:var(--text-secondary); font-size:11px;">{{ entry.carton_number }}</span>
+                            {% endif %}
+                            {% if entry.carton_type == 'MIXED' %}
+                            <span
+                                style="background:rgba(139, 92, 246, 0.15); color:#8b5cf6; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; text-transform:uppercase;">MIXED</span>
+                            {% else %}
+                            <span style="color:var(--text-primary); font-weight:700;">{{ entry.nested_items.0.code }}</span>
+                            {% endif %}
+                        </div>
+                        {% if entry.carton_type != 'MIXED' %}
+                        <div style="font-size:12px; color: var(--text-secondary); margin-top:4px;">
+                            {{ entry.nested_items.0.name }}
+                        </div>
+                        {% endif %}
                     </td>
-                    <td><span style="font-weight:700; color:#10b981;">+{{ row.quantity }}</span> pcs</td>
-                    <td style="color:var(--text-secondary);">{{ row.weight }} kg</td>
+                    <td>
+                        <span
+                            style="background: {{ entry.status_color }}1a; color: {{ entry.status_color }}; padding:6px 12px; border-radius:30px; font-size:12px; font-weight:700; border: 1px solid {{ entry.status_color }}33; display:inline-block; margin-bottom:4px;">
+                            {{ entry.status }}
+                        </span>
+                        <div style="font-size:10px; color: var(--text-secondary); padding-left:4px;">
+                            {{ entry.steps_str }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if entry.carton_type == 'MIXED' %}
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            {% for ci in entry.nested_items %}
+                            <div style="font-size:12px; color: var(--text-secondary);">
+                                • <strong style="color:var(--text-primary);">{{ ci.code }}</strong>: {{ ci.qty }} pcs
+                                ({{ ci.weight }} kg)
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div style="font-weight:700; color: var(--text-primary);">
+                            {{ entry.carton_type }} CARTON
+                        </div>
+                        <div style="font-size:11px; color: var(--text-secondary); margin-top:2px;">
+                            Lot Size: {{ entry.carton.items.first.item.lot_with_box|default:"--" }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td
+                        style="text-align:right; font-weight:800; font-size:18px; color: var(--text-primary); vertical-align:middle;">
+                        {{ entry.qty }}
+                    </td>
+                    <td
+                        style="text-align:right; font-weight:800; font-size:18px; color: var(--text-primary); vertical-align:middle;">
+                        {{ entry.weight }} kg
+                    </td>
+                    <td style="color: var(--text-secondary); font-size:13px; vertical-align:middle;">
+                        {{ entry.created_at|date:"d/m/Y H:i" }}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="empty-state" style="text-align:center; padding:40px; color:var(--text-secondary);">
-                        <i>✨</i>
-                        No recent packaging logs found
+                    <td colspan="6" style="text-align:center; padding:40px; color: var(--text-secondary);">
+                        <div style="font-size:48px; margin-bottom:10px;">📦</div>
+                        <div style="font-weight:700; font-size:20px;">No Packed Ready Stock Available</div>
+                        <div>Stock is empty or has already been dispatched.</div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</div>
-{% elif active_tab == 'ready' %}
-    <!-- READY STOCK ANALYTICS DASHBOARD -->
-    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px; margin-bottom:30px;">
-        <!-- Pieces Packed -->
-        <div class="card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.02) 100%); border: 1px solid rgba(59, 130, 246, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
-            <div style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">Total Ready Pieces</div>
-            <div style="font-size:42px; font-weight:800; color:#3b82f6;">{{ metrics.total_pieces }}</div>
-            <div style="font-size:14px; color:#64748b; margin-top:5px;">Packed & ready for dispatch</div>
-        </div>
-        
-        <!-- Total Cartons -->
-        <div class="card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.02) 100%); border: 1px solid rgba(16, 185, 129, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
-            <div style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">Total Ready Cartons</div>
-            <div style="font-size:42px; font-weight:800; color:#10b981;">{{ metrics.total_cartons }}</div>
-            <div style="font-size:14px; color:#64748b; margin-top:5px;">In master cartons</div>
-        </div>
 
-        <!-- Total Weight -->
-        <div class="card" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.02) 100%); border: 1px solid rgba(245, 158, 11, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
-            <div style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">Total Ready Weight</div>
-            <div style="font-size:42px; font-weight:800; color:#f59e0b;">{{ metrics.total_weight }} <span style="font-size:20px; font-weight:500;">kg</span></div>
-            <div style="font-size:14px; color:#64748b; margin-top:5px;">Total net weight</div>
-        </div>
-
-        <!-- Active Item Types -->
-        <div class="card" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.02) 100%); border: 1px solid rgba(139, 92, 246, 0.2); padding:24px; border-radius:20px; position:relative; overflow:hidden;">
-            <div style="font-size:16px; color: var(--text-secondary); text-transform:uppercase; font-weight:700; margin-bottom:10px; letter-spacing:0.5px;">Ready Items</div>
-            <div style="font-size:42px; font-weight:800; color:#8b5cf6;">{{ metrics.ready_items_count }}</div>
-            <div style="font-size:14px; color:#64748b; margin-top:5px;">Unique active SKUs</div>
-        </div>
-    </div>
-
-    <div style="display:flex; gap:24px; align-items:start; width:100%;">
-        <!-- Left: Inventory Status -->
-        <div class="card" style="flex: 1.5; min-width:0;">
-            <h2 style="font-size:32px; font-weight:800; margin-bottom:24px;">Packed Stock Inventory Status</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Item Details</th>
-                        <th>Status</th>
-                        <th>Carton Composition</th>
-                        <th style="text-align:right;">Ready Pcs</th>
-                        <th style="text-align:right;">Ready Weight</th>
-                        <th>Last Packed/Activity</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for entry in ready_analytics %}
-                    <tr>
-                        <td>
-                            <div style="font-weight:700; font-size:18px; color: var(--text-primary);">{{ entry.item.code }}</div>
-                            <div style="font-size:14px; color: var(--text-secondary);">{{ entry.item.name }}</div>
-                        </td>
-                        <td>
-                            <span style="background: {{ entry.status_color }}1a; color: {{ entry.status_color }}; padding:6px 12px; border-radius:30px; font-size:12px; font-weight:700; border: 1px solid {{ entry.status_color }}33;">
-                                {{ entry.status }}
-                            </span>
-                        </td>
-                        <td>
-                            <div style="font-weight:600; color: var(--text-primary);">
-                                {% if entry.cartons > 0 %}
-                                    {{ entry.cartons }} Cartons
-                                    {% if entry.loose > 0 %}
-                                        <span style="font-size:13px; color: var(--text-secondary);">+ {{ entry.loose }} Pcs loose</span>
-                                    {% endif %}
-                                {% else %}
-                                    {{ entry.loose }} Pcs <span style="font-size:12px; color: var(--text-secondary); font-style:italic;">(Loose)</span>
-                                {% endif %}
-                            </div>
-                            <div style="font-size:12px; color: var(--text-secondary);">Lot Size: {{ entry.item.lot_with_box|default:"--" }}</div>
-                        </td>
-                        <td style="text-align:right; font-weight:700; font-size:18px; color: var(--text-primary);">
-                            {{ entry.qty }}
-                        </td>
-                        <td style="text-align:right; font-weight:700; font-size:18px; color: var(--text-primary);">
-                            {{ entry.weight }} kg
-                        </td>
-                        <td style="color: var(--text-secondary); font-size:14px;">
-                            {{ entry.last_activity|date:"d/m/Y H:i"|default:"--" }}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" style="text-align:center; padding:40px; color: var(--text-secondary);">
-                            <div style="font-size:48px; margin-bottom:10px;">📦</div>
-                            <div style="font-weight:700; font-size:20px;">No Packed Ready Stock Available</div>
-                            <div>Stock is empty or has already been dispatched.</div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Right: Charts and Sidebars -->
-        <div style="display:flex; flex-direction:column; gap:24px; flex: 1; min-width:0;">
-            <!-- Top Packed Items -->
-            <div class="card" style="width:100%;">
-                <h2 style="font-size:28px; font-weight:800; margin-bottom:20px;">Top Packed Items</h2>
-                <div style="display:flex; flex-direction:column; gap:16px;">
-                    {% for entry in ready_analytics|slice:":5" %}
-                    <div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <span style="font-weight:700; color: var(--text-primary);">{{ entry.item.code }}</span>
-                            <span style="font-size:14px; font-weight:700; color: var(--text-secondary);">{{ entry.qty }} pcs</span>
-                        </div>
-                        <!-- Mini Progress Bar -->
-                        <div style="width:100%; height:8px; background: rgba(255,255,255,0.03); border-radius:4px; overflow:hidden;">
-                            <div style="height:100%; width: {% widthratio entry.qty metrics.total_pieces 100 %}%; background: var(--accent-blue); border-radius:4px;"></div>
+    <!-- Right: Charts and Sidebars -->
+    <div style="display:flex; flex-direction:column; gap:24px; flex: 1; min-width:0;">
+        <!-- Top Packed Items -->
+        <div class="card" style="width:100%;">
+            <h2 style="font-size:28px; font-weight:800; margin-bottom:20px;">Top Packed Items</h2>
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                {% for entry in top_packed_items %}
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span style="font-weight:700; color: var(--text-primary);">{{ entry.code }}</span>
+                        <span style="font-size:14px; font-weight:700; color: var(--text-secondary);">{{ entry.qty }}
+                            pcs</span>
+                    </div>
+                    <!-- Mini Progress Bar -->
+                    <div
+                        style="width:100%; height:8px; background: rgba(255,255,255,0.03); border-radius:4px; overflow:hidden;">
+                        <div
+                            style="height:100%; width: {% widthratio entry.qty metrics.total_pieces 100 %}%; background: var(--accent-blue); border-radius:4px;">
                         </div>
                     </div>
-                    {% empty %}
-                    <div style="text-align:center; color: var(--text-secondary); padding:20px 0;">No chart data</div>
-                    {% endfor %}
+                </div>
+                {% empty %}
+                <div style="text-align:center; color: var(--text-secondary); padding:20px 0;">No chart data</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Packing Log -->
+        <div class="card" style="width:100%;">
+            <h2 style="font-size:28px; font-weight:800; margin-bottom:20px;">Recent Packing Log</h2>
+            <div
+                style="display:flex; flex-direction:column; gap:12px; max-height: 400px; overflow-y: auto; padding-right:5px;">
+                {% for log in ready_stock|slice:":10" %}
+                <div
+                    style="display:flex; justify-content:space-between; align-items:center; background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 16px;">
+                    <div>
+                        <div style="font-weight:700; font-size:15px; color: var(--text-primary);">{{ log.item.code }}
+                        </div>
+                        <div style="font-size:12px; color: var(--text-secondary);">{{ log.created_at|date:"d/m H:i" }}
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-weight:700; color:#10b981; font-size:16px;">+{{ log.quantity }} pcs</div>
+                        <div style="font-size:11px; color: var(--text-secondary);">{{ log.weight }} kg</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align:center; color: var(--text-secondary); padding:20px 0;">No logs yet</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if active_tab == 'buffer' %}
+<!-- LOOSE BUFFER STOCK ANALYTICS TAB -->
+<div class="main-grid" style="display:grid; grid-template-columns: 1fr; gap: 24px; align-items: start;">
+    
+    <div class="glass-card" style="width:100%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; margin-top:0; flex-wrap: wrap; gap: 16px;">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <h3 style="margin:0; font-size:20px; letter-spacing:1px; display:flex; align-items:center; gap:10px;">
+                    <span style="color:#10b981;">●</span> GLOBAL LOOSE BUFFER STOCK (POLISHED STOCK)
+                </h3>
+            </div>
+            
+            <!-- Sleek Client-side search input -->
+            <div style="position:relative; width:300px;">
+                <input type="text" id="bufferSearchInput" placeholder="Search item code or name..." oninput="filterBufferTable()"
+                    style="width:100%; padding:10px 16px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:white; font-size:13px; outline:none;">
+            </div>
+        </div>
+
+        {% if buffer_groups %}
+            <!-- Grouped Subcategory sections -->
+            <div style="display: flex; flex-direction: column; gap: 36px;">
+                {% for subcat, items_list in buffer_groups.items %}
+                <div class="subcategory-section" style="background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-soft); border-radius: 16px; padding: 24px; transition: all 0.2s;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px;">
+                        <h4 style="margin:0; font-size:18px; font-weight:800; color:var(--text-primary); letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                            <span style="color:var(--accent-blue);">📁</span> {{ subcat }}
+                        </h4>
+                        <span style="background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.25); color: #a78bfa; font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 20px;">
+                            {{ items_list|length }} items available
+                        </span>
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table class="recent-table" style="width:100%; border-collapse:collapse; text-align:left;">
+                            <thead>
+                                <tr style="background:rgba(255,255,255,0.005); border-bottom:1.5px solid var(--border-soft);">
+                                    <th style="padding:12px 15px; font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase;">Item Code</th>
+                                    <th style="padding:12px 15px; font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase;">Item Name</th>
+                                    <th style="padding:12px 15px; font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase;">Type</th>
+                                    <th style="padding:12px 15px; font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; text-align:right;">Piece Weight</th>
+                                    <th style="padding:12px 15px; font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; text-align:center;">Regular Lot</th>
+                                    <th style="padding:12px 15px; font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; text-align:center;">Box Lot</th>
+                                    <th style="padding:12px 15px; font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; text-align:right; min-width:180px;">Loose Buffer Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items_list %}
+                                <tr class="buffer-row-item" style="border-bottom:1px solid rgba(255,255,255,0.02); transition:all 0.2s;">
+                                    <td class="buffer-item-code" style="padding:14px 15px; font-weight:bold; color:var(--accent-blue); font-size:14px;">{{ item.code }}</td>
+                                    <td class="buffer-item-name" style="padding:14px 15px; color:var(--text-primary); font-size:14px;">{{ item.name }}</td>
+                                    <td style="padding:14px 15px; font-size:12px; font-weight:700;">
+                                        {% if item.item_type == 'SET' %}
+                                        <span style="background:rgba(139, 92, 246, 0.1); color:#8b5cf6; padding:4px 8px; border-radius:6px; border:1px solid rgba(139, 92, 246, 0.2);">SET</span>
+                                        {% else %}
+                                        <span style="background:rgba(59, 130, 246, 0.1); color:var(--accent-blue); padding:4px 8px; border-radius:6px; border:1px solid rgba(59, 130, 246, 0.2);">SINGLE</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding:14px 15px; text-align:right; font-weight:600; color:var(--text-secondary); font-size:13px;">{{ item.machining_weight|floatformat:3 }} kg</td>
+                                    <td style="padding:14px 15px; text-align:center; font-weight:600; color:var(--text-secondary);">{{ item.lot_size }}</td>
+                                    <td style="padding:14px 15px; text-align:center; font-weight:600; color:var(--text-secondary);">{{ item.lot_with_box }}</td>
+                                    <td style="padding:14px 15px; text-align:right;">
+                                        <span style="background:rgba(16, 185, 129, 0.12); border:1px solid rgba(16, 185, 129, 0.25); color:#10b981; font-weight:800; font-size:14px; padding:6px 12px; border-radius:8px; display:inline-block; box-shadow:0 0 10px rgba(16,185,129,0.15);">
+                                            {{ item.available_polishing }} pcs
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Beautiful empty state card -->
+            <div id="emptyBufferState" style="text-align:center; padding:60px 20px; color: var(--text-secondary);">
+                <div style="font-size: 50px; margin-bottom: 20px; filter: drop-shadow(0 0 10px rgba(16,185,129,0.2));">✨</div>
+                <h4 style="margin:0 0 10px; font-size:20px; font-weight:800; color:white;">No Loose Polished Stock Available</h4>
+                <p style="margin:0; font-size:14px; opacity:0.6; max-width: 450px; margin: 0 auto; line-height: 1.6;">All finished polished pieces have been successfully packed into ready cartons. The global loose buffer stock is perfectly clear!</p>
+            </div>
+        {% endif %}
+
+        <!-- Empty search results placeholder -->
+        <div id="searchNoResults" style="display:none; text-align:center; padding:60px 20px; color: var(--text-secondary);">
+            <div style="font-size: 50px; margin-bottom: 20px;">🔍</div>
+            <h4 style="margin:0 0 10px; font-size:18px; font-weight:800; color:white;">No Matching Items Found</h4>
+            <p style="margin:0; font-size:14px; opacity:0.6;">Try adjusting your keywords or clearing the search input.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filterBufferTable() {
+        const query = document.getElementById('bufferSearchInput').value.toLowerCase();
+        const sections = document.querySelectorAll('.subcategory-section');
+        let totalVisibleRows = 0;
+        
+        sections.forEach(section => {
+            const rows = section.querySelectorAll('.buffer-row-item');
+            let visibleRowsInSection = 0;
+            
+            rows.forEach(row => {
+                const code = row.querySelector('.buffer-item-code').textContent.toLowerCase();
+                const name = row.querySelector('.buffer-item-name').textContent.toLowerCase();
+                
+                if (code.includes(query) || name.includes(query)) {
+                    row.style.display = '';
+                    visibleRowsInSection++;
+                    totalVisibleRows++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            if (visibleRowsInSection > 0) {
+                section.style.display = '';
+            } else {
+                section.style.display = 'none';
+            }
+        });
+        
+        // Show/hide no results placeholder
+        const noResults = document.getElementById('searchNoResults');
+        const emptyState = document.getElementById('emptyBufferState');
+        
+        if (noResults) {
+            if (query !== '' && totalVisibleRows === 0) {
+                noResults.style.display = '';
+            } else {
+                noResults.style.display = 'none';
+            }
+        }
+    }
+</script>
+{% endif %}
+
+<!-- Sleek Glassmorphic Modal for Moving to Loose Buffer -->
+<div id="bufferStockModal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.6); backdrop-filter:blur(6px); align-items:center; justify-content:center; transition: all 0.3s ease;">
+    <div class="glass-card" style="width:100%; max-width:420px; border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:28px; box-shadow:0 20px 40px rgba(0,0,0,0.5); animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h4 style="margin:0; font-size:18px; font-weight:800; color:white; display:flex; align-items:center; gap:8px;">
+                <span style="color:#a78bfa;">📂</span> Move to Spares / Buffer
+            </h4>
+            <span onclick="closeBufferDialog()" style="color:var(--text-secondary); font-size:20px; font-weight:bold; cursor:pointer; opacity:0.6; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">&times;</span>
+        </div>
+        
+        <p style="margin:0 0 20px 0; font-size:13.5px; color:var(--text-secondary); line-height:1.5;">
+            Move pieces of <strong id="bufferItemCode" style="color:var(--accent-blue);"></strong> from the pending queue directly into the dedicated **Loose Buffer / Spare Stock**.
+        </p>
+        
+        <form id="bufferStockForm" method="GET" action="" style="display:flex; flex-direction:column; gap:16px;">
+            <input type="hidden" name="to_buffer" id="bufferEntryId">
+            
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <label for="bufferQtyInput" style="font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase;">Quantity to Declare</label>
+                <div style="position:relative; display:flex; align-items:center;">
+                    <input type="number" id="bufferQtyInput" name="qty" required min="1"
+                        style="width:100%; padding:12px 16px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:white; font-size:14px; font-weight:bold; outline:none; text-align:center; transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='#a78bfa'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                    <span id="bufferMaxQtySpan" style="position:absolute; right:16px; font-size:12px; color:var(--text-secondary); font-weight:600;">/ X pending</span>
                 </div>
             </div>
             
-            <!-- Recent Packing Log -->
-            <div class="card" style="width:100%;">
-                <h2 style="font-size:28px; font-weight:800; margin-bottom:20px;">Recent Packing Log</h2>
-                <div style="display:flex; flex-direction:column; gap:12px; max-height: 400px; overflow-y: auto; padding-right:5px;">
-                    {% for log in ready_stock|slice:":10" %}
-                    <div style="display:flex; justify-content:space-between; align-items:center; background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 16px;">
-                        <div>
-                            <div style="font-weight:700; font-size:15px; color: var(--text-primary);">{{ log.item.code }}</div>
-                            <div style="font-size:12px; color: var(--text-secondary);">{{ log.created_at|date:"d/m H:i" }}</div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="font-weight:700; color:#10b981; font-size:16px;">+{{ log.quantity }} pcs</div>
-                            <div style="font-size:11px; color: var(--text-secondary);">{{ log.weight }} kg</div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div style="text-align:center; color: var(--text-secondary); padding:20px 0;">No logs yet</div>
-                    {% endfor %}
-                </div>
+            <div style="display:flex; gap:12px; margin-top:12px;">
+                <button type="button" onclick="closeBufferDialog()"
+                    style="flex:1; padding:12px; background:transparent; border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-secondary); font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                    Cancel
+                </button>
+                <button type="submit"
+                    style="flex:2; padding:12px; background:linear-gradient(135deg, #8b5cf6, #7c3aed); border:none; border-radius:8px; color:white; font-size:13px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(124,58,237,0.25); transition:all 0.2s;"
+                    onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(124,58,237,0.35)'"
+                    onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 12px rgba(124,58,237,0.25)'">
+                    Declare Spare
+                </button>
             </div>
-        </div>
+        </form>
     </div>
-{% endif %}
+</div>
 
+<style>
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+</style>
 
 <script>
-
-function updatePackagingInfo(){
-
-    const select =
-        document.getElementById('itemSelect');
-    if (!select || !select.options) return;
-
-    const option =
-        select.options[select.selectedIndex];
-
-    const available =
-        option.getAttribute('data-available') || 0;
-
-    const weight =
-        option.getAttribute('data-weight') || 0;
-
-    const lotSize =
-        option.getAttribute('data-lotsize') || 0;
-
-    const cartonSize =
-        option.getAttribute('data-carton') || 0;
-
-    document.getElementById('availableQty').innerHTML =
-        available;
-
-    document.getElementById('availableWeight').innerHTML =
-        weight + ' kg';
-
-    document.getElementById('lotSize').innerHTML =
-        lotSize;
-
-    document.getElementById('cartonSize').innerHTML =
-        cartonSize;
-
-    calculatePackaging();
-
-}
-
-
-
-function calculatePackaging(){
-
-    const select =
-        document.getElementById('itemSelect');
-    if (!select || !select.options) return;
-
-    const option =
-        select.options[select.selectedIndex];
-
-    const cartons =
-        parseInt(
-            document.getElementById('readyCartons').value || 0
-        );
-
-    const cartonSize =
-        parseInt(
-            option.getAttribute('data-carton') || 0
-        );
-
-    const pieceWeight =
-        parseFloat(
-            option.getAttribute('data-pieceweight') || 0
-        );
-
-    const qty =
-        cartons * cartonSize;
-
-    const weight =
-        qty * pieceWeight;
-
-    document.getElementById('autoQty').value =
-        qty;
-
-    document.getElementById('autoWeight').value =
-        weight.toFixed(3);
-
-}
-
+    function openBufferDialog(entryId, itemCode, pendingQty) {
+        document.getElementById('bufferEntryId').value = entryId;
+        document.getElementById('bufferItemCode').textContent = itemCode;
+        
+        const qtyInput = document.getElementById('bufferQtyInput');
+        qtyInput.value = pendingQty;
+        qtyInput.max = pendingQty;
+        
+        document.getElementById('bufferMaxQtySpan').textContent = `/ ${pendingQty} pending`;
+        
+        const modal = document.getElementById('bufferStockModal');
+        modal.style.display = 'flex';
+        qtyInput.focus();
+        qtyInput.select();
+    }
+    
+    function closeBufferDialog() {
+        document.getElementById('bufferStockModal').style.display = 'none';
+    }
+    
+    // Close modal if user clicks outside of the glass card
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('bufferStockModal');
+        if (event.target === modal) {
+            closeBufferDialog();
+        }
+    });
 </script>
 
 {% endblock %}

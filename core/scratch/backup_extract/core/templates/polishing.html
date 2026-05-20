@@ -1,0 +1,827 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<style>
+    :root {
+        --indigo-primary: #6366f1;
+        --indigo-glow: rgba(99, 102, 241, 0.15);
+        --glass-bg: rgba(17, 24, 39, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 32px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .polishing-header {
+        margin-bottom: 40px;
+    }
+
+    .polishing-header h1 {
+        font-size: 64px;
+        background: linear-gradient(135deg, #fff 0%, #6366f1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -2px;
+        margin-bottom: 8px;
+    }
+
+    .polishing-header p {
+        font-size: 20px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    /* Direction Toggle */
+    .dir-toggle-container {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 16px;
+        padding: 4px;
+        border: 1px solid var(--glass-border);
+        margin-bottom: 24px;
+    }
+
+    .dir-toggle-pill {
+        display: flex;
+        position: relative;
+        height: 54px;
+        cursor: pointer;
+    }
+
+    .dir-toggle-option {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+
+    .dir-toggle-option.active {
+        color: white;
+    }
+
+    .dir-toggle-slider {
+        position: absolute;
+        height: 100%;
+        width: 50%;
+        border-radius: 12px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 1;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .dir-toggle-pill[data-dir="polishing_in"] .dir-toggle-slider {
+        left: 50%;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .dir-toggle-pill[data-dir="polishing_out"] .dir-toggle-slider {
+        left: 0;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    }
+
+    /* Main Layout */
+    .main-grid {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    /* Item Row Styling */
+    .item-row {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .item-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: var(--indigo-primary);
+        transform: translateX(4px);
+    }
+
+    .row-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 12px;
+    }
+
+    .stat-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .stat-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: white;
+    }
+
+    .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .remove-row-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        font-size: 16px;
+        transition: all 0.2s;
+    }
+
+    .remove-row-btn:hover {
+        background: #ef4444;
+        color: white;
+    }
+
+    .bom-indicator {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+    }
+
+    .bom-tag {
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        color: #818cf8;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    /* Tabs */
+    .nav-tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .nav-tab {
+        padding: 12px 24px;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--glass-border);
+        color: var(--text-secondary);
+        transition: all 0.2s;
+    }
+
+    .nav-tab.active {
+        background: var(--indigo-primary);
+        color: white;
+        border-color: var(--indigo-primary);
+        box-shadow: 0 10px 20px var(--indigo-glow);
+    }
+
+    /* Status Badges */
+    .badge {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-in {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .badge-out {
+        background: rgba(99, 102, 241, 0.1);
+        color: #818cf8;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        box-shadow: 0 10px 30px var(--indigo-glow);
+        width: 100%;
+        margin-top: 12px;
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--glass-border);
+        color: var(--text-primary);
+        width: 100%;
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Table custom */
+    .recent-table th {
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        display: block;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    /* Entry Mode Toggle */
+    .mode-toggle-container {
+        display: flex;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        padding: 4px;
+        margin-bottom: 24px;
+    }
+
+    .mode-btn {
+        flex: 1;
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+    }
+
+    .mode-btn.active {
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .mode-btn.active.sets-active {
+        color: #818cf8;
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .mode-btn.active.single-active {
+        color: #fbbf24;
+        background: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.2);
+    }
+</style>
+
+<div class="polishing-header">
+    <h1>Polishing</h1>
+    <p>Manage machined inventory through the polishing stage</p>
+</div>
+
+<div class="nav-tabs">
+    <div class="nav-tab active" onclick="switchMainTab('new')">NEW MOVEMENT</div>
+    <div class="nav-tab" onclick="switchMainTab('stock')">MACHINING STOCK</div>
+    <div class="nav-tab" onclick="switchMainTab('ledger')">FULL LEDGER</div>
+</div>
+
+<!-- NEW MOVEMENT SECTION -->
+<div id="new-section" class="tab-content">
+    <div class="main-grid">
+        <!-- FORM COLUMN -->
+        <div class="glass-card">
+            <h3 style="margin-bottom:24px;font-size:20px;letter-spacing:1px;">RECORD TRANSACTION</h3>
+
+            <form method="POST" id="polishingForm">
+                {% csrf_token %}
+                <input type="hidden" name="direction" id="dirInput" value="polishing_out">
+
+                <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-bottom: 20px;">
+                    <!-- Direction Pill -->
+                    <div>
+                        <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Direction</label>
+                        <div class="dir-toggle-container" style="margin-bottom: 0;">
+                            <div class="dir-toggle-pill" data-dir="polishing_out" onclick="toggleDirection()">
+                                <div class="dir-toggle-slider"></div>
+                                <div class="dir-toggle-option active" id="opt-out">ISSUE</div>
+                                <div class="dir-toggle-option" id="opt-in">RECEIVE</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Worker Selection -->
+                    <div>
+                        <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Assigned Worker</label>
+                        <select name="worker" id="workerSelect" required style="width: 100%;">
+                            <option value="">Select Worker...</option>
+                            {% if workers %}
+                            <optgroup label="🏠 Internal Staff">
+                                {% for w in workers %}
+                                <option value="w_{{ w.id }}">{{ w.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                            {% if job_workers %}
+                            <optgroup label="🏗️ External Job Work">
+                                {% for jw in job_workers %}
+                                <option value="jw_{{ jw.id }}">{{ jw.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Entry Mode Toggle -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Movement Type</label>
+                    <div class="mode-toggle-container" style="margin-bottom: 0;">
+                        <button type="button" class="mode-btn active sets-active" id="mode-set" onclick="switchEntryMode('set')">
+                            📦 FULL SETS
+                        </button>
+                        <button type="button" class="mode-btn" id="mode-single" onclick="switchEntryMode('single')">
+                            🧩 SINGLE ITEMS
+                        </button>
+                    </div>
+                </div>
+
+                <div id="items-container">
+                    <!-- Rows will be injected here -->
+                </div>
+
+                <button type="button" class="btn-secondary" style="margin-bottom:12px;" onclick="addItemRow()">
+                    + ADD ITEM
+                </button>
+
+                <button type="submit" class="btn-primary">
+                    SAVE TRANSACTION
+                </button>
+            </form>
+        </div>
+
+        <!-- RECENT ACTIVITY COLUMN -->
+        <div class="glass-card">
+            <h3 style="margin-bottom:24px;font-size:20px;letter-spacing:1px;">RECENT ACTIVITY</h3>
+
+            <div style="overflow-x:auto;">
+                <table class="recent-table">
+                    <thead>
+                        <tr>
+                            <th>DATE</th>
+                            <th>TYPE</th>
+                            <th>ITEM</th>
+                            <th>WORKER</th>
+                            <th>QTY</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in recent %}
+                        <tr>
+                            <td>{{ row.created_at|date:"d M" }}</td>
+                            <td>
+                                {% if row.transaction_type == 'polishing_out' %}
+                                <span class="badge badge-out">ISSUE</span>
+                                {% else %}
+                                <span class="badge badge-in">RECEIVE</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="font-weight:700;">{{ row.item.code }}</div>
+                                <div style="font-size:12px;color:var(--text-secondary);">{{ row.item.name }}</div>
+                            </td>
+                            <td>
+                                {% if row.worker %}{{ row.worker.name }}{% else %}{{ row.job_worker.name }}{% endif %}
+                            </td>
+                            <td>
+                                <div style="font-weight:700;">{{ row.quantity }} pcs</div>
+                                <div style="font-size:12px;color:var(--text-secondary);">{{ row.weight }} kg</div>
+                            </td>
+                            <td>
+                                {% if row.transaction_type == "polishing_out" %}
+                                {% if row.id in completed_ids %}
+                                <span style="color:#10b981;font-size:12px;font-weight:700;">✓ RECEIVED</span>
+                                {% else %}
+                                <a href="?mark_in={{ row.id }}"
+                                    style="color:var(--indigo-primary);font-size:12px;font-weight:700;text-decoration:none;">MARK
+                                    IN</a>
+                                {% endif %}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <i>✨</i>
+                                No recent polishing activity
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- STOCK TAB -->
+<div id="stock-section" class="tab-content" style="display:none;">
+    <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:24px;">
+        <div class="glass-card">
+            <h3 style="margin-bottom:24px;">INDIVIDUAL PIECES</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ITEM</th>
+                        <th>STOCK</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    {% if item.item_type != 'SET' and item.current_stock > 0 %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:700;">{{ item.code }}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">{{ item.name }}</div>
+                        </td>
+                        <td><span class="badge badge-in">{{ item.current_stock }}</span></td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="glass-card" style="border-color: var(--accent-gold);">
+            <h3 style="margin-bottom:24px; color:var(--accent-gold);">READY FOR KITTING (SETS)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>SET ITEM</th>
+                        <th>POSSIBLE SETS</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    {% if item.item_type == 'SET' %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:700;">{{ item.code }}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">{{ item.name }}</div>
+                        </td>
+                        <td><span class="badge"
+                                style="background:rgba(180,83,9,0.1); color:var(--accent-gold); font-size:16px;">{{
+                                item.set_capacity }}</span></td>
+                        <td>
+                            {% if item.set_capacity > 0 %}
+                            <span style="color:#10b981; font-size:12px; font-weight:700;">● READY</span>
+                            {% else %}
+                            <span style="color:#ef4444; font-size:12px; font-weight:700;">○ LACKING PARTS</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- LEDGER TAB -->
+<div id="ledger-section" class="tab-content" style="display:none;">
+    <div class="glass-card">
+        <h3 style="margin-bottom:24px;">POLISHING HISTORY</h3>
+        <!-- Reuse full ledger view logic if needed, or simple list -->
+        <table>
+            <thead>
+                <tr>
+                    <th>DATE</th>
+                    <th>WORKER</th>
+                    <th>ITEM</th>
+                    <th>QTY</th>
+                    <th>WEIGHT</th>
+                    <th>TRANSACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in recent %}
+                <tr>
+                    <td>{{ row.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>{% if row.worker %}{{ row.worker.name }}{% elif row.job_worker %}{{ row.job_worker.name }}{% endif %}</td>
+                    <td>{{ row.item.name }}</td>
+                    <td>{{ row.quantity }}</td>
+                    <td>{{ row.weight }} kg</td>
+                    <td>{{ row.transaction_type|upper }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Master Data for JS -->
+<script id="item-data" type="application/json">
+    [
+        {% for item in items %}
+        {
+            "id": "{{ item.id }}",
+            "code": "{{ item.code }}",
+            "name": "{{ item.name }}",
+            "lot_size": {{ item.lot_size|default:0 }},
+            "weight": {{ item.machining_weight|default:0 }},
+            "available": {{ item.available_stock|default:0 }},
+            "is_set": {% if item.components.exists %}true{% else %}false{% endif %},
+            "components": [
+                {% if item.components.exists %}
+                    {% for comp in item.components.all %}
+                    {
+                        "id": "{{ comp.component_item.id }}", 
+                        "name": "{{ comp.component_item.name }}", 
+                        "qty_per_set": {{ comp.quantity }}
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                {% endif %}
+            ]
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+</script>
+
+<script id="stock-data" type="application/json">
+    {
+        {% for key, value in piece_stock.items %}
+        "{{ key }}": {{ value }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    }
+</script>
+
+<script id="set-capacity-data" type="application/json">
+    {
+        {% for key, value in set_capacity.items %}
+        "{{ key }}": {{ value }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    }
+</script>
+
+<script>
+    const itemsMaster = JSON.parse(document.getElementById('item-data').textContent);
+    const stockMaster = JSON.parse(document.getElementById('stock-data').textContent);
+    const capacityMaster = JSON.parse(document.getElementById('set-capacity-data').textContent);
+    let rowCount = 0;
+    let currentEntryMode = 'set'; // 'set' or 'single'
+
+    function toggleDirection() {
+        const container = document.querySelector('.dir-toggle-pill');
+        const input = document.getElementById('dirInput');
+        const current = container.dataset.dir;
+
+        if (current === 'polishing_out') {
+            container.dataset.dir = 'polishing_in';
+            input.value = 'polishing_in';
+            document.getElementById('opt-out').classList.remove('active');
+            document.getElementById('opt-in').classList.add('active');
+        } else {
+            container.dataset.dir = 'polishing_out';
+            input.value = 'polishing_out';
+            document.getElementById('opt-in').classList.remove('active');
+            document.getElementById('opt-out').classList.add('active');
+        }
+    }
+
+    function switchEntryMode(mode) {
+        if (currentEntryMode === mode) return;
+
+        // Check if there is actual unsaved data
+        let hasData = false;
+        document.querySelectorAll('.item-row').forEach(row => {
+            const itemSelected = row.querySelector('.item-select').value;
+            const lots = parseInt(row.querySelector('[name="lots[]"]').value || 0);
+            const extra = parseInt(row.querySelector('[name="manual[]"]').value || 0);
+            if (itemSelected || lots > 0 || extra > 0) {
+                hasData = true;
+            }
+        });
+
+        if (hasData) {
+            if (!confirm("You have unsaved entries. Switching modes will clear them. Continue?")) return;
+        }
+
+        currentEntryMode = mode;
+
+        // Update UI toggles
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active', 'sets-active', 'single-active'));
+        if (mode === 'set') {
+            document.getElementById('mode-set').classList.add('active', 'sets-active');
+        } else {
+            document.getElementById('mode-single').classList.add('active', 'single-active');
+        }
+
+        // Clear existing rows
+        document.getElementById('items-container').innerHTML = '';
+        addItemRow();
+    }
+
+    function switchMainTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+
+        document.getElementById(tab + '-section').style.display = 'block';
+        event.currentTarget.classList.add('active');
+    }
+
+    function addItemRow() {
+        const id = rowCount++;
+
+        // Filter items based on current mode
+        const filteredItems = itemsMaster.filter(it =>
+            currentEntryMode === 'set' ? it.is_set : !it.is_set
+        );
+
+        console.log(`Adding row in mode: ${currentEntryMode}. Filtered items count: ${filteredItems.length}`);
+
+        const extraLabel = currentEntryMode === 'set' ? 'LOOSE PIECES (EXTRA)' : 'PIECES';
+        const lotLabel = currentEntryMode === 'set' ? 'FULL SETS' : 'BULK LOTS';
+
+        const html = `
+            <div class="item-row" id="row-${id}" style="border-left: 4px solid ${currentEntryMode === 'set' ? '#6366f1' : '#fbbf24'}">
+                <div class="remove-row-btn" onclick="removeRow(${id})">×</div>
+                
+                <div style="margin-bottom:16px;">
+                    <label class="stat-label">SELECT ${currentEntryMode === 'set' ? 'SET' : 'ITEM'}</label>
+                    <select name="item[]" class="item-select" onchange="handleItemChange(${id}, this)" required>
+                        <option value="">Search...</option>
+                        ${filteredItems.map(it => `<option value="${it.id}">${it.code} - ${it.name}</option>`).join('')}
+                    </select>
+                </div>
+
+                <div class="row-grid">
+                    <div class="input-group">
+                        <label class="stat-label">${lotLabel}</label>
+                        <input type="number" name="lots[]" value="0" min="0" oninput="calculateRow(${id})">
+                    </div>
+                    <div class="input-group">
+                        <label class="stat-label">+ ${extraLabel}</label>
+                        <input type="number" name="manual[]" value="0" min="0" oninput="calculateRow(${id})">
+                    </div>
+                </div>
+
+                <div class="row-grid" style="margin-top:16px; border-top:1px solid var(--glass-border); padding-top:16px;">
+                    <div>
+                        <div class="stat-label">TOTAL QTY</div>
+                        <div class="stat-value"><span id="qty-display-${id}">0</span> pcs</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">WEIGHT</div>
+                        <div class="stat-value"><span id="wt-display-${id}">0.000</span> kg</div>
+                        <input type="hidden" name="weight[]" id="wt-input-${id}" value="0">
+                    </div>
+                </div>
+
+                <div id="bom-display-${id}" class="bom-indicator"></div>
+            </div>
+        `;
+
+        document.getElementById('items-container').insertAdjacentHTML('beforeend', html);
+
+        new TomSelect(`#row-${id} .item-select`, {
+            create: false,
+            placeholder: 'Search...',
+            allowEmptyOption: true,
+        });
+    }
+
+    function removeRow(id) {
+        document.getElementById(`row-${id}`).remove();
+    }
+
+    function handleItemChange(id, select) {
+        calculateRow(id);
+    }
+
+    function calculateRow(id) {
+        const row = document.getElementById(`row-${id}`);
+        const select = row.querySelector('.item-select');
+        const lots = parseInt(row.querySelector('[name="lots[]"]').value || 0);
+        const extra = parseInt(row.querySelector('[name="manual[]"]').value || 0);
+        const bomDisplay = document.getElementById(`bom-display-${id}`);
+
+        const item = itemsMaster.find(it => it.id == select.value);
+        if (!item) {
+            bomDisplay.innerHTML = '';
+            return;
+        }
+
+        const totalQty = (lots * item.lot_size) + extra;
+        const totalWt = (totalQty * item.weight).toFixed(3);
+
+        document.getElementById(`qty-display-${id}`).innerText = totalQty;
+        document.getElementById(`wt-display-${id}`).innerText = totalWt;
+        document.getElementById(`wt-input-${id}`).value = totalWt;
+
+        // BOM Validation Logic
+        bomDisplay.innerHTML = '';
+        if (item.is_set && item.components.length > 0) {
+            item.components.forEach(c => {
+                const totalNeeded = c.qty_per_set * totalQty;
+                const available = stockMaster[c.id] || 0;
+                const isInsufficient = totalNeeded > available;
+
+                bomDisplay.innerHTML += `
+                    <div class="bom-tag" style="${isInsufficient ? 'border-color:#ef4444; color:#ef4444; background:rgba(239,68,68,0.1);' : ''}">
+                        ${c.name}: ${totalNeeded} needed (Have ${available})
+                    </div>
+                `;
+            });
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        addItemRow(); // Start with one row
+
+        const workerTS = new TomSelect("#workerSelect", {
+            create: false,
+            placeholder: 'Select Worker',
+            render: {
+                option: function (data, escape) {
+                    const id = data.id || data.value || '';
+                    const text = data.text || '';
+                    const isExternal = id.startsWith('jw_');
+                    
+                    let iconHtml = '🏠 ';
+                    if (isExternal) {
+                        iconHtml = `<img src="/static/img/logo.jpg" 
+                                     style="width:32px;height:32px;border-radius:6px;margin-right:12px;vertical-align:middle;object-fit:cover;border:1px solid rgba(255,255,255,0.1);" 
+                                     onerror="this.style.display='none'; this.nextSibling.style.display='inline';"
+                                     ><span style="display:none;margin-right:10px;">⚙️</span>`;
+                    }
+                    
+                    return `<div style="display:flex;align-items:center;padding:4px 0;">
+                                ${iconHtml}
+                                <span style="font-size:22px;font-weight:600;">${escape(text)}</span>
+                            </div>`;
+                },
+                item: function (data, escape) {
+                    const id = data.id || data.value || '';
+                    const text = data.text || '';
+                    const isExternal = id.startsWith('jw_');
+                    
+                    let iconHtml = '🏠 ';
+                    if (isExternal) {
+                        iconHtml = `<img src="/static/img/logo.jpg" 
+                                     style="width:34px;height:34px;border-radius:6px;margin-right:10px;vertical-align:middle;object-fit:cover;" 
+                                     onerror="this.style.display='none'; this.nextSibling.style.display='inline';"
+                                     ><span style="display:none;margin-right:8px;">⚙️</span>`;
+                    }
+                    
+                    return `<div style="display:flex;align-items:center;">
+                                ${iconHtml}
+                                <span style="font-size:24px;font-weight:600;">${escape(text)}</span>
+                            </div>`;
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}

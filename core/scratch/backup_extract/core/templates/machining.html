@@ -1,0 +1,879 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<style>
+    .small-tabs button,
+    .mini-tabs button {
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-soft);
+        padding: 10px 18px;
+        border-radius: 12px;
+        cursor: pointer;
+        margin-right: 8px;
+        font-size: 22px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.2s;
+    }
+
+    .small-tabs button.active,
+    .mini-tabs button.active {
+        background: var(--accent-blue);
+        color: white;
+        border-color: var(--accent-blue);
+    }
+
+    .main-grid {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 20px;
+    }
+
+    .badge-in {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .badge-out {
+        background: rgba(234, 88, 12, 0.1);
+        color: #ea580c;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .dir-toggle-container {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        padding: 4px;
+        border: 1px solid var(--border-soft);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .dir-toggle-pill {
+        display: flex;
+        position: relative;
+        height: 48px;
+        cursor: pointer;
+    }
+
+    .dir-toggle-option {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--text-secondary);
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .dir-toggle-option.active {
+        color: white;
+    }
+
+    .dir-toggle-slider {
+        position: absolute;
+        height: 100%;
+        width: 50%;
+        border-radius: 10px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 1;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .dir-toggle-pill[data-dir="machining_in"] .dir-toggle-slider {
+        left: 50%;
+        background: #10b981;
+        /* Premium Green */
+    }
+
+    .dir-toggle-pill[data-dir="machining_out"] .dir-toggle-slider {
+        left: 0;
+        background: #ef4444;
+        /* Premium Red */
+    }
+
+    .dir-toggle-pill:hover .dir-toggle-slider {
+        filter: brightness(1.1);
+    }
+
+    .action-btn {
+        padding: 6px 14px;
+        border-radius: 8px;
+        border: none;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+        filter: brightness(1.2);
+        transform: translateY(-1px);
+    }
+</style>
+
+<h1 style="font-size:58px;margin-bottom:8px;">
+    Machining
+</h1>
+
+<p style="color:#64748b;margin-bottom:25px;font-size:24px;">
+    Issue items to job workers and receive machined goods back
+</p>
+
+<div class="small-tabs" style="margin-bottom:15px;">
+
+    <button class="active" id="movement-btn" onclick="showMainTab('movement')">
+        Movements
+    </button>
+
+    <button id="worker-btn" onclick="showMainTab('worker')">
+        Job Worker WIP
+    </button>
+
+</div>
+
+<div id="movement-section">
+
+    <div class="mini-tabs" style="margin-bottom:15px;">
+
+        <button class="active" id="new-btn" onclick="showSubTab('new')">
+            New Movement
+        </button>
+
+        <button id="stock-btn" onclick="showSubTab('stock')">
+            Machining Stock
+        </button>
+
+        <button id="ledger-btn" onclick="showSubTab('ledger')">
+            Ledger
+        </button>
+
+    </div>
+
+    <!-- NEW MOVEMENT -->
+
+    <div id="new-tab">
+
+        <div class="main-grid">
+
+            <!-- LEFT -->
+
+            <div class="card">
+
+                <h2 style="margin-bottom:25px;">
+                    Record Movement
+                </h2>
+
+                <form method="POST" id="movementForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="edit_id" id="editIdInput">
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div class="form-group">
+                            <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Date</label>
+                            <input type="date" name="date" value="{{ today|date:'Y-m-d' }}" required style="width: 100%;">
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Direction</label>
+                            <div class="dir-toggle-container">
+                                <div class="dir-toggle-pill" id="dirToggle" data-dir="machining_out">
+                                    <div class="dir-toggle-option active" id="opt-out" onclick="setDirection('machining_out')">OUT</div>
+                                    <div class="dir-toggle-option" id="opt-in" onclick="setDirection('machining_in')">IN</div>
+                                    <div class="dir-toggle-slider" id="dirSlider"></div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="direction" id="directionInput" value="machining_out">
+                        </div>
+                    </div>
+
+                    <!-- ITEM -->
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Select Item</label>
+                        <select name="item" id="itemSelect" required style="width: 100%;">
+                            <option value="">Search Item...</option>
+                            {% for item in items %}
+                            {% if not item.components.exists %}
+                            <option value="{{ item.id }}" data-casting="{{ item.casting_weight|default:0 }}"
+                                data-machining="{{ item.machining_weight|default:0 }}">
+                                {{ item.code }} - {{ item.name }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- WORKER -->
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Job Worker / Staff</label>
+                        <select name="worker" id="workerSelect" required style="width: 100%;">
+                            <option value="">Choose Performer...</option>
+                            {% if workers %}
+                            <optgroup label="🏠 Internal Staff">
+                                {% for w in workers %}
+                                <option value="w_{{ w.id }}">{{ w.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                            {% if job_workers %}
+                            <optgroup label="🏗️ External Job Work">
+                                {% for jw in job_workers %}
+                                <option value="jw_{{ jw.id }}">{{ jw.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <!-- PCS + WT -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px;" id="pcsWeightGrid">
+                        <div>
+                            <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Pieces</label>
+                            <input type="number" name="quantity" id="quantityInput" value="0" required style="width: 100%;">
+                        </div>
+
+                        <div id="rejectionWrapper" style="display:none;">
+                            <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #ef4444; margin-bottom: 8px; display: block;">Rejected</label>
+                            <input type="number" name="rejection_quantity" id="rejectionInput" value="0" style="border-color: rgba(239, 68, 68, 0.3); color: #ef4444; width: 100%;">
+                        </div>
+
+                        <div>
+                            <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Weight (kg)</label>
+                            <input type="number" step="0.001" name="weight" id="weightInput" value="0" required style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <button type="button" onclick="clearEntry()" style="width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--border-soft); color: var(--text-secondary);">
+                            Clear Entry
+                        </button>
+                        <button type="submit" style="width:100%; background:var(--accent-blue); color:white;">
+                            Save Movement
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+
+            <!-- RIGHT -->
+
+            <!-- JOB WORKER ASSIGNMENTS (WIP) -->
+            <div class="card" style="margin-bottom:20px; border-color:rgba(79, 70, 229, 0.2);">
+                <h2 style="margin-bottom:20px; display:flex; align-items:center; gap:10px;">
+                    <span style="color:var(--accent-blue);">●</span> Job Worker Assignments (WIP)
+                </h2>
+                <div style="max-height:300px; overflow-y:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Job Worker</th>
+                                <th>Item</th>
+                                <th style="text-align:right;">Pending</th>
+                                <th style="text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in machining_stock %}
+                            <tr>
+                                <td style="font-weight:600; font-size:13px;">{{ row.worker_name }}</td>
+                                <td style="font-weight:700; color:var(--text-primary); font-size:14px; letter-spacing:0.5px;">{{ row.item_name }}</td>
+                                <td style="text-align:right; font-weight:800; color:#818cf8;">{{ row.under_process }}
+                                </td>
+                                <td style="text-align:right;">
+                                    <button type="button" class="action-btn"
+                                        style="background:rgba(16, 185, 129, 0.1); color:#10b981; padding:4px 8px; font-size:10px;"
+                                        onclick='quickReceive({
+                                            worker_id: "{{ row.worker_id }}",
+                                            item_id: "{{ row.item_id }}",
+                                            qty: "{{ row.under_process }}"
+                                        })'>
+                                        Mark IN
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" style="text-align:center; padding:20px; color:var(--text-secondary);">No
+                                    pending assignments</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- RECENT MOVEMENTS -->
+            <div class="card">
+                <h2 style="margin-bottom:20px;">
+                    Recent Movements
+                </h2>
+                <div style="max-height:450px; overflow-y:auto; padding-right:5px;" class="custom-scroll">
+                    <table>
+                        <thead style="position:sticky; top:0; background:var(--card-dark); z-index:10;">
+                            <tr>
+                                <th>Date</th>
+                                <th>Dir</th>
+                                <th>Item</th>
+                                <th>Job Worker</th>
+                                <th>PCS</th>
+                                <th style="text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in recent %}
+                            <tr>
+                                <td style="font-size:12px;">{{ row.created_at|date:"d/m/y" }}</td>
+                                <td>
+                                    {% if row.transaction_type == 'machining_in' %}
+                                    <span class="badge-in">IN</span>
+                                    {% else %}
+                                    <span class="badge-out">OUT</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size:13px;">{{ row.item.code }}</td>
+                                <td style="font-size:13px; color:var(--text-secondary);">
+                                    {% if row.worker %}{{ row.worker.name }}{% elif row.job_worker %}{{
+                                    row.job_worker.name }}{% else %}--{% endif %}
+                                </td>
+                                <td style="font-weight:700;">{{ row.quantity }}</td>
+                                <td style="text-align:right;">
+                                    <button type="button" class="action-btn"
+                                        style="background:rgba(79, 70, 229, 0.1); color:#818cf8; padding:4px 8px; font-size:10px;"
+                                        onclick='editTransaction({
+                                            id: "{{ row.id }}",
+                                            type: "{{ row.transaction_type }}",
+                                            item_id: "{{ row.item.id }}",
+                                            worker_id: "{% if row.worker %}w_{{ row.worker.id }}{% elif row.job_worker %}jw_{{ row.job_worker.id }}{% endif %}",
+                                            qty: "{{ row.quantity }}",
+                                            weight: "{{ row.weight }}",
+                                            rej: "{{ row.rejection_quantity|default:0 }}"
+                                        })'>
+                                        Edit
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- STOCK -->
+
+    <div id="stock-tab" style="display:none;">
+
+        <div class="card">
+
+            <h2 style="margin-bottom:25px;">
+                Machining Stock
+            </h2>
+
+            <table>
+
+                <tr>
+                    <th>Item</th>
+                    <th>Job Worker</th>
+                    <th>Under Process Qty</th>
+                    <th>Available Qty</th>
+                </tr>
+
+                {% for row in machining_stock %}
+
+                <tr>
+
+                    <td>
+                        {{ row.item_name }}
+                    </td>
+
+                    <td>
+                        {{ row.worker_name }}
+                    </td>
+
+                    <td>
+                        {{ row.under_process }}
+                    </td>
+
+                    <td>
+                        {{ row.available_qty }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- LEDGER -->
+
+    <div id="ledger-tab" style="display:none;">
+
+        <div class="card">
+
+            <h2 style="margin-bottom:25px;">
+                Full Ledger
+            </h2>
+
+            {% for worker_name, entries in worker_ledger.items %}
+            <div style="margin-bottom:40px;">
+                <h3
+                    style="margin-bottom:15px; color:var(--text-primary); border-bottom:1px solid var(--border-soft); padding-bottom:8px;">
+                    {{ worker_name }}
+                </h3>
+                <table style="margin-bottom:20px;">
+                    <tr>
+                        <th style="width:120px;">Date</th>
+                        <th style="width:100px;">Direction</th>
+                        <th>Item</th>
+                        <th style="width:80px;">PCS</th>
+                        <th style="width:100px;">REJECTED</th>
+                        <th style="width:100px;">WT (KG)</th>
+                    </tr>
+                    {% for r in entries %}
+                    <tr>
+                        <td>{{ r.created_at|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if r.transaction_type == 'machining_in' %}
+                            <span class="badge-in">IN</span>
+                            {% else %}
+                            <span class="badge-out">OUT</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.item.code }} - {{ r.item.name }}</td>
+                        <td>{{ r.quantity }}</td>
+                        <td style="color:#ef4444;">{{ r.rejection_quantity|default:0 }}</td>
+                        <td>{{ r.weight }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+            {% empty %}
+            <p style="color:var(--text-secondary); text-align:center; padding:40px;">No ledger entries found.</p>
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- WORKER SECTION -->
+
+<div id="worker-section" style="display:none;">
+
+    <div class="card">
+
+        <h2 style="margin-bottom:25px;">
+            Job Worker WIP
+        </h2>
+
+        <table>
+            <tr>
+                <th>Worker</th>
+                <th style="color:#818cf8;">Issued</th>
+                <th style="color:#10b981;">Received</th>
+                <th style="color:#ef4444;">Rejected</th>
+                <th style="font-weight:bold;">Pending</th>
+            </tr>
+            {% for row in worker_wip %}
+            <tr>
+                <td>{{ row.name|upper }}</td>
+                <td style="color:#818cf8;">{{ row.issued }}</td>
+                <td style="color:#10b981;">{{ row.received }}</td>
+                <td style="color:#ef4444;">{{ row.rejected }}</td>
+                <td style="font-weight:bold;">{{ row.pending }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    </div>
+
+</div>
+
+<script>
+
+    function showMainTab(tab) {
+
+        document
+            .getElementById('movement-section')
+            .style.display = 'none';
+
+        document
+            .getElementById('worker-section')
+            .style.display = 'none';
+
+        document
+            .querySelectorAll('.small-tabs button')
+            .forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+        if (tab == 'movement') {
+
+            document
+                .getElementById('movement-section')
+                .style.display = 'block';
+
+            document
+                .getElementById('movement-btn')
+                .classList.add('active');
+
+        }
+
+        if (tab == 'worker') {
+
+            document
+                .getElementById('worker-section')
+                .style.display = 'block';
+
+            document
+                .getElementById('worker-btn')
+                .classList.add('active');
+
+        }
+
+    }
+
+    function showSubTab(tab) {
+
+        document
+            .getElementById('new-tab')
+            .style.display = 'none';
+
+        document
+            .getElementById('stock-tab')
+            .style.display = 'none';
+
+        document
+            .getElementById('ledger-tab')
+            .style.display = 'none';
+
+        document
+            .querySelectorAll('.mini-tabs button')
+            .forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+        document
+            .getElementById(tab + '-tab')
+            .style.display = 'block';
+
+        document
+            .getElementById(tab + '-btn')
+            .classList.add('active');
+
+    }
+
+    window.onload = function () {
+
+        showMainTab('movement');
+        showSubTab('new');
+
+        // Cache original datasets for resetting
+        const originalItems = Array.from(itemSelect.options).map(opt => ({
+            id: opt.value,
+            text: opt.text,
+            casting: opt.dataset.casting,
+            machining: opt.dataset.machining
+        })).filter(o => o.id);
+
+        const originalWorkers = Array.from(workerSelect.options).map(opt => ({
+            id: opt.value,
+            text: opt.text
+        })).filter(o => o.id);
+
+        // INITIALIZE TOM SELECT
+        const newItemTS = new TomSelect('#itemSelect', {
+            create: false,
+            valueField: 'id',
+            labelField: 'text',
+            searchField: ['text'],
+            options: originalItems,
+            sortField: { field: 'text', direction: 'asc' }
+        });
+
+        const workerTS = new TomSelect('#workerSelect', {
+            create: false,
+            valueField: 'id',
+            labelField: 'text',
+            searchField: ['text'],
+            options: originalWorkers,
+            placeholder: 'Choose Performer',
+            render: {
+                option: function (data, escape) {
+                    const id = data.id || data.value || '';
+                    const text = data.text || '';
+                    const isExternal = id.startsWith('jw_') || text.includes('🏗️') || text.includes('(EXT)');
+                          let iconHtml = '🏠 ';
+                    if (isExternal) {
+                        iconHtml = `<img src="/static/img/logo.jpg" 
+                                     style="width:32px;height:32px;border-radius:6px;margin-right:12px;vertical-align:middle;object-fit:cover;border:1px solid rgba(255,255,255,0.1);" 
+                                     onerror="this.style.display='none'; this.nextSibling.style.display='inline';"
+                                     ><span style="display:none;margin-right:10px;">⚙️</span>`;
+                    }
+                    
+                    return `<div style="display:flex;align-items:center;padding:4px 0;">
+                                ${iconHtml}
+                                <span style="font-size:22px;font-weight:600;">${escape(text.replace('🏗️', '').replace('🏠', '').replace(' (EXT)', '').replace(' (INT)', ''))}</span>
+                            </div>`;
+                },
+                item: function (data, escape) {
+                    const id = data.id || data.value || '';
+                    const text = data.text || '';
+                    const isExternal = id.startsWith('jw_') || text.includes('🏗️') || text.includes('(EXT)');
+                    
+                    let iconHtml = '🏠 ';
+                    if (isExternal) {
+                        iconHtml = `<img src="/static/img/logo.jpg" 
+                                     style="width:34px;height:34px;border-radius:6px;margin-right:10px;vertical-align:middle;object-fit:cover;" 
+                                     onerror="this.style.display='none'; this.nextSibling.style.display='inline';"
+                                     ><span style="display:none;margin-right:8px;">⚙️</span>`;
+                    }
+                    
+                    return `<div style="display:flex;align-items:center;">
+                                ${iconHtml}
+                                <span style="font-size:24px;font-weight:600;">${escape(text.replace('🏗️', '').replace('🏠', '').replace(' (EXT)', '').replace(' (INT)', ''))}</span>
+                            </div>`;
+                }
+            }
+        });
+
+        let isUpdating = false;
+
+        newItemTS.on('change', async (itemId) => {
+            if (isUpdating) return;
+            isUpdating = true;
+
+            if (!itemId) {
+                // Restore all workers
+                workerTS.clearOptions();
+                workerTS.addOptions(originalWorkers);
+                isUpdating = false;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/item/${itemId}/workers/?process=machining`);
+                const data = await response.json();
+
+                const currentWorker = workerTS.getValue();
+                workerTS.clearOptions();
+
+                if (data.workers.length > 0) {
+                    data.workers.forEach(w => {
+                        workerTS.addOption({ id: w.id, text: w.name });
+                    });
+
+                    // SMART ALLOCATION LOGIC
+                    if (data.workers.length === 1) {
+                        // AUTO-ASSIGN if only one worker exists
+                        workerTS.setValue(data.workers[0].id);
+                        // Optional: Show a subtle toast or highlight
+                    } else if (data.workers.length > 1) {
+                        // ASK TO CHOOSE if multiple
+                        workerTS.clear();
+                        workerTS.open();
+                        // You could add a small tip or message here
+                    }
+                } else {
+                    // Fallback to all workers if no specific allocation
+                    workerTS.addOptions(originalWorkers);
+                    if (currentWorker) {
+                        workerTS.setValue(currentWorker, true);
+                    }
+                }
+
+            } catch (error) {
+                console.error("Error loading workers:", error);
+            }
+
+            isUpdating = false;
+            calculateWeight();
+        });
+
+        workerTS.on('change', async (workerId) => {
+            if (isUpdating) return;
+            isUpdating = true;
+
+            if (!workerId) {
+                // Restore all items
+                const currentItem = newItemTS.getValue();
+                newItemTS.clearOptions();
+                newItemTS.addOptions(originalItems);
+                if (currentItem) newItemTS.setValue(currentItem, true);
+                isUpdating = false;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/worker/${workerId}/items/`);
+                const data = await response.json();
+
+                const selectedItem = newItemTS.getValue();
+                newItemTS.clearOptions();
+
+                data.items.forEach(item => {
+                    newItemTS.addOption({
+                        id: item.id.toString(),
+                        text: `${item.code} - ${item.name}`,
+                        casting: item.casting_weight,
+                        machining: item.machining_weight
+                    });
+                });
+
+                if (selectedItem) {
+                    newItemTS.setValue(selectedItem, true);
+                }
+
+            } catch (error) {
+                console.error("Error loading items:", error);
+            }
+
+            isUpdating = false;
+        });
+
+        function quickReceive(data) {
+            isUpdating = true;
+
+            // Reset and Scroll
+            clearEntry();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Setup Form
+            setDirection('machining_in');
+            newItemTS.setValue(data.item_id);
+            workerTS.setValue(data.worker_id);
+            quantityInput.value = data.qty;
+
+            // Focus weight
+            document.getElementById('weightInput').focus();
+
+            isUpdating = false;
+        }
+        window.quickReceive = quickReceive;
+
+        function editTransaction(data) {
+            isUpdating = true;
+
+            // Scroll to form
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Set values
+            document.getElementById('editIdInput').value = data.id;
+            newItemTS.setValue(data.item_id);
+            workerTS.setValue(data.worker_id);
+            quantityInput.value = data.qty;
+            document.getElementById('rejectionInput').value = data.rej || 0;
+            weightInput.value = data.weight;
+            setDirection(data.type);
+
+            // Change button text
+            document.querySelector('button[type="submit"]').textContent = 'Update Movement';
+
+            isUpdating = false;
+        }
+        window.editTransaction = editTransaction;
+
+        function clearEntry() {
+            isUpdating = true; // Prevent trigger loops
+
+            document.getElementById('editIdInput').value = '';
+            document.querySelector('button[type="submit"]').textContent = 'Save Movement';
+
+            newItemTS.clear();
+            newItemTS.clearOptions();
+            newItemTS.addOptions(originalItems);
+
+            workerTS.clear();
+            workerTS.clearOptions();
+            workerTS.addOptions(originalWorkers);
+
+            quantityInput.value = '';
+            weightInput.value = '';
+            setDirection('machining_out');
+
+            isUpdating = false;
+        }
+        window.clearEntry = clearEntry; // Make global
+
+        // DIRECTION TOGGLE LOGIC
+        function setDirection(dir) {
+            const input = document.getElementById('directionInput');
+            const toggle = document.getElementById('dirToggle');
+            const optOut = document.getElementById('opt-out');
+            const optIn = document.getElementById('opt-in');
+            const rejWrapper = document.getElementById('rejectionWrapper');
+            const grid = document.getElementById('pcsWeightGrid');
+
+            input.value = dir;
+            toggle.setAttribute('data-dir', dir);
+
+            if (dir === 'machining_out') {
+                optOut.classList.add('active');
+                optIn.classList.remove('active');
+                rejWrapper.style.display = 'none';
+                grid.style.gridTemplateColumns = '1fr 1fr';
+            } else {
+                optIn.classList.add('active');
+                optOut.classList.remove('active');
+                rejWrapper.style.display = 'block';
+                grid.style.gridTemplateColumns = '1fr 1fr 1fr';
+            }
+
+            calculateWeight();
+        }
+        window.setDirection = setDirection; // Make global
+
+        // WEIGHT AUTO-CALCULATION LOGIC
+        const quantityInput = document.getElementById('quantityInput');
+        const weightInput = document.getElementById('weightInput');
+
+        function calculateWeight() {
+            const itemId = newItemTS.getValue();
+            if (!itemId) return;
+
+            const selectedOption = newItemTS.options[itemId];
+            if (!selectedOption) return;
+
+            const pieces = parseFloat(quantityInput.value || 0);
+            const direction = document.getElementById('directionInput').value;
+
+            let unitWeight = 0;
+            if (direction === 'machining_out') {
+                unitWeight = parseFloat(selectedOption.casting || 0);
+            } else if (direction === 'machining_in') {
+                unitWeight = parseFloat(selectedOption.machining || 0);
+            }
+
+            const totalWeight = pieces * unitWeight;
+            weightInput.value = totalWeight.toFixed(3);
+        }
+
+        quantityInput.addEventListener('input', calculateWeight);
+
+    }
+
+
+</script>
+
+{% endblock %}

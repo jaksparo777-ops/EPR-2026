@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>
+        Foundry ERP
+    </title>
+    <!-- Flatpickr for beautiful calendars -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <!-- Tom Select for searchable dropdowns -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:Inter,sans-serif;
+        }
+
+        :root {
+            --bg-dark: #0b0f19;         /* Very dark matte blue-black */
+            --card-dark: #111827;       /* Soft charcoal for cards */
+            --input-dark: #0d1117;      /* Matte input background */
+            --text-primary: #cbd5e1;    /* Softer gray-white text */
+            --text-secondary: #64748b;  /* Muted gray text */
+            --accent-blue: #4f46e5;     /* Dull, matte indigo */
+            --accent-gold: #b45309;     /* Dull amber gold */
+            --border-soft: rgba(255,255,255,0.05); /* Barely visible border */
+        }
+
+        body{
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-size: 24px;
+            line-height: 1.6;
+        }
+
+        .layout{
+            display:flex;
+        }
+
+        .sidebar{
+            width:260px;
+            height:100vh;
+            background:#0d1117;
+            color: var(--text-primary);
+            position:fixed;
+            left:0;
+            top:0;
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+            border-right:1px solid var(--border-soft);
+            overflow-y:auto;
+        }
+
+        .logo-section{
+            padding:28px 24px;
+            border-bottom:1px solid var(--border-soft);
+            display:flex;
+            align-items:center;
+            gap:14px;
+        }
+
+        .logo-box{
+            width:38px;
+            height:38px;
+            background: var(--accent-gold);
+            color: white;
+            border-radius:10px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:bold;
+            font-size:28px;
+            opacity: 0.8;
+        }
+
+        .logo-title{
+            font-size:28px;
+            font-weight:700;
+            color: var(--text-primary);
+        }
+
+        .logo-subtitle{
+            font-size:14px;
+            color: var(--text-secondary);
+            margin-top:2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .menu{
+            padding:24px 14px;
+        }
+
+        .menu a{
+            display:flex;
+            align-items:center;
+            gap:14px;
+            text-decoration:none;
+            color: var(--text-secondary);
+            padding:14px 16px;
+            border-radius:14px;
+            margin-bottom:8px;
+            font-size:22px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .menu a:hover{
+            background:rgba(255,255,255,0.03);
+            color: var(--text-primary);
+        }
+
+        .menu a.active{
+            background: rgba(79, 70, 229, 0.2);
+            color: var(--accent-blue);
+            font-weight:600;
+            border: 1px solid rgba(79, 70, 229, 0.3);
+        }
+
+        .content{
+            margin-left:260px;
+            width:calc(100% - 260px);
+            padding:40px;
+        }
+
+        .sidebar-footer{
+            padding:24px;
+            border-top:1px solid var(--border-soft);
+        }
+
+        .user-email{
+            font-size:18px;
+            color: var(--text-secondary);
+            margin-bottom:8px;
+        }
+
+        .admin-badge{
+            display:inline-block;
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+            padding:5px 12px;
+            border-radius:8px;
+            font-size:10px;
+            font-weight:700;
+            margin-bottom:20px;
+            border: 1px solid var(--border-soft);
+        }
+
+        .logout{
+            color: #991b1b; /* Dull red */
+            text-decoration:none;
+            font-size:14px;
+            font-weight: 500;
+        }
+
+        .card{
+            background: var(--card-dark);
+            border-radius:20px;
+            padding:32px;
+            border: 1px solid var(--border-soft);
+        }
+
+        h1, h2, h3 {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        p {
+            color: var(--text-secondary);
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+        }
+
+        table th{
+            background: rgba(255,255,255,0.02);
+            padding:18px 20px;
+            text-align:left;
+            font-size:11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-soft);
+        }
+
+        table td{
+            padding:18px 20px;
+            border-bottom: 1px solid var(--border-soft);
+            font-size:14px;
+            color: var(--text-primary);
+        }
+
+        table tr:hover td {
+            background: rgba(255,255,255,0.01);
+        }
+
+        input,
+        select,
+        textarea{
+            width:100%;
+            padding:14px 16px;
+            background: var(--input-dark);
+            border: 1px solid var(--border-soft);
+            border-radius:12px;
+            outline:none;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent-blue);
+        }
+
+        button{
+            background: var(--accent-blue);
+            color:white;
+            border:none;
+            padding:14px 24px;
+            border-radius:12px;
+            cursor:pointer;
+            font-weight: 600;
+            opacity: 0.9;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            opacity: 1;
+        }
+
+        .toast-container{
+            position:fixed;
+            right:30px;
+            bottom:30px;
+            display:flex;
+            flex-direction:column;
+            gap:15px;
+            z-index:9999;
+        }
+
+        .toast{
+            min-width:320px;
+            padding:18px 24px;
+            border-radius:18px;
+            font-size:14px;
+            color: var(--text-primary);
+            background: var(--card-dark);
+            border: 1px solid var(--border-soft);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:15px;
+        }
+
+        .toast-success{ border-left: 4px solid #059669; }
+        .toast-error{ border-left: 4px solid #991b1b; }
+        .toast-info{ border-left: 4px solid var(--accent-blue); }
+
+        .toast-close{
+            background: none;
+            border:none;
+            color: var(--text-secondary);
+            cursor:pointer;
+            font-size:18px;
+        }
+
+        @keyframes toast-in{
+            to {
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+        /* TOM SELECT DARK THEME */
+        .ts-control {
+            background: var(--input-dark) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-soft) !important;
+            border-radius: 12px !important;
+            padding: 12px !important;
+            font-size: 16px !important;
+        }
+        .ts-dropdown {
+            background: var(--card-dark) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-soft) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+            margin-top: 5px !important;
+        }
+        .ts-dropdown .active {
+            background: var(--accent-blue) !important;
+            color: white !important;
+        }
+        .ts-dropdown .option {
+            padding: 12px !important;
+            font-size: 16px !important;
+        }
+        .ts-control input {
+            color: white !important;
+        }
+        .ts-wrapper.single .ts-control::after {
+            border-color: var(--text-secondary) transparent transparent transparent !important;
+        }
+        .ts-wrapper.focus .ts-control {
+            border-color: var(--accent-blue) !important;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2) !important;
+        }
+    </style>
+
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+
+    <div class="sidebar">
+
+        <div>
+
+            <!-- LOGO -->
+
+            <div class="logo-section">
+
+                <div class="logo-box" style="background: none; opacity: 1;">
+                    <img src="/static/img/logo.jpg" alt="Logo" style="width: 100%; height: 100%; border-radius: 10px; object-fit: cover;">
+                </div>
+
+                <div>
+
+                    <div class="logo-title">
+                        Foundry ERP
+                    </div>
+
+                    <div class="logo-subtitle">
+                        Casting → Dispatch
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- MENU -->
+
+            <div class="menu">
+
+                <a href="{% url 'dashboard' %}"
+                   class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+
+                    📊 Dashboard
+
+                </a>
+
+
+
+                <a href="{% url 'casting_entry' %}"
+                   class="{% if request.resolver_match.url_name == 'casting_entry' %}active{% endif %}">
+
+                    🔥 Casting
+
+                </a>
+
+
+
+                <a href="{% url 'machining_entry' %}"
+                   class="{% if request.resolver_match.url_name == 'machining_entry' %}active{% endif %}">
+
+                    🛠 Machining
+
+                </a>
+
+
+
+                <a href="{% url 'polishing_entry' %}"
+                   class="{% if request.resolver_match.url_name == 'polishing_entry' %}active{% endif %}">
+
+                    ✨ Polishing
+
+                </a>
+
+
+
+                <a href="{% url 'packaging' %}"
+                   class="{% if request.resolver_match.url_name == 'packaging' %}active{% endif %}">
+
+                    📦 Packaging
+
+                </a>
+
+                <a href="{% url 'assembly' %}"
+                   class="{% if request.resolver_match.url_name == 'assembly' %}active{% endif %}">
+                    🧩 Assembly (Kitting)
+                </a>
+
+                <a href="{% url 'dispatch' %}"
+                   class="{% if request.resolver_match.url_name == 'dispatch' %}active{% endif %}">
+                    🚚 Dispatch & Sales
+                </a>
+
+
+
+                {% if user.is_staff %}
+                <a href="{% url 'master_data' %}"
+                   class="{% if request.resolver_match.url_name == 'master_data' %}active{% endif %}">
+                    ⚙ Master Data
+                </a>
+
+                <a href="{% url 'labor_ledger' %}"
+                   class="{% if request.resolver_match.url_name == 'labor_ledger' %}active{% endif %}">
+                    💹 Labor Ledger
+                </a>
+
+                <a href="#">
+                    👥 Users
+                </a>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+
+        <!-- FOOTER -->
+
+        <div class="sidebar-footer">
+
+            <div class="user-email">
+                {{ user.email|default:user.username }}
+            </div>
+
+            {% if user.is_staff %}
+            <div class="admin-badge">ADMIN</div>
+            {% else %}
+            <div class="admin-badge" style="background:rgba(16,185,129,0.1); color:#10b981;">OPERATOR</div>
+            {% endif %}
+
+            <br>
+
+            <a href="#"
+               class="logout">
+                ⎋ Sign out
+            </a>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- PAGE CONTENT -->
+
+    <div class="content">
+
+        {% if messages %}
+            <div class="toast-container">
+                {% for message in messages %}
+                    <div class="toast toast-{{ message.tags }}" role="alert">
+                        <span>{{ message }}</span>
+                        <button type="button" class="toast-close" aria-label="Dismiss">×</button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const toasts = document.querySelectorAll('.toast');
+
+        toasts.forEach(toast => {
+            const close = toast.querySelector('.toast-close');
+            const timeout = setTimeout(() => {
+                toast.style.opacity = 0;
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+
+            close.addEventListener('click', () => {
+                clearTimeout(timeout);
+                toast.style.opacity = 0;
+                setTimeout(() => toast.remove(), 300);
+            });
+        });
+    });
+</script>
+
+</body>
+
+</html>

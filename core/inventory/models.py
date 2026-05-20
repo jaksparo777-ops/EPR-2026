@@ -28,22 +28,27 @@ class TransactionType(models.TextChoices):
     KITTING_PRODUCE = "kitting_produce", "Assembly Produce"
 
 
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Categories"
+
+
+class Material(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Materials"
+
+
 class Item(models.Model):
-
-    CATEGORY_CHOICES = [
-        ("BRASS", "Brass"),
-        ("MORTAR", "Mortar"),
-        ("PESTLE", "Pestle"),
-        ("CHOPPING", "Chopping Board"),
-        ("OTHER", "Other"),
-    ]
-
-    MATERIAL_CHOICES = [
-        ("BRASS", "Brass"),
-        ("SS", "Stainless Steel"),
-        ("CI", "Cast Iron"),
-        ("ALUMINIUM", "Aluminium"),
-    ]
 
     client = models.ForeignKey(
 
@@ -67,8 +72,7 @@ class Item(models.Model):
     )
 
     category = models.CharField(
-        max_length=50,
-        choices=CATEGORY_CHOICES,
+        max_length=100,
         default="OTHER"
     )
 
@@ -79,7 +83,8 @@ class Item(models.Model):
     )
 
     material = models.CharField(
-        max_length=50,
+        max_length=100,
+        default="OTHER",
         blank=True,
         null=True
     )
@@ -154,6 +159,39 @@ class Item(models.Model):
     def __str__(self):
 
         return f"{self.code} - {self.name}"
+
+    def get_category_display(self):
+        return self.category
+
+    def get_material_display(self):
+        return self.material
+
+    def calculate_cartons_and_loose(self, quantity):
+        """
+        Smart divisor selector to calculate cartons and loose pieces.
+        If quantity is a perfect multiple of lot_size, use lot_size.
+        If quantity is a perfect multiple of lot_with_box, use lot_with_box.
+        Otherwise, select whichever fits best by minimizing the remainder/loose pieces.
+        """
+        divisor = self.lot_with_box or self.lot_size or 1
+        
+        if self.lot_size and self.lot_with_box:
+            if quantity % self.lot_size == 0:
+                divisor = self.lot_size
+            elif quantity % self.lot_with_box == 0:
+                divisor = self.lot_with_box
+            else:
+                rem_size = quantity % self.lot_size
+                rem_box = quantity % self.lot_with_box
+                # Minimize remainder (loose pieces)
+                if rem_size < rem_box:
+                    divisor = self.lot_size
+                else:
+                    divisor = self.lot_with_box
+                    
+        cartons = quantity // divisor if divisor > 0 else 0
+        loose = quantity % divisor if divisor > 0 else quantity
+        return cartons, loose
 # =========================================
 # CLIENT MASTER
 # =========================================
@@ -275,14 +313,19 @@ class Worker(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        if not self.employee_id:
+        if not self.employee_id or not str(self.employee_id).strip():
             # Try to use current ID if editing, otherwise next available
             if self.id:
                 self.employee_id = f"EMP-{1000 + self.id}"
             else:
                 last_w = Worker.objects.order_by("-id").first()
-                new_id = (last_w.id + 1) if last_w else 1
-                self.employee_id = f"EMP-{1000 + new_id}"
+                base_id = (last_w.id + 1) if last_w else 1
+                while True:
+                    code = f"EMP-{1000 + base_id}"
+                    if not Worker.objects.filter(employee_id=code).exists():
+                        self.employee_id = code
+                        break
+                    base_id += 1
         
         # Auto-calculate OT rate if it's 0 and we have a daily rate/shift hours
         if self.overtime_rate == 0 and self.salary_model == "DAILY" and self.standard_shift_hours > 0:
@@ -339,10 +382,15 @@ class JobWorker(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        if not self.jw_code:
+        if not self.jw_code or not str(self.jw_code).strip():
             last_jw = JobWorker.objects.order_by("-id").first()
-            new_id = (last_jw.id + 1) if last_jw else 1
-            self.jw_code = f"JW-{1000 + new_id}"
+            base_id = (last_jw.id + 1) if last_jw else 1
+            while True:
+                code = f"JW-{1000 + base_id}"
+                if not JobWorker.objects.filter(jw_code=code).exists():
+                    self.jw_code = code
+                    break
+                base_id += 1
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -522,7 +570,8 @@ class ItemWorkerAllocation(models.Model):
         verbose_name = "Item Worker Rate"
 
     def __str__(self):
-        return f"{self.item.name} - {self.job_worker.name} @ ₹{self.rate_per_piece}"
+        worker_name = self.worker.name if self.worker else (self.job_worker.name if self.job_worker else "Unknown")
+        return f"{self.item.name} - {worker_name} @ ₹{self.rate_per_piece}"
 # =========================================
 # LEDGER & PAYROLL
 # =========================================
@@ -575,3 +624,67 @@ class LaborPayment(models.Model):
     payment_mode = models.CharField(max_length=50, default="CASH")
     reference_no = models.CharField(max_length=100, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
+
+
+# =========================================
+# CARTONS & PACKAGING INVENTORY
+# =========================================
+
+class Carton(models.Model):
+    class CartonStatus(models.TextChoices):
+        READY = "READY", "In Warehouse"
+        DISPATCHED = "DISPATCHED", "Dispatched"
+
+    class CartonType(models.TextChoices):
+        SINGLE = "SINGLE", "Single Item"
+        SET = "SET", "Set Item"
+        MIXED = "MIXED", "Mixed Carton"
+
+    carton_number = models.CharField(max_length=50, unique=True, blank=True)
+    carton_type = models.CharField(max_length=20, choices=CartonType.choices, default=CartonType.SINGLE)
+    carton_label = models.CharField(max_length=200, blank=True, null=True)
+
+    # Process checklist
+    cleaning = models.BooleanField(default=False)
+    labeling = models.BooleanField(default=False)
+    packing = models.BooleanField(default=False)
+
+    # Metrics
+    total_quantity = models.IntegerField(default=0)
+    total_weight = models.FloatField(default=0.0)
+
+    # Status & Logistics
+    status = models.CharField(max_length=20, choices=CartonStatus.choices, default=CartonStatus.READY)
+    client = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, blank=True, related_name='cartons')
+    dispatched_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.carton_number or not str(self.carton_number).strip():
+            if self.id:
+                self.carton_number = f"CTN-{10000 + self.id}"
+            else:
+                last_c = Carton.objects.order_by("-id").first()
+                base_id = (last_c.id + 1) if last_c else 1
+                while True:
+                    code = f"CTN-{10000 + base_id}"
+                    if not Carton.objects.filter(carton_number=code).exists():
+                        self.carton_number = code
+                        break
+                    base_id += 1
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.carton_number} ({self.get_carton_type_display()}) - {self.get_status_display()}"
+
+
+class CartonItem(models.Model):
+    carton = models.ForeignKey(Carton, on_delete=models.CASCADE, related_name='items')
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='carton_contents')
+    quantity = models.IntegerField(default=0)
+    weight = models.FloatField(default=0.0)
+
+    def __str__(self):
+        return f"{self.item.code} x {self.quantity} in {self.carton.carton_number}"
+

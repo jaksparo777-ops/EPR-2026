@@ -25,7 +25,15 @@ def get_stock_by_item(item):
     machining_in = totals.get(TransactionType.MACHINING_IN, 0)
     polishing_out = totals.get(TransactionType.POLISHING_OUT, 0)
     polishing_in = totals.get(TransactionType.POLISHING_IN, 0)
-    packaging_in = totals.get(TransactionType.PACKAGING_IN, 0)
+    
+    # Exclude [DEDICATED BUFFER] transactions from packaging calculations
+    dedicated_buffer_qty = StockTransaction.objects.filter(
+        item=item,
+        transaction_type=TransactionType.PACKAGING_IN,
+        notes__contains='[DEDICATED BUFFER]'
+    ).aggregate(total=Sum('quantity'))['total'] or 0
+    
+    packaging_in = max(0, totals.get(TransactionType.PACKAGING_IN, 0) - dedicated_buffer_qty)
     dispatch_out = totals.get(TransactionType.DISPATCH_OUT, 0)
     
     # Bifurcated component consumption
@@ -38,7 +46,7 @@ def get_stock_by_item(item):
     return {
         'casting': casting_in - machining_out,
         'machining': machining_in - (polishing_out + kitting_consume_machining),
-        'polishing': polishing_in - (packaging_in + kitting_consume_polishing + kitting_consume_none),
+        'polishing': polishing_in - packaging_in,
         'ready': (packaging_in + kitting_produce) - dispatch_out
     }
 
@@ -67,6 +75,15 @@ def get_overall_stock():
             qty_totals[tx_type] = qty_totals.get(tx_type, 0) + qty
             weight_totals[tx_type] = weight_totals.get(tx_type, 0) + wt
             
+    # Exclude [DEDICATED BUFFER] packaging transactions from the global totals
+    buffer_totals = StockTransaction.objects.filter(
+        transaction_type=TransactionType.PACKAGING_IN,
+        notes__contains='[DEDICATED BUFFER]'
+    ).aggregate(total_qty=Sum('quantity'), total_weight=Sum('weight'))
+    
+    dedicated_buffer_qty = buffer_totals['total_qty'] or 0
+    dedicated_buffer_weight = buffer_totals['total_weight'] or 0
+
     casting_qty = qty_totals.get(TransactionType.CASTING_ENTRY, 0) - qty_totals.get(TransactionType.MACHINING_OUT, 0)
     
     machining_qty = qty_totals.get(TransactionType.MACHINING_IN, 0) - (
@@ -74,14 +91,13 @@ def get_overall_stock():
         qty_totals.get(f"{TransactionType.KITTING_CONSUME}_MACHINING", 0)
     )
     
-    polishing_qty = qty_totals.get(TransactionType.POLISHING_IN, 0) - (
-        qty_totals.get(TransactionType.PACKAGING_IN, 0) + 
-        qty_totals.get(f"{TransactionType.KITTING_CONSUME}_POLISHING", 0) + 
-        qty_totals.get(f"{TransactionType.KITTING_CONSUME}_None", 0)
-    )
+    raw_packaging_qty = qty_totals.get(TransactionType.PACKAGING_IN, 0)
+    packaging_qty = max(0, raw_packaging_qty - dedicated_buffer_qty)
+    
+    polishing_qty = qty_totals.get(TransactionType.POLISHING_IN, 0) - packaging_qty
     
     ready_qty = (
-        qty_totals.get(TransactionType.PACKAGING_IN, 0) + 
+        packaging_qty + 
         qty_totals.get(TransactionType.KITTING_PRODUCE, 0)
     ) - qty_totals.get(TransactionType.DISPATCH_OUT, 0)
 
@@ -92,14 +108,13 @@ def get_overall_stock():
         weight_totals.get(f"{TransactionType.KITTING_CONSUME}_MACHINING", 0)
     )
     
-    polishing_weight = weight_totals.get(TransactionType.POLISHING_IN, 0) - (
-        weight_totals.get(TransactionType.PACKAGING_IN, 0) + 
-        weight_totals.get(f"{TransactionType.KITTING_CONSUME}_POLISHING", 0) + 
-        weight_totals.get(f"{TransactionType.KITTING_CONSUME}_None", 0)
-    )
+    raw_packaging_weight = weight_totals.get(TransactionType.PACKAGING_IN, 0)
+    packaging_weight = max(0, raw_packaging_weight - dedicated_buffer_weight)
+    
+    polishing_weight = weight_totals.get(TransactionType.POLISHING_IN, 0) - packaging_weight
     
     ready_weight = (
-        weight_totals.get(TransactionType.PACKAGING_IN, 0) + 
+        packaging_weight + 
         weight_totals.get(TransactionType.KITTING_PRODUCE, 0)
     ) - weight_totals.get(TransactionType.DISPATCH_OUT, 0)
 

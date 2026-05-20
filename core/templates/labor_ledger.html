@@ -12,6 +12,48 @@
         --text-secondary: #94a3b8;
     }
 
+    .attendance-cell {
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .attendance-cell:hover {
+        background: rgba(255, 255, 255, 0.06) !important;
+    }
+    .attendance-cell.active-editing {
+        background: rgba(59, 130, 246, 0.15) !important;
+        box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.4);
+    }
+
+    .attendance-cell.success-pulse {
+        animation: successPulseKeyframe 0.5s ease-out;
+    }
+    @keyframes successPulseKeyframe {
+        0% { background: rgba(16, 185, 129, 0.4) !important; }
+        100% { background: transparent; }
+    }
+
+    .attendance-cell.error-pulse {
+        animation: errorPulseKeyframe 0.5s ease-out;
+    }
+    @keyframes errorPulseKeyframe {
+        0% { background: rgba(239, 68, 68, 0.4) !important; }
+        100% { background: transparent; }
+    }
+
+    .inline-ot-input {
+        width: 50px;
+        padding: 4px;
+        font-size: 13px;
+        font-weight: bold;
+        text-align: center;
+        background: #1f2937 !important;
+        border: 1.5px solid var(--accent-blue) !important;
+        border-radius: 6px;
+        color: white !important;
+        outline: none;
+        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+    }
+
     .summary-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -332,20 +374,30 @@
                         <div style="font-size:9px; font-weight:normal; color:var(--text-secondary); text-transform:uppercase;">{{ row.worker.get_process_display }}</div>
                     </td>
                     {% for day in row.days %}
-                    <td style="text-align:center; padding:10px; font-size:16px; border-right:1px solid rgba(255,255,255,0.05); position:relative;">
-                        {% if day.status == 'PRESENT' %}
-                        <span style="color:#10b981;">✓</span>
-                        {% elif day.status == 'HALF_DAY' %}
-                        <span style="color:#f59e0b;">=</span>
-                        {% elif day.status == 'ABSENT' %}
-                        <span style="color:#ef4444;">✕</span>
-                        {% else %}
-                        <span style="color:var(--text-secondary); opacity:0.2;">·</span>
-                        {% endif %}
+                    <td class="attendance-cell"
+                        data-worker-id="{{ row.worker.id }}"
+                        data-worker-name="{{ row.worker.name }}"
+                        data-date="{{ day.date_str }}"
+                        data-day="{{ day.day }}"
+                        data-status="{% if day.status %}{{ day.status }}{% else %}NONE{% endif %}"
+                        data-ot="{{ day.ot }}"
+                        style="text-align:center; padding:10px; font-size:16px; border-right:1px solid rgba(255,255,255,0.05); position:relative;"
+                        onclick="handleCellClick(this, event)"
+                        onmouseenter="setHoveredCell(this)"
+                        onmouseleave="clearHoveredCell(this)">
+                        <div class="cell-status-container">
+                            {% if day.status == 'PRESENT' %}
+                            <span style="color:#10b981;">✓</span>
+                            {% elif day.status == 'HALF_DAY' %}
+                            <span style="color:#f59e0b;">=</span>
+                            {% elif day.status == 'ABSENT' %}
+                            <span style="color:#ef4444;">✕</span>
+                            {% else %}
+                            <span style="color:var(--text-secondary); opacity:0.2;">·</span>
+                            {% endif %}
+                        </div>
 
-                        {% if day.ot > 0 %}
-                        <div style="position:absolute; top:2px; right:2px; width:4px; height:4px; background:var(--accent-blue); border-radius:50%;" title="OT: {{ day.ot }}h"></div>
-                        {% endif %}
+                        <div class="cell-ot-indicator" style="position:absolute; top:2px; right:2px; width:4px; height:4px; background:var(--accent-blue); border-radius:50%; {% if day.ot == 0 %}display:none;{% endif %}" title="OT: {{ day.ot }}h"></div>
                     </td>
                     {% endfor %}
                 </tr>
@@ -554,6 +606,237 @@
 </div>
 
 <script>
+    let activeEditingCell = null;
+    let hoveredCell = null;
+    let clickTimeout = null;
+    let clickCount = 0;
+
+    // Track active hovered cell for keyboard hotkeys
+    function setHoveredCell(cell) {
+        hoveredCell = cell;
+    }
+
+    function clearHoveredCell(cell) {
+        if (hoveredCell === cell) {
+            hoveredCell = null;
+        }
+    }
+
+    // Keyboard Hotkey Listener
+    document.addEventListener('keydown', async function(event) {
+        if (!hoveredCell) return;
+        
+        // If the user is currently typing in an inline overtime input, ignore hotkeys
+        if (document.activeElement && document.activeElement.classList.contains('inline-ot-input')) {
+            return;
+        }
+
+        const key = event.key.toLowerCase();
+        let newStatus = null;
+
+        if (key === 'p') newStatus = 'PRESENT';
+        else if (key === 'a') newStatus = 'ABSENT';
+        else if (key === 'h') newStatus = 'HALF_DAY';
+        else if (key === 'c' || event.key === 'Backspace' || event.key === 'Delete') newStatus = 'NONE';
+
+        if (newStatus !== null) {
+            event.preventDefault();
+            const cell = hoveredCell;
+            const workerId = cell.getAttribute('data-worker-id');
+            const date = cell.getAttribute('data-date');
+            const ot = cell.getAttribute('data-ot') || '0';
+
+            // Visual feedback pulse instantly
+            cell.classList.remove('success-pulse', 'error-pulse');
+            
+            try {
+                const updated = await saveAttendanceState(workerId, newStatus, date, ot);
+                if (updated) {
+                    updateCellUI(cell, newStatus, ot);
+                    cell.classList.add('success-pulse');
+                } else {
+                    cell.classList.add('error-pulse');
+                }
+            } catch (err) {
+                console.error(err);
+                cell.classList.add('error-pulse');
+            }
+        }
+    });
+
+    // Multi-click Detector & Inline OT Input trigger
+    function handleCellClick(cell, event) {
+        event.stopPropagation();
+        
+        // If an inline OT input is already active inside this cell, ignore additional clicks
+        if (cell.querySelector('.inline-ot-input')) {
+            return;
+        }
+
+        // Check current status
+        const status = cell.getAttribute('data-status') || 'NONE';
+        const ot = cell.getAttribute('data-ot') || '0';
+
+        // 1. If status is PRESENT or HALF_DAY, clicking immediately enters inline overtime input!
+        if (status === 'PRESENT' || status === 'HALF_DAY') {
+            // Cancel any pending multi-click timer
+            if (clickTimeout) {
+                clearTimeout(clickTimeout);
+                clickTimeout = null;
+                clickCount = 0;
+            }
+            activateInlineOvertimeInput(cell);
+            return;
+        }
+
+        // 2. Otherwise, detect multi-clicks (1, 2, or 3 clicks) to toggle status
+        clickCount++;
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+        }
+
+        clickTimeout = setTimeout(async () => {
+            const currentClicks = clickCount;
+            clickCount = 0;
+            clickTimeout = null;
+
+            let newStatus = 'NONE';
+            if (currentClicks === 1) newStatus = 'PRESENT';
+            else if (currentClicks === 2) newStatus = 'ABSENT';
+            else if (currentClicks >= 3) newStatus = 'HALF_DAY';
+
+            const workerId = cell.getAttribute('data-worker-id');
+            const date = cell.getAttribute('data-date');
+
+            cell.classList.remove('success-pulse', 'error-pulse');
+            try {
+                const updated = await saveAttendanceState(workerId, newStatus, date, ot);
+                if (updated) {
+                    updateCellUI(cell, newStatus, ot);
+                    cell.classList.add('success-pulse');
+                } else {
+                    cell.classList.add('error-pulse');
+                }
+            } catch (err) {
+                console.error(err);
+                cell.classList.add('error-pulse');
+            }
+        }, 250); // 250ms window to detect double/triple click
+    }
+
+    // Activate the inline OT input directly inside the cell
+    function activateInlineOvertimeInput(cell) {
+        // Close any other open inline OT inputs first
+        document.querySelectorAll('.inline-ot-input').forEach(input => {
+            input.blur();
+        });
+
+        const statusContainer = cell.querySelector('.cell-status-container');
+        const currentOt = cell.getAttribute('data-ot') || '0';
+
+        // Save current HTML to restore in case of failure or blur
+        const originalHTML = statusContainer.innerHTML;
+
+        statusContainer.innerHTML = `<input type="number" step="0.5" min="0" max="24" class="inline-ot-input" value="${currentOt}">`;
+        
+        const input = statusContainer.querySelector('.inline-ot-input');
+        input.focus();
+        input.select();
+
+        let isSaving = false;
+
+        async function saveInlineOtValue() {
+            if (isSaving) return;
+            isSaving = true;
+
+            const newOt = parseFloat(input.value || '0');
+            const status = cell.getAttribute('data-status') || 'PRESENT';
+            const workerId = cell.getAttribute('data-worker-id');
+            const date = cell.getAttribute('data-date');
+
+            cell.classList.remove('success-pulse', 'error-pulse');
+            try {
+                const updated = await saveAttendanceState(workerId, status, date, newOt);
+                if (updated) {
+                    cell.setAttribute('data-ot', newOt);
+                    // Restore UI checkmark/symbol
+                    updateCellUI(cell, status, newOt);
+                    cell.classList.add('success-pulse');
+                } else {
+                    statusContainer.innerHTML = originalHTML;
+                    cell.classList.add('error-pulse');
+                }
+            } catch (err) {
+                console.error(err);
+                statusContainer.innerHTML = originalHTML;
+                cell.classList.add('error-pulse');
+            }
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                input.blur(); // Triggers saveInlineOtValue
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                isSaving = true; // prevent saving
+                statusContainer.innerHTML = originalHTML; // restore
+            }
+        });
+
+        input.addEventListener('blur', function() {
+            saveInlineOtValue();
+        });
+    }
+
+    // AJAX helper to submit attendance state changes
+    async function saveAttendanceState(workerId, status, date, otHours) {
+        const formData = new FormData();
+        formData.append('worker_id', workerId);
+        formData.append('status', status);
+        formData.append('date', date);
+        formData.append('ot_hours', otHours);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        try {
+            const response = await fetch('{% url "mark_attendance" %}', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            return data.status === 'success';
+        } catch (err) {
+            console.error(err);
+            return false;
+        }
+    }
+
+    // Helper to update grid cell visually in-place
+    function updateCellUI(cell, status, ot) {
+        cell.setAttribute('data-status', status);
+        cell.setAttribute('data-ot', ot);
+
+        const container = cell.querySelector('.cell-status-container');
+        if (status === 'PRESENT') {
+            container.innerHTML = '<span style="color:#10b981;">✓</span>';
+        } else if (status === 'HALF_DAY') {
+            container.innerHTML = '<span style="color:#f59e0b;">=</span>';
+        } else if (status === 'ABSENT') {
+            container.innerHTML = '<span style="color:#ef4444;">✕</span>';
+        } else {
+            container.innerHTML = '<span style="color:var(--text-secondary); opacity:0.2;">·</span>';
+        }
+
+        const indicator = cell.querySelector('.cell-ot-indicator');
+        const parsedOt = parseFloat(ot || '0');
+        if (parsedOt > 0 && (status === 'PRESENT' || status === 'HALF_DAY')) {
+            indicator.style.display = 'block';
+            indicator.setAttribute('title', `OT: ${parsedOt}h`);
+        } else {
+            indicator.style.display = 'none';
+        }
+    }
+
     function showSection(section) {
         document.querySelectorAll('.ledger-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
@@ -663,10 +946,22 @@
             data.ledger.forEach(entry => {
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid var(--border-soft)';
+                
+                let earnedText = '-';
+                if (entry.is_inward) {
+                    if (entry.has_rate) {
+                        earnedText = '₹' + entry.earned.toFixed(0);
+                    } else {
+                        earnedText = '<span style="color:#ef4444; font-size:10px; font-weight:800; background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px; display:inline-block;">₹0 (No Rate Set)</span>';
+                    }
+                } else if (entry.earned > 0) {
+                    earnedText = '₹' + entry.earned.toFixed(0);
+                }
+
                 tr.innerHTML = `
                     <td style="padding:10px; font-size:11px;">${entry.date}</td>
                     <td style="padding:10px; font-size:11px;">${entry.description}</td>
-                    <td style="padding:10px; text-align:right; font-weight:bold; color:#10b981;">${entry.earned > 0 ? '₹'+entry.earned.toFixed(0) : '-'}</td>
+                    <td style="padding:10px; text-align:right; font-weight:bold; color:#10b981;">${earnedText}</td>
                     <td style="padding:10px; text-align:right; font-weight:bold; color:#ef4444;">${entry.paid > 0 ? '₹'+entry.paid.toFixed(0) : '-'}</td>
                 `;
                 lbody.appendChild(tr);

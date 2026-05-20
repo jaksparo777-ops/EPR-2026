@@ -11,6 +11,34 @@
         --text-secondary: #94a3b8;
     }
 
+    .category-filter-btn {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        text-align: left;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 15px;
+        transition: all 0.2s;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-secondary);
+    }
+
+    .category-filter-btn:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: white !important;
+    }
+
+    .category-filter-btn.active {
+        background: rgba(59, 130, 246, 0.15) !important;
+        color: #60a5fa !important;
+        border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    }
+
     .top-tabs {
         display: flex;
         gap: 12px;
@@ -184,6 +212,8 @@
             <div class="small-tabs" style="margin-bottom:0;">
                 <button id="subbtn-master" class="active" onclick="showItemSub('master')">📋 ERP Item Master</button>
                 <button id="subbtn-bom" onclick="showItemSub('bom')">🧩 BOM / Set</button>
+                <button id="subbtn-category" onclick="showItemSub('category')">🏷️ Categories</button>
+                <button id="subbtn-material" onclick="showItemSub('material')">🧱 Materials</button>
             </div>
         </div>
 
@@ -202,111 +232,484 @@
             {% endif %}
 
             <div style="display:flex; justify-content:flex-end; margin-bottom:20px;">
-                <button type="button" onclick="openItemDrawer()"
+                <button type="button" onclick="location.href='?tab=items&add_item=1'"
                     style="background:#10b981; color:white; border:none; padding:15px 30px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); font-size:18px;">+
                     Add New Item</button>
             </div>
-            <div class="card">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Item Details</th>
-                            <th>Material</th>
-                            <th>Casting / Machining</th>
-                            <th>Client</th>
-                            <th style="text-align:right;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in items %}
-                        <tr class="item-row">
-                            <td>
-                                <div style="font-weight:bold; font-size:28px; color:var(--accent-blue); cursor:pointer;"
-                                    onclick="window.location.href='/master-data/?edit={{ item.id }}&tab=items'">{{ item.name }}</div>
-                                <div style="font-size:18px; color:var(--text-secondary);">Code: {{ item.code }}</div>
-                            </td>
-                            <td>{{ item.material }}</td>
-                            <td>{{ item.casting_weight }}kg / {{ item.machining_weight }}kg</td>
-                            <td>{{ item.client.name }}</td>
-                            <td style="text-align:right;">
-                                <div style="display:flex; justify-content:flex-end; gap:15px; align-items:center;">
-                                    <a href="/master-data/?edit={{ item.id }}&tab=items"
-                                        style="color:var(--accent-blue); text-decoration:none; font-weight:bold; font-size:16px;">Edit</a>
-                                    <a href="/delete-item/{{ item.id }}/"
-                                        onclick="return confirm('Are you sure you want to delete this item? This action cannot be undone.')"
-                                        style="color:#ef4444; text-decoration:none; font-weight:bold; font-size:16px;">Delete</a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+
+            <div style="display:flex; gap:25px; align-items:flex-start;">
+                <!-- Left Sidebar: Category Filters -->
+                <div
+                    style="width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:10px; background:var(--card-dark); border:1px solid var(--border-soft); border-radius:16px; padding:20px; box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+                    <div
+                        style="font-weight:800; color:var(--text-primary); font-size:15px; letter-spacing:0.5px; border-bottom:1px solid var(--border-soft); padding-bottom:10px; margin-bottom:5px;">
+                        📁 CATEGORIES</div>
+                    <button type="button" class="category-filter-btn active" data-category="all"
+                        onclick="filterItemsByCategory('all')">
+                        <span>All Categories</span>
+                        <span class="badge"
+                            style="background:rgba(255,255,255,0.08); color:var(--text-primary); padding:2px 8px; border-radius:10px; font-size:12px; font-weight:700;">{{ items|length }}</span>
+                    </button>
+                    {% for cat in categories %}
+                    <button type="button" class="category-filter-btn" data-category="{{ cat.name|escapejs }}"
+                        onclick="filterItemsByCategory('{{ cat.name|escapejs }}')">
+                        <span>{{ cat.name }}</span>
+                        <span class="badge category-count-{{ cat.name|slugify }}"
+                            style="background:rgba(255,255,255,0.08); color:var(--text-primary); padding:2px 8px; border-radius:10px; font-size:12px; font-weight:700;">0</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <!-- Right Side: Items Catalog Table -->
+                <div style="flex:1; min-width:0;">
+                    <div class="card" style="margin:0;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 45px; text-align: center; padding-left: 15px;">
+                                        <input type="checkbox" id="selectAllItems"
+                                            style="transform: scale(1.4); cursor: pointer; accent-color: var(--accent-blue);">
+                                    </th>
+                                    <th>Item Details</th>
+                                    <th>Material</th>
+                                    <th>Casting / Machining</th>
+                                    <th>Client</th>
+                                    <th>Labor Allocations</th>
+                                    <th style="text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr class="item-row" data-category="{{ item.category|default:'OTHER' }}">
+                                    <td
+                                        style="width: 45px; text-align: center; padding-left: 15px; vertical-align: middle;">
+                                        <input type="checkbox" class="item-checkbox" value="{{ item.id }}"
+                                            style="transform: scale(1.4); cursor: pointer; accent-color: var(--accent-blue);">
+                                    </td>
+                                    <td>
+                                        <div style="font-weight:bold; font-size:28px; color:var(--accent-blue); cursor:pointer;"
+                                            onclick="window.location.href='/master-data/?edit={{ item.id }}&tab=items'">
+                                            {{ item.name }}</div>
+                                        <div style="font-size:18px; color:var(--text-secondary); margin-bottom:6px;">
+                                            Code: {{ item.code }}</div>
+                                        <div
+                                            style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:14px; margin-top:4px;">
+                                            {% if item.category %}
+                                            <span
+                                                style="background:rgba(59, 130, 246, 0.15); color:#60a5fa; padding:2px 8px; border-radius:12px; font-weight:600;">{{ item.category }}</span>
+                                            {% endif %}
+                                            {% if item.sub_category %}
+                                            <span
+                                                style="background:rgba(16, 185, 129, 0.15); color:#34d399; padding:2px 8px; border-radius:12px; font-weight:600;">{{ item.sub_category }}</span>
+                                            {% endif %}
+                                            {% if item.variant %}
+                                            <span
+                                                style="background:rgba(245, 158, 11, 0.15); color:#fbbf24; padding:2px 8px; border-radius:12px; font-weight:600;">{{ item.variant }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ item.material }}</td>
+                                    <td>{{ item.casting_weight }}kg / {{ item.machining_weight }}kg</td>
+                                    <td>{{ item.client.name }}</td>
+                                    <td>
+                                        <div style="display:flex; flex-direction:column; gap:4px; max-width:240px;">
+                                            {% for alloc in item.worker_allocations.all %}
+                                            <div
+                                                style="font-size:12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); padding:4px 8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                                <span style="font-weight:600; color:var(--text-primary);">
+                                                    {% if alloc.worker %}{{ alloc.worker.name }} (INT){% else %}{{ alloc.job_worker.name }}{% endif %}
+                                                </span>
+                                                <span style="font-weight:800; color:var(--accent-blue);">₹{{ alloc.rate_per_piece }}</span>
+                                            </div>
+                                            {% empty %}
+                                            <span
+                                                style="color:var(--text-secondary); font-size:12px; font-style:italic;">No
+                                                allocations set</span>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <div
+                                            style="display:flex; justify-content:flex-end; gap:15px; align-items:center;">
+                                            <a href="/master-data/?edit={{ item.id }}&tab=items"
+                                                style="color:var(--accent-blue); text-decoration:none; font-weight:bold; font-size:16px;">Edit</a>
+                                            <a href="/delete-item/{{ item.id }}/"
+                                                onclick="return confirm('Are you sure you want to delete this item? This action cannot be undone.')"
+                                                style="color:#ef4444; text-decoration:none; font-weight:bold; font-size:16px;">Delete</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- BOM SUB-SECTION -->
         <div id="sub-item-bom" style="display:none;">
+            <!-- Inner Sub-Tabs for BOM / Set -->
+            <div class="small-tabs" style="margin-bottom: 25px;">
+                <button type="button" id="innerbtn-bom-config" class="active" onclick="switchInnerBOM('config')">⚙️ BOM
+                    Configurations</button>
+                <button type="button" id="innerbtn-bom-kitting" onclick="switchInnerBOM('kitting')">🧩 Record Assembly /
+                    Kitting</button>
+            </div>
+
+            <!-- Inner Section A: BOM Configurations -->
+            <div id="inner-bom-config-section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <div>
+                        <h2 style="margin:0;">Product Assemblies</h2>
+                        <p style="color:var(--text-secondary); font-size:13px; margin:4px 0 0;">Manage Bill of Materials
+                            (BOM) for your product sets</p>
+                    </div>
+                    <button type="button" onclick="openQuickSetDrawer()"
+                        style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.2); padding:12px 24px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);">+
+                        Create New Set</button>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Components (Parts)</th>
+                                <th style="text-align:center; width: 60px;"></th>
+                                <th>Finished Set</th>
+                                <th>Labor Cost / Allocations</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in bom_items %}
+                            <tr class="bom-row">
+                                <td>
+                                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                                        {% for comp in item.components.all %}
+                                        <div
+                                            style="background:rgba(59,130,246,0.05); padding:6px 12px; border-radius:10px; font-size:12px; border:1px solid rgba(59,130,246,0.1); display:flex; align-items:center; gap:6px;">
+                                            {{ comp.component_item.name }}
+                                            <span style="color:var(--accent-blue); font-weight:bold;">
+                                                ({{ comp.quantity }})
+                                            </span>
+                                        </div>
+                                        {% empty %}
+                                        <span style="font-style:italic; color:var(--text-secondary); font-size:20px;">No
+                                            components mapped yet. Click "Manage" to configure.</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td style="text-align:center; color:var(--text-secondary); font-size:18px;">→</td>
+                                <td>
+                                    <div style="font-weight:bold; font-size:15px;">{{ item.name }}</div>
+                                    <div style="font-size:11px; color:var(--text-secondary); margin-bottom:4px;">Code:
+                                        {{ item.code }}</div>
+                                    <div
+                                        style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:10px; margin-top:2px;">
+                                        {% if item.category %}
+                                        <span
+                                            style="background:rgba(59, 130, 246, 0.15); color:#60a5fa; padding:1px 6px; border-radius:10px; font-weight:600;">{{ item.category }}</span>
+                                        {% endif %}
+                                        {% if item.sub_category %}
+                                        <span
+                                            style="background:rgba(16, 185, 129, 0.15); color:#34d399; padding:1px 6px; border-radius:10px; font-weight:600;">{{ item.sub_category }}</span>
+                                        {% endif %}
+                                        {% if item.variant %}
+                                        <span
+                                            style="background:rgba(245, 158, 11, 0.15); color:#fbbf24; padding:1px 6px; border-radius:10px; font-weight:600;">{{ item.variant }}</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display:flex; flex-direction:column; gap:4px; max-width:240px;">
+                                        {% for alloc in item.worker_allocations.all %}
+                                        <div
+                                            style="font-size:12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); padding:4px 8px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                            <span style="font-weight:600; color:var(--text-primary);">
+                                                {% if alloc.worker %}{{ alloc.worker.name }} (INT){% else %}{{ alloc.job_worker.name }}{% endif %}
+                                            </span>
+                                            <span style="font-weight:800; color:var(--accent-blue);">₹{{ alloc.rate_per_piece }}</span>
+                                        </div>
+                                        {% empty %}
+                                        <span style="color:var(--text-secondary); font-size:12px; font-style:italic;">No
+                                            allocations synced</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td style="text-align:right;">
+                                    <div style="display:flex; justify-content:flex-end; gap:8px;">
+                                        <button type="button"
+                                            onclick="openBOMDrawer('{{ item.id }}', '{{ item.name }}')"
+                                            style="background:rgba(59,130,246,0.1); color:var(--accent-blue); border: 1px solid rgba(59,130,246,0.2); padding:8px 16px; border-radius:10px; font-weight:bold; cursor:pointer;">Manage</button>
+
+                                        <a href="{% url 'delete_item' item.id %}?next=bom"
+                                            onclick="return confirm('WARNING: This will PERMANENTLY DELETE this Set item and its BOM structure. Are you sure?');"
+                                            style="background:rgba(239,68,68,0.1); color:#ef4444; border: 1px solid rgba(239,68,68,0.2); padding:8px 12px; border-radius:10px; font-weight:bold; cursor:pointer; text-decoration:none;">✕
+                                            Delete</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Inner Section B: Record Assembly / Kitting -->
+            <div id="inner-bom-kitting-section" style="display:none;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                    <!-- Assembly Form Card -->
+                    <div class="card" style="align-self: start;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 25px;">
+                            <div style="width: 8px; height: 18px; background: var(--accent-blue); border-radius: 4px;">
+                            </div>
+                            <h2
+                                style="font-size: 18px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Record Assembly</h2>
+                        </div>
+
+                        <form method="POST" action="{% url 'assembly' %}">
+                            {% csrf_token %}
+
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label
+                                    style="display: block; margin-bottom: 8px; font-weight: 700; color: var(--text-secondary); font-size: 12px;">SELECT
+                                    SET ITEM</label>
+                                <select name="item_id" id="setItemSelect" onchange="loadComposition(this.value)"
+                                    required class="form-select">
+                                    <option value="">-- Choose a Set --</option>
+                                    {% for item in assembly_items %}
+                                    <option value="{{ item.id }}">{{ item.code }} - {{ item.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 25px;">
+                                <label
+                                    style="display: block; margin-bottom: 8px; font-weight: 700; color: var(--text-secondary); font-size: 12px;">QUANTITY
+                                    TO ASSEMBLE</label>
+                                <input type="number" name="quantity" id="assembleQty" value="1" min="1"
+                                    oninput="updateNeeded()" required class="form-input">
+                            </div>
+
+                            <button type="submit"
+                                style="width: 100%; background: var(--accent-blue); color: white; padding: 16px; border-radius: 14px; font-weight: 800; border: none; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);">
+                                Complete Assembly
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Composition Details Card -->
+                    <div class="card" id="compositionSummary"
+                        style="background: rgba(15, 23, 42, 0.2); border: 1px dashed var(--border-soft); min-height: 250px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 25px;">
+                            <div style="width: 8px; height: 18px; background: #60a5fa; border-radius: 4px;"></div>
+                            <h2
+                                style="font-size: 18px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Component Requirements</h2>
+                        </div>
+
+                        <div id="compositionList">
+                            <p
+                                style="color: var(--text-secondary); font-style: italic; text-align: center; margin-top: 40px;">
+                                Select a set item to see required components.</p>
+                        </div>
+
+                        <div id="stockWarning"
+                            style="display: none; margin-top: 25px; padding: 18px; background: rgba(239, 68, 68, 0.1); color: #f87171; border-radius: 14px; font-size: 13px; border: 1px solid rgba(239, 68, 68, 0.25); line-height: 1.5;">
+                            ⚠️ <strong>INSUFFICIENT STOCK:</strong> You do not have enough components in Polished Stock
+                            to complete this assembly. Please process components through Mark IN first.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RECENT ASSEMBLY LOGS -->
+                <div class="card" style="margin-top: 20px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 8px; height: 18px; background: #8b5cf6; border-radius: 4px;"></div>
+                            <h2
+                                style="font-size: 18px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Recent Assembly Logs</h2>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Set Code</th>
+                                    <th>Set Name</th>
+                                    <th>Qty Assembled</th>
+                                    <th>Components Auto-Consumed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tx in recent_assemblies %}
+                                <tr>
+                                    <td style="color: var(--text-secondary); font-size: 13px;">{{ tx.created_at|date:"d M Y, H:i" }}</td>
+                                    <td><span
+                                            style="background: rgba(59,130,246,0.1); color: var(--accent-blue); padding: 5px 10px; border-radius: 8px; font-weight: 700; font-size: 12px;">{{ tx.item.code }}</span></td>
+                                    <td style="font-weight: 700;">{{ tx.item.name }}</td>
+                                    <td style="font-weight: 800; color: #34d399;">+{{ tx.quantity }} Sets</td>
+                                    <td>
+                                        <div
+                                            style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-secondary);">
+                                            {% for comp in tx.item.components.all %}
+                                            <span>• {{ comp.component_item.name }}: {{ comp.quantity }} × {{ tx.quantity }} = <strong>{% widthratio comp.quantity 1 tx.quantity %} pcs</strong></span>
+                                            {% empty %}
+                                            <span style="font-style: italic;">No components mapped</span>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5"
+                                        style="text-align: center; color: var(--text-secondary); padding: 40px 0; font-style: italic;">
+                                        No assembly transactions found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CATEGORY SUB-SECTION -->
+        <div id="sub-item-category" style="display:none;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <div>
-                    <h2 style="margin:0;">Product Assemblies</h2>
-                    <p style="color:var(--text-secondary); font-size:13px; margin:4px 0 0;">Manage Bill of Materials
-                        (BOM) for your product sets</p>
+                    <h2 style="margin:0; font-size:32px;">Item Categories Master</h2>
+                    <p style="color:var(--text-secondary); margin:4px 0 0;">Manage dynamic classifications for your
+                        warehouse items</p>
                 </div>
-                <button type="button" onclick="openQuickSetDrawer()"
-                    style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.2); padding:12px 24px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);">+
-                    Create New Set</button>
-            </div>
-            <div class="card">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Components (Parts)</th>
-                            <th style="text-align:center; width: 60px;"></th>
-                            <th>Finished Set</th>
-                            <th style="text-align:right;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in bom_items %}
-                        <tr class="bom-row">
-                            <td>
-                                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                                    {% for comp in item.components.all %}
-                                    <div
-                                        style="background:rgba(59,130,246,0.05); padding:6px 12px; border-radius:10px; font-size:12px; border:1px solid rgba(59,130,246,0.1); display:flex; align-items:center; gap:6px;">
-
-                                        {{ comp.component_item.name }}
-
-                                        <span style="color:var(--accent-blue); font-weight:bold;">
-                                            ({{ comp.quantity }})
-                                        </span>
-
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </td>
-                            <td style="text-align:center; color:var(--text-secondary); font-size:18px;">→</td>
-                            <td>
-                                <div style="font-weight:bold; font-size:15px;">{{ item.name }}</div>
-                                <div style="font-size:11px; color:var(--text-secondary);">Code: {{ item.code }}</div>
-                            </td>
-                            <td style="text-align:right;">
-                                <div style="display:flex; justify-content:flex-end; gap:8px;">
-                                    <button type="button" onclick="openBOMDrawer('{{ item.id }}', '{{ item.name }}')"
-                                        style="background:rgba(59,130,246,0.1); color:var(--accent-blue); border: 1px solid rgba(59,130,246,0.2); padding:8px 16px; border-radius:10px; font-weight:bold; cursor:pointer;">Manage</button>
-
-                                    <a href="{% url 'delete_item' item.id %}?next=bom"
-                                        onclick="return confirm('WARNING: This will PERMANENTLY DELETE this Set item and its BOM structure. Are you sure?');"
-                                        style="background:rgba(239,68,68,0.1); color:#ef4444; border: 1px solid rgba(239,68,68,0.2); padding:8px 12px; border-radius:10px; font-weight:bold; cursor:pointer; text-decoration:none;">✕
-                                        Delete</a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
 
+            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:30px; align-items:start;">
+                <!-- Add Category Form -->
+                <div class="card" style="padding:25px;">
+                    <h3 style="margin:0 0 20px 0; color:white; font-size:22px;">Create New Category</h3>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="category">
+                        <div class="form-group">
+                            <label style="font-size:14px;">Category Name</label>
+                            <input type="text" name="category_name" required placeholder="e.g. Mortar, Bowl, Handle"
+                                style="width:100%; background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); color:white; padding:12px; border-radius:10px; font-size:16px;">
+                        </div>
+                        <button type="submit"
+                            style="width:100%; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer; margin-top:10px; font-size:16px;">
+                            + Save Category
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Category Table -->
+                <div class="card" style="padding:20px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category Name</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in categories %}
+                            <tr class="item-row">
+                                <td style="font-weight:bold; font-size:18px; color:white;">{{ cat.name }}</td>
+                                <td style="text-align:right;">
+                                    <form method="POST" style="display:inline;"
+                                        onsubmit="return confirm('Are you sure you want to delete this category? Items with this category will fall back to other.')">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="form_type" value="delete_category">
+                                        <input type="hidden" name="category_id" value="{{ cat.id }}">
+                                        <button type="submit"
+                                            style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer; font-size:15px;">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" style="text-align:center; padding:30px; color:var(--text-secondary);">No
+                                    categories found. Create one to get started!</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- MATERIAL SUB-SECTION -->
+        <div id="sub-item-material" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div>
+                    <h2 style="margin:0; font-size:32px;">Item Materials Master</h2>
+                    <p style="color:var(--text-secondary); margin:4px 0 0;">Manage dynamic raw material designations</p>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:30px; align-items:start;">
+                <!-- Add Material Form -->
+                <div class="card" style="padding:25px;">
+                    <h3 style="margin:0 0 20px 0; color:white; font-size:22px;">Create New Material</h3>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="material">
+                        <div class="form-group">
+                            <label style="font-size:14px;">Material Name</label>
+                            <input type="text" name="material_name" required placeholder="e.g. Iron, Copper, Zinc"
+                                style="width:100%; background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); color:white; padding:12px; border-radius:10px; font-size:16px;">
+                        </div>
+                        <button type="submit"
+                            style="width:100%; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer; margin-top:10px; font-size:16px;">
+                            + Save Material
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Material Table -->
+                <div class="card" style="padding:20px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Material Name</th>
+                                <th style="text-align:right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mat in materials %}
+                            <tr class="item-row">
+                                <td style="font-weight:bold; font-size:18px; color:white;">{{ mat.name }}</td>
+                                <td style="text-align:right;">
+                                    <form method="POST" style="display:inline;"
+                                        onsubmit="return confirm('Are you sure you want to delete this material? Items with this material will fall back to other.')">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="form_type" value="delete_material">
+                                        <input type="hidden" name="material_id" value="{{ mat.id }}">
+                                        <button type="submit"
+                                            style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer; font-size:15px;">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" style="text-align:center; padding:30px; color:var(--text-secondary);">No
+                                    materials found. Create one to get started!</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -422,11 +825,19 @@
     <!-- 3. WORKERS SECTION -->
     <div id="section-workers" class="main-section">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
-            <div class="small-tabs" style="margin-bottom:0;">
-                <button id="subbtn-worker-internal" class="active" onclick="showWorkerSub('internal')">🏠 In-house
-                    Staff</button>
-                <button id="subbtn-worker-job" onclick="showWorkerSub('job')" style="display:inline-flex; align-items:center; gap:14px; padding:12px 24px; border-radius:15px;">
-                    <img src="/static/img/logo.jpg" style="width:42px; height:42px; border-radius:10px; object-fit:cover; border: 1px solid rgba(34, 211, 238, 0.3); box-shadow: 0 0 15px rgba(34, 211, 238, 0.2);">
+            <div class="small-tabs" style="margin-bottom:0; display:inline-flex; align-items:center;">
+                <button id="subbtn-worker-internal" class="active" onclick="showWorkerSub('internal')"
+                    style="display:inline-flex; align-items:center; gap:14px; padding:12px 24px; border-radius:15px;">
+                    <div
+                        style="width:42px; height:42px; border-radius:10px; border: 1px solid rgba(59, 130, 246, 0.3); box-shadow: 0 0 15px rgba(59, 130, 246, 0.2); background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.05)); display:flex; align-items:center; justify-content:center; font-size:22px;">
+                        🏠
+                    </div>
+                    <span>In-house Staff</span>
+                </button>
+                <button id="subbtn-worker-job" onclick="showWorkerSub('job')"
+                    style="display:inline-flex; align-items:center; gap:14px; padding:12px 24px; border-radius:15px;">
+                    <img src="/static/img/logo.jpg"
+                        style="width:42px; height:42px; border-radius:10px; object-fit:cover; border: 1px solid rgba(34, 211, 238, 0.3); box-shadow: 0 0 15px rgba(34, 211, 238, 0.2);">
                     <span>External Job Work</span>
                 </button>
             </div>
@@ -473,6 +884,13 @@
                                         onclick="return confirm('Delete this worker?')"
                                         style="color:#ef4444; text-decoration:none; font-weight:bold;">Delete</a>
                                 </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6"
+                                style="text-align:center; padding:50px; color:var(--text-secondary); font-style:italic; font-size:18px;">
+                                🏠 No internal employees registered yet. Click "+ Add Internal Worker" to get started!
                             </td>
                         </tr>
                         {% endfor %}
@@ -564,25 +982,142 @@
     function showItemSub(sub) {
         const master = document.getElementById('sub-item-master');
         const bom = document.getElementById('sub-item-bom');
+        const category = document.getElementById('sub-item-category');
+        const material = document.getElementById('sub-item-material');
         const mBtn = document.getElementById('subbtn-master');
         const bBtn = document.getElementById('subbtn-bom');
+        const cBtn = document.getElementById('subbtn-category');
+        const matBtn = document.getElementById('subbtn-material');
 
         if (sub === 'master') {
             master.style.display = 'block';
             bom.style.display = 'none';
+            if (category) category.style.display = 'none';
+            if (material) material.style.display = 'none';
             mBtn.classList.add('active');
             bBtn.classList.remove('active');
-        } else {
+            if (cBtn) cBtn.classList.remove('active');
+            if (matBtn) matBtn.classList.remove('active');
+            window.history.pushState(null, '', '?tab=items&sub=master');
+        } else if (sub === 'bom') {
             master.style.display = 'none';
             bom.style.display = 'block';
+            if (category) category.style.display = 'none';
+            if (material) material.style.display = 'none';
             mBtn.classList.remove('active');
             bBtn.classList.add('active');
+            if (cBtn) cBtn.classList.remove('active');
+            if (matBtn) matBtn.classList.remove('active');
+
+            // Sync with current inner BOM tab
+            const isKittingActive = document.getElementById('innerbtn-bom-kitting').classList.contains('active');
+            window.history.pushState(null, '', '?tab=items&sub=bom' + (isKittingActive ? '&kitting_action=true' : ''));
 
             // Auto-init Quick Set Creator
             const container = document.getElementById('quick-bom-container');
             if (container && container.children.length === 0) {
                 addQuickBOMRow();
             }
+        } else if (sub === 'category') {
+            master.style.display = 'none';
+            bom.style.display = 'none';
+            if (category) category.style.display = 'block';
+            if (material) material.style.display = 'none';
+            mBtn.classList.remove('active');
+            bBtn.classList.remove('active');
+            if (cBtn) cBtn.classList.add('active');
+            if (matBtn) matBtn.classList.remove('active');
+            window.history.pushState(null, '', '?tab=items&sub=category');
+        } else if (sub === 'material') {
+            master.style.display = 'none';
+            bom.style.display = 'none';
+            if (category) category.style.display = 'none';
+            if (material) material.style.display = 'block';
+            mBtn.classList.remove('active');
+            bBtn.classList.remove('active');
+            if (cBtn) cBtn.classList.remove('active');
+            if (matBtn) matBtn.classList.add('active');
+            window.history.pushState(null, '', '?tab=items&sub=material');
+        }
+    }
+
+    function switchInnerBOM(section) {
+        const configSec = document.getElementById('inner-bom-config-section');
+        const kittingSec = document.getElementById('inner-bom-kitting-section');
+        const cBtn = document.getElementById('innerbtn-bom-config');
+        const kBtn = document.getElementById('innerbtn-bom-kitting');
+
+        if (section === 'config') {
+            configSec.style.display = 'block';
+            kittingSec.style.display = 'none';
+            cBtn.classList.add('active');
+            kBtn.classList.remove('active');
+            window.history.pushState(null, '', '?tab=items&sub=bom');
+        } else {
+            configSec.style.display = 'none';
+            kittingSec.style.display = 'block';
+            cBtn.classList.remove('active');
+            kBtn.classList.add('active');
+            window.history.pushState(null, '', '?tab=items&sub=bom&kitting_action=true');
+        }
+    }
+
+    let currentComposition = [];
+
+    async function loadComposition(itemId) {
+        const container = document.getElementById('compositionList');
+        const warning = document.getElementById('stockWarning');
+
+        if (!itemId) {
+            container.innerHTML = '<p style="color: #94a3b8; font-style: italic; text-align: center; margin-top: 40px;">Select a set item to see required components.</p>';
+            warning.style.display = 'none';
+            return;
+        }
+
+        container.innerHTML = '<p style="text-align: center; margin-top: 40px; color: var(--text-secondary);">Loading BOM requirements...</p>';
+
+        try {
+            const response = await fetch(`/api/item/${itemId}/composition/`);
+            const data = await response.json();
+            currentComposition = data.components || [];
+            updateNeeded();
+        } catch (error) {
+            container.innerHTML = '<p style="color: #f87171; text-align: center; margin-top: 40px;">Error loading set composition.</p>';
+        }
+    }
+
+    function updateNeeded() {
+        if (!currentComposition || currentComposition.length === 0) return;
+
+        const qty = parseInt(document.getElementById('assembleQty').value) || 0;
+        const container = document.getElementById('compositionList');
+        const warning = document.getElementById('stockWarning');
+        let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+        let insufficient = false;
+
+        currentComposition.forEach(comp => {
+            const totalNeeded = comp.quantity * qty;
+            const isMissing = totalNeeded > comp.available;
+            if (isMissing) insufficient = true;
+
+            html += `
+                <div style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px; border: 1px solid ${isMissing ? 'rgba(239, 68, 68, 0.25)' : 'var(--border-soft)'}; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">${comp.name}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${comp.code} • ${comp.quantity} per set</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 15px; font-weight: 800; color: ${isMissing ? '#f87171' : 'var(--accent-blue)'};">${totalNeeded} Needed</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Available: ${comp.available}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+        if (warning) {
+            warning.style.display = insufficient ? 'block' : 'none';
         }
     }
 
@@ -605,6 +1140,30 @@
         }
     }
 
+    // CATEGORY SIDEBAR FILTER
+    window.filterItemsByCategory = function (categoryName) {
+        // 1. Update active button state
+        const btns = document.querySelectorAll('.category-filter-btn');
+        btns.forEach(btn => {
+            if (btn.getAttribute('data-category') === categoryName) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // 2. Filter item-row rows
+        const rows = document.querySelectorAll('.item-row');
+        rows.forEach(row => {
+            const rowCat = row.getAttribute('data-category') || '';
+            if (categoryName === 'all' || rowCat === categoryName) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    };
+
     // On Load: Handle URL params
     document.addEventListener("DOMContentLoaded", function () {
         const params = new URLSearchParams(window.location.search);
@@ -615,15 +1174,54 @@
         let sub = params.get('sub');
         if (tab === 'items') {
             showItemSub(sub || 'master');
+            if (sub === 'bom') {
+                if (params.get('kitting_action') === 'true') {
+                    switchInnerBOM('kitting');
+                } else {
+                    switchInnerBOM('config');
+                }
+            }
         } else if (tab === 'workers') {
             showWorkerSub(sub || 'internal');
         }
 
         // Auto-open drawers if editing
-        if (params.get('edit')) openItemDrawer();
+        if (params.get('edit') || params.get('add_item')) openItemDrawer();
         if (params.get('edit_client') || params.get('open_add')) openClientDrawer();
         if (params.get('edit_worker') || params.get('add_worker')) openWorkerDrawer();
         if (params.get('edit_job_worker') || params.get('add_jw')) openJobWorkerDrawer();
+
+        // Dynamic Category Count Calculation
+        const categoryCounts = {};
+        const rows = document.querySelectorAll('.item-row');
+        rows.forEach(row => {
+            const cat = row.getAttribute('data-category');
+            if (cat) {
+                categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+            }
+        });
+
+        for (const [cat, count] of Object.entries(categoryCounts)) {
+            // Slugify helper to match Django slugify filter
+            const slug = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+            const badge = document.querySelector(`.category-count-${slug}`);
+            if (badge) {
+                badge.innerText = count;
+            }
+        }
+    });
+
+    // Listen for browser Back/Forward navigation to keep tabs perfectly synchronized
+    window.addEventListener('popstate', function () {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab') || 'items';
+        showMainSection(tab);
+        let sub = params.get('sub');
+        if (tab === 'items') {
+            showItemSub(sub || 'master');
+        } else if (tab === 'workers') {
+            showWorkerSub(sub || 'internal');
+        }
     });
 
     // DRAWER CONTROLS
@@ -634,13 +1232,15 @@
     function closeItemDrawer() {
         document.getElementById('itemDrawer').classList.remove('active');
         document.getElementById('drawerBackdrop').classList.remove('active');
-        if (window.location.search.includes('edit=')) window.location.href = '/master-data/?tab=items';
+        if (window.location.search.includes('edit=') || window.location.search.includes('add_item=')) {
+            window.location.href = '/master-data/?tab=items';
+        }
     }
 
     function openClientDrawer() {
         document.getElementById('clientDrawer').classList.add('active');
         document.getElementById('drawerBackdrop').classList.add('active');
-        if(typeof switchClTab === 'function') switchClTab('basic');
+        if (typeof switchClTab === 'function') switchClTab('basic');
     }
     function closeClientDrawer() {
         document.getElementById('clientDrawer').classList.remove('active');
@@ -649,10 +1249,6 @@
     }
 
     function openWorkerDrawer() {
-        if (window.location.search.includes('edit_worker=')) {
-            window.location.href = '/master-data/?tab=workers&open_add=1';
-            return;
-        }
         document.getElementById('workerDrawer').classList.add('active');
         document.getElementById('drawerBackdrop').classList.add('active');
         switchWorkerFormTab('basic');
@@ -901,10 +1497,26 @@
 
         // Fetch components
         const container = document.getElementById('bom-components-container');
-        container.innerHTML = '<p style="color:var(--text-secondary);">Loading components...</p>';
+        container.innerHTML = '<p style="color:var(--text-secondary);">Loading components and details...</p>';
         try {
             const resp = await fetch(`/api/item/${id}/composition/`);
             const data = await resp.json();
+
+            // Populate Parent Item Details
+            document.getElementById('bomParentName').value = data.name || '';
+            document.getElementById('bomParentCode').value = data.code || '';
+            document.getElementById('bomParentCategory').value = data.category || '';
+            document.getElementById('bomParentSubCategory').value = data.sub_category || '';
+            document.getElementById('bomParentVariant').value = data.variant || '';
+            document.getElementById('bomParentMaterial').value = data.material || '';
+            document.getElementById('bomParentClient').value = data.client_name || '';
+
+            // Populate Process Requirements
+            document.getElementById('bomParentCasting').checked = !!data.casting_required;
+            document.getElementById('bomParentMachining').checked = !!data.machining_required;
+            document.getElementById('bomParentPolishing').checked = !!data.polishing_required;
+            document.getElementById('bomParentPacking').checked = !!data.packing_required;
+
             container.innerHTML = '';
             if (data.components.length === 0) {
                 addBOMRow();
@@ -1093,55 +1705,45 @@
                     value="{{ edit_item_data.name|default:'' }}" required></div>
             <div class="form-group"><label>ITEM CODE</label><input type="text" name="code"
                     value="{{ edit_item_data.code|default:'' }}" required></div>
-            <input type="hidden" name="item_type" id="id_item_type" value="SET">
+            <input type="hidden" name="item_type" id="id_item_type"
+                value="{% if edit_item_data.item_type == 'SET' %}SET{% else %}REGULAR{% endif %}">
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:20px;">
             <div class="form-group">
                 <label>CATEGORY (Required)</label>
-                <select name="category" required>
-
-                    <option value="BRASS" {% if edit_item_data.category == "BRASS" %} selected {% endif %}>
-                        Brass
-                    </option>
-
-                    <option value="MORTAR" {% if edit_item_data.category == "MORTAR" %} selected {% endif %}>
-                        Mortar
-                    </option>
-
-                    <option value="PESTLE" {% if edit_item_data.category == "PESTLE" %} selected {% endif %}>
-                        Pestle
-                    </option>
-
-                    <option value="CHOPPING" {% if edit_item_data.category == "CHOPPING" %} selected {% endif %}>
-                        Chopping Board
-                    </option>
-
-                    <option value="OTHER" {% if edit_item_data.category == "OTHER" or not edit_item_data %} selected {% endif %}>
-                        Other
-                    </option>
-
+                <select name="category" required style="width: 100%;">
+                    {% for cat in categories %}
+                    <option value="{{ cat.name }}" {% if edit_item_data.category == cat.name %}selected{% endif %}>{{ cat.name }}</option>
+                    {% empty %}
+                    <option value="Other">Other</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="form-group">
                 <label>SUB CATEGORY</label>
                 <input type="text" name="sub_category" value="{{ edit_item_data.sub_category|default:'' }}"
-                    placeholder="e.g. Small, Medium, XL">
+                    placeholder="e.g. Small, Medium, XL" style="width: 100%;">
+            </div>
+            <div class="form-group">
+                <label>VARIANT</label>
+                <input type="text" name="variant" value="{{ edit_item_data.variant|default:'' }}"
+                    placeholder="e.g. Standard, Premium" style="width: 100%;">
             </div>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
             <div class="form-group">
-                <label>MATERIAL (Searchable)</label>
-                <input type="text" name="custom_material" list="materialList"
-                    value="{{ edit_item_data.material|default:'' }}" placeholder="Type or select...">
-                <datalist id="materialList">
-                    <option value="Cast Iron">
-                    <option value="Stainless Steel">
-                    <option value="Aluminium">
-                    <option value="Brass">
-                    <option value="Zinc">
-                </datalist>
+                <label>MATERIAL (Required)</label>
+                <select name="custom_material" required>
+                    {% for mat in materials %}
+                    <option value="{{ mat.name }}" {% if edit_item_data.material == mat.name %} selected {% endif %}>
+                        {{ mat.name }}
+                    </option>
+                    {% empty %}
+                    <option value="Other">Other</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label>CLIENT (Searchable)</label>
@@ -1211,10 +1813,17 @@
                     style="background:var(--accent-blue); color:white; padding:8px 16px; border-radius:8px; font-weight:bold; font-size:18px;">
                     Total: ₹0.00</div>
             </div>
+            {% if edit_item_data.item_type == 'SET' %}
+            <div style="padding: 15px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 10px; color: #93c5fd; font-size: 15px; font-weight: 500; margin-bottom: 15px; line-height: 1.5;">
+                💡 This is a Set/BOM item. Its labor allocations and rates are automatically aggregated and synchronized from its sub-components. You can manage them by editing the BOM structure under the <strong>BOM / Set</strong> tab.
+            </div>
+            <div id="worker-allocations-container" style="pointer-events: none; opacity: 0.7;"></div>
+            {% else %}
             <div id="worker-allocations-container"></div>
             <button type="button" onclick="addWorkerRow()"
                 style="width:100%; background:rgba(255,255,255,0.03); color:white; border:1px dashed var(--border-soft); padding:20px; border-radius:10px; cursor:pointer; margin-top:10px; font-size:22px; font-weight:bold;">+
                 Add Process Step</button>
+            {% endif %}
         </div>
 
         <button type="submit"
@@ -1290,13 +1899,17 @@
     </div>
 
     <!-- Client Tab Navigation -->
-    <div style="display:flex; gap:15px; border-bottom:1px solid var(--border-soft); margin-bottom:25px; padding: 0 25px;">
+    <div
+        style="display:flex; gap:15px; border-bottom:1px solid var(--border-soft); margin-bottom:25px; padding: 0 25px;">
         <button type="button" id="btn-clform-basic" onclick="switchClTab('basic')" class="cl-form-tab active"
-            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--accent-blue); border-bottom:2px solid var(--accent-blue);">1. Basic Info</button>
+            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--accent-blue); border-bottom:2px solid var(--accent-blue);">1.
+            Basic Info</button>
         <button type="button" id="btn-clform-logistics" onclick="switchClTab('logistics')" class="cl-form-tab"
-            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--text-secondary);">2. Logistics & Tax</button>
+            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--text-secondary);">2.
+            Logistics & Tax</button>
         <button type="button" id="btn-clform-products" onclick="switchClTab('products')" class="cl-form-tab"
-            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--text-secondary);">3. Product Catalog</button>
+            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--text-secondary);">3.
+            Product Catalog</button>
     </div>
     <form method="POST">
         {% csrf_token %}
@@ -1320,10 +1933,12 @@
                     <input type="email" name="client_email" value="{{ edit_client_data.email|default:'' }}">
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label>INTERNAL NOTES</label>
-                <textarea name="client_notes" rows="2" style="width:100%; padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border-soft); color:white; font-size:14px;" placeholder="Any special instructions...">{{ edit_client_data.notes|default:'' }}</textarea>
+                <textarea name="client_notes" rows="2"
+                    style="width:100%; padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border-soft); color:white; font-size:14px;"
+                    placeholder="Any special instructions...">{{ edit_client_data.notes|default:'' }}</textarea>
             </div>
         </div>
 
@@ -1336,36 +1951,45 @@
                 </div>
                 <div class="form-group">
                     <label>GST NUMBER</label>
-                    <input type="text" name="client_gst" value="{{ edit_client_data.gst_number|default:'' }}" placeholder="22AAAAA0000A1Z5">
+                    <input type="text" name="client_gst" value="{{ edit_client_data.gst_number|default:'' }}"
+                        placeholder="22AAAAA0000A1Z5">
                 </div>
             </div>
 
             <div class="form-group">
                 <label>FULL SHIPPING ADDRESS</label>
-                <textarea name="client_address" rows="4" style="width:100%; padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border-soft); color:white; font-size:14px;">{{ edit_client_data.address|default:'' }}</textarea>
+                <textarea name="client_address" rows="4"
+                    style="width:100%; padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border-soft); color:white; font-size:14px;">{{ edit_client_data.address|default:'' }}</textarea>
             </div>
         </div>
 
         <!-- TAB 3: PRODUCT CATALOG -->
         <div id="cl-form-products" class="cl-form-section" style="display:none; padding: 0 25px;">
             {% if edit_client_data %}
-            <label style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; margin-bottom:15px; display:block;">Linked Products ({{ edit_client_data.item_set.all|length }})</label>
-            
-            <div style="max-height:400px; overflow-y:auto; border:1px solid var(--border-soft); border-radius:12px; background:rgba(0,0,0,0.1);">
+            <label
+                style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; margin-bottom:15px; display:block;">Linked
+                Products ({{ edit_client_data.item_set.all|length }})</label>
+
+            <div
+                style="max-height:400px; overflow-y:auto; border:1px solid var(--border-soft); border-radius:12px; background:rgba(0,0,0,0.1);">
                 {% for item in edit_client_data.item_set.all %}
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; border-bottom:1px solid var(--border-soft);">
+                <div
+                    style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; border-bottom:1px solid var(--border-soft);">
                     <div>
                         <div style="font-weight:bold; color:white; font-size:14px;">{{ item.name }}</div>
-                        <div style="font-size:12px; color:var(--text-secondary);">{{ item.code }} | {{ item.material }}</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">{{ item.code }} | {{ item.material }}
+                        </div>
                     </div>
                     <div style="font-weight:bold; color:var(--accent-blue);">₹{{ item.rate_per_piece }}</div>
                 </div>
                 {% empty %}
-                <div style="padding:30px; text-align:center; color:var(--text-secondary);">No items linked to this client yet.</div>
+                <div style="padding:30px; text-align:center; color:var(--text-secondary);">No items linked to this
+                    client yet.</div>
                 {% endfor %}
             </div>
             {% else %}
-            <div style="padding:40px 20px; text-align:center; background:rgba(255,255,255,0.02); border-radius:12px; color:var(--text-secondary);">
+            <div
+                style="padding:40px 20px; text-align:center; background:rgba(255,255,255,0.02); border-radius:12px; color:var(--text-secondary);">
                 <p>Register the client first to see their product list.</p>
             </div>
             {% endif %}
@@ -1605,13 +2229,17 @@
     </div>
 
     <!-- Tab Navigation -->
-    <div style="display:flex; gap:15px; border-bottom:1px solid var(--border-soft); margin-bottom:25px; padding: 0 25px;">
+    <div
+        style="display:flex; gap:15px; border-bottom:1px solid var(--border-soft); margin-bottom:25px; padding: 0 25px;">
         <button type="button" id="btn-jwform-basic" onclick="switchJWFormTab('basic')" class="jw-form-tab active"
-            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--accent-blue); border-bottom:2px solid var(--accent-blue);">1. Basic Info</button>
+            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--accent-blue); border-bottom:2px solid var(--accent-blue);">1.
+            Basic Info</button>
         <button type="button" id="btn-jwform-business" onclick="switchJWFormTab('business')" class="jw-form-tab"
-            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--text-secondary);">2. Business Details</button>
+            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--text-secondary);">2.
+            Business Details</button>
         <button type="button" id="btn-jwform-rates" onclick="switchJWFormTab('rates')" class="jw-form-tab"
-            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--text-secondary);">3. Item Rates</button>
+            style="background:none; border:none; padding:10px 0; font-weight:bold; cursor:pointer; color:var(--text-secondary);">3.
+            Item Rates</button>
     </div>
     <form method="POST" id="jobWorkerForm">
         {% csrf_token %}
@@ -1634,10 +2262,14 @@
             <div class="form-group">
                 <label>PROCESS / SERVICE</label>
                 <select name="jw_process">
-                    <option value="casting" {% if edit_job_worker_data.process == 'casting' %}selected{% endif %}>Casting</option>
-                    <option value="machining" {% if edit_job_worker_data.process == 'machining' %}selected{% endif %}>Machining</option>
-                    <option value="polishing" {% if edit_job_worker_data.process == 'polishing' %}selected{% endif %}>Polishing</option>
-                    <option value="packaging" {% if edit_job_worker_data.process == 'packaging' %}selected{% endif %}>Packaging</option>
+                    <option value="casting" {% if edit_job_worker_data.process == 'casting' %}selected{% endif %}>Casting
+                    </option>
+                    <option value="machining" {% if edit_job_worker_data.process == 'machining' %}selected{% endif %}>
+                        Machining</option>
+                    <option value="polishing" {% if edit_job_worker_data.process == 'polishing' %}selected{% endif %}>
+                        Polishing</option>
+                    <option value="packaging" {% if edit_job_worker_data.process == 'packaging' %}selected{% endif %}>
+                        Packaging</option>
                 </select>
             </div>
 
@@ -1667,17 +2299,20 @@
         <div id="jw-form-rates" class="jw-form-section" style="display:none; padding: 0 25px;">
             {% if edit_job_worker_data %}
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <label style="font-size:14px; font-weight:bold; color:var(--text-secondary); text-transform: uppercase;">Assigned Items & Rates</label>
+                <label
+                    style="font-size:14px; font-weight:bold; color:var(--text-secondary); text-transform: uppercase;">Assigned
+                    Items & Rates</label>
             </div>
-            
+
             <div id="jw-item-allocations-container"></div>
-            
+
             <button type="button" onclick="addItemAllocationRow()"
                 style="width:100%; background:rgba(255,255,255,0.03); color:white; border:1px dashed var(--border-soft); padding:12px; border-radius:10px; cursor:pointer; margin-top:10px; font-size:14px; font-weight:bold;">
                 + Link Item & Set Rate
             </button>
             {% else %}
-            <div style="padding:40px 20px; text-align:center; background:rgba(255,255,255,0.02); border-radius:12px; color:var(--text-secondary);">
+            <div
+                style="padding:40px 20px; text-align:center; background:rgba(255,255,255,0.02); border-radius:12px; color:var(--text-secondary);">
                 <p>Save basic info first to enable item linking.</p>
             </div>
             {% endif %}
@@ -1697,7 +2332,7 @@
             }
             function addItemAllocationRow(itemId, rate) {
                 const container = document.getElementById('jw-item-allocations-container');
-                if(!container) return;
+                if (!container) return;
                 const div = document.createElement('div');
                 div.style = "display:grid; grid-template-columns: 1fr 100px 40px; gap:10px; margin-bottom:10px;";
                 let itemOptions = '<option value="">Select Item...</option>';
@@ -1857,6 +2492,94 @@
         {% csrf_token %}
         <input type="hidden" name="form_type" value="bom">
         <input type="hidden" id="bomParentId" name="parent_item_id">
+
+        <!-- Parent Item Details Form Section -->
+        <h3
+            style="color:var(--accent-blue); margin: 0 0 15px 0; border-bottom: 1px solid var(--border-soft); padding-bottom: 8px; font-size: 16px;">
+            SET DETAILS</h3>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+            <div class="form-group">
+                <label>SET NAME</label>
+                <input type="text" id="bomParentName" name="parent_item_name" required style="width:100%;">
+            </div>
+            <div class="form-group">
+                <label>SET CODE</label>
+                <input type="text" id="bomParentCode" name="parent_item_code" required style="width:100%;">
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px; margin-bottom:20px;">
+            <div class="form-group">
+                <label>CATEGORY (Required)</label>
+                <select id="bomParentCategory" name="category" required style="width:100%;">
+                    {% for cat in categories %}
+                    <option value="{{ cat.name }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>SUB CATEGORY</label>
+                <input type="text" id="bomParentSubCategory" name="sub_category" placeholder="e.g. Small, XL"
+                    style="width:100%;">
+            </div>
+            <div class="form-group">
+                <label>VARIANT</label>
+                <input type="text" id="bomParentVariant" name="variant" placeholder="e.g. Chrome, Premium"
+                    style="width:100%;">
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+            <div class="form-group">
+                <label>MATERIAL (Required)</label>
+                <select id="bomParentMaterial" name="custom_material" required style="width:100%;">
+                    {% for mat in materials %}
+                    <option value="{{ mat.name }}">{{ mat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>CLIENT (Searchable)</label>
+                <input type="text" id="bomParentClient" name="custom_client" list="clientList"
+                    placeholder="Search client..." style="width:100%;">
+            </div>
+        </div>
+
+        <!-- PROCESS REQUIREMENTS -->
+        <h3
+            style="color:var(--accent-blue); margin: 20px 0 15px 0; border-bottom: 1px solid var(--border-soft); padding-bottom: 8px; font-size: 16px;">
+            PROCESS REQUIREMENTS</h3>
+        <div
+            style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:25px; background:rgba(255,255,255,0.02); padding:12px; border-radius:10px; border:1px solid var(--border-soft);">
+            <div style="text-align:center;">
+                <label
+                    style="font-size:11px; display:block; margin-bottom:5px; color:var(--text-secondary);">CASTING</label>
+                <input type="checkbox" id="bomParentCasting" name="casting_required"
+                    style="transform: scale(1.4); cursor:pointer;">
+            </div>
+            <div style="text-align:center;">
+                <label
+                    style="font-size:11px; display:block; margin-bottom:5px; color:var(--text-secondary);">MACHINING</label>
+                <input type="checkbox" id="bomParentMachining" name="machining_required"
+                    style="transform: scale(1.4); cursor:pointer;">
+            </div>
+            <div style="text-align:center;">
+                <label
+                    style="font-size:11px; display:block; margin-bottom:5px; color:var(--text-secondary);">POLISHING</label>
+                <input type="checkbox" id="bomParentPolishing" name="polishing_required" checked
+                    style="transform: scale(1.4); cursor:pointer;">
+            </div>
+            <div style="text-align:center;">
+                <label
+                    style="font-size:11px; display:block; margin-bottom:5px; color:var(--text-secondary);">PACKING</label>
+                <input type="checkbox" id="bomParentPacking" name="packing_required" checked
+                    style="transform: scale(1.4); cursor:pointer;">
+            </div>
+        </div>
+
+        <h3
+            style="color:var(--accent-blue); margin: 20px 0 15px 0; border-bottom: 1px solid var(--border-soft); padding-bottom: 8px; font-size: 16px;">
+            BOM COMPONENTS</h3>
         <div id="bom-components-container" style="margin-bottom:20px;"></div>
         <button type="button" onclick="addBOMRow()"
             style="width:100%; background:rgba(255,255,255,0.05); color:white; border:1px dashed var(--border-soft); padding:10px; border-radius:10px; cursor:pointer; margin-bottom:20px;">+
@@ -1882,11 +2605,16 @@
         <input type="hidden" name="form_type" value="bom">
 
         <!-- Visual Mode Toggle -->
-        <div style="margin-bottom:25px; display:flex; gap:10px; background:rgba(255,255,255,0.02); padding:6px; border-radius:12px; border:1px solid var(--border-soft);">
-            <button type="button" id="btn-mode-new" class="tab-btn active" style="flex:1; font-size:16px; padding:10px 15px; border-radius:8px; border:none; cursor:pointer;" onclick="switchSetMode('new')">
+        <div
+            style="margin-bottom:25px; display:flex; gap:10px; background:rgba(255,255,255,0.02); padding:6px; border-radius:12px; border:1px solid var(--border-soft);">
+            <button type="button" id="btn-mode-new" class="tab-btn active"
+                style="flex:1; font-size:16px; padding:10px 15px; border-radius:8px; border:none; cursor:pointer;"
+                onclick="switchSetMode('new')">
                 ✨ Create New Set Item
             </button>
-            <button type="button" id="btn-mode-existing" class="tab-btn" style="flex:1; font-size:16px; padding:10px 15px; border-radius:8px; border:none; cursor:pointer;" onclick="switchSetMode('existing')">
+            <button type="button" id="btn-mode-existing" class="tab-btn"
+                style="flex:1; font-size:16px; padding:10px 15px; border-radius:8px; border:none; cursor:pointer;"
+                onclick="switchSetMode('existing')">
                 🔄 Use Existing Item
             </button>
         </div>
@@ -1904,13 +2632,54 @@
                 <input type="text" id="generatedSetCode" name="new_set_code"
                     style="color:#10b981; font-weight:bold; background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); padding:15px; border-radius:12px; font-size:18px;">
             </div>
+
+            <!-- Workflow Requirements Toggles -->
+            <div
+                style="grid-column: 1 / -1; margin-top: 10px; padding: 25px; background: rgba(255,255,255,0.01); border-radius: 16px; border: 1px solid var(--border-soft);">
+                <label
+                    style="display: block; margin-bottom: 15px; font-weight: bold; color: var(--text-secondary); font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Workflow Process Requirements
+                </label>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" name="casting_required" id="quick_check_casting"
+                            style="width: 24px; height: 24px; cursor: pointer;">
+                        <label for="quick_check_casting"
+                            style="font-size: 16px; font-weight: bold; color: white; cursor: pointer; margin: 0;">Casting
+                            Required</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" name="machining_required" id="quick_check_machining"
+                            style="width: 24px; height: 24px; cursor: pointer;">
+                        <label for="quick_check_machining"
+                            style="font-size: 16px; font-weight: bold; color: white; cursor: pointer; margin: 0;">Machining
+                            Required</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" name="polishing_required" id="quick_check_polishing" checked
+                            style="width: 24px; height: 24px; cursor: pointer;">
+                        <label for="quick_check_polishing"
+                            style="font-size: 16px; font-weight: bold; color: white; cursor: pointer; margin: 0;">Polishing
+                            Required</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" name="packing_required" id="quick_check_packing" checked
+                            style="width: 24px; height: 24px; cursor: pointer;">
+                        <label for="quick_check_packing"
+                            style="font-size: 16px; font-weight: bold; color: white; cursor: pointer; margin: 0;">Packaging
+                            Required</label>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Mode B: Existing Item Selection -->
         <div id="existing-item-group" style="display:none; margin-bottom:20px;">
             <div class="form-group">
                 <label>SELECT PARENT ITEM FROM MASTER (Searchable)</label>
-                <input type="text" list="allParentItemsList" id="existingParentSearch" placeholder="Search item from master..." oninput="handleParentSelect(this)" style="background:rgba(255,255,255,0.03); color:white; border:1px solid var(--border-soft); padding:15px; border-radius:12px; width:100%; font-size:18px;">
+                <input type="text" list="allParentItemsList" id="existingParentSearch"
+                    placeholder="Search item from master..." oninput="handleParentSelect(this)"
+                    style="background:rgba(255,255,255,0.03); color:white; border:1px solid var(--border-soft); padding:15px; border-radius:12px; width:100%; font-size:18px;">
                 <input type="hidden" name="parent_item_id" id="selectedParentId">
             </div>
         </div>
@@ -1929,7 +2698,8 @@
 
             <datalist id="allParentItemsList">
                 {% for i in all_items %}
-                <option value="{{ i.name }} [{{ i.code }}]" data-id="{{ i.id }}" data-code="{{ i.code }}">{{ i.code }}</option>
+                <option value="{{ i.name }} [{{ i.code }}]" data-id="{{ i.id }}" data-code="{{ i.code }}">{{ i.code }}
+                </option>
                 {% endfor %}
             </datalist>
 
@@ -1948,22 +2718,22 @@
 <script>
     function switchSetMode(mode) {
         document.getElementById('setParentMode').value = mode;
-        
+
         const newGroup = document.getElementById('new-item-group');
         const existingGroup = document.getElementById('existing-item-group');
         const btnNew = document.getElementById('btn-mode-new');
         const btnExisting = document.getElementById('btn-mode-existing');
-        
+
         if (mode === 'new') {
             newGroup.style.display = 'grid';
             existingGroup.style.display = 'none';
             btnNew.classList.add('active');
             btnExisting.classList.remove('active');
-            
+
             // Clear existing parent input and hidden ID
             document.getElementById('existingParentSearch').value = '';
             document.getElementById('selectedParentId').value = '';
-            
+
             // Re-trigger auto name generation
             updateGeneratedName();
         } else {
@@ -1971,7 +2741,7 @@
             existingGroup.style.display = 'block';
             btnNew.classList.remove('active');
             btnExisting.classList.add('active');
-            
+
             // Clear new set inputs so backend knows to use existing
             document.getElementById('generatedSetName').value = '';
             document.getElementById('generatedSetCode').value = '';
@@ -1982,7 +2752,7 @@
         const val = input.value;
         const options = document.getElementById('allParentItemsList').options;
         const hiddenInput = document.getElementById('selectedParentId');
-        
+
         for (let i = 0; i < options.length; i++) {
             if (options[i].value === val) {
                 hiddenInput.value = options[i].getAttribute('data-id');
@@ -2116,7 +2886,103 @@
         });
     }
 </script>
-{% endblock %}
+
+<!-- FLOATING BULK DELETE BAR -->
+<div id="bulkActionsPanel" class="bulk-actions-panel"
+    style="display: none; position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 2px dashed rgba(239, 68, 68, 0.4); border-radius: 20px; padding: 18px 36px; box-shadow: 0 16px 40px rgba(0,0,0,0.8), 0 0 30px rgba(239, 68, 68, 0.15); z-index: 10000; align-items: center; gap: 30px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <div
+            style="background: rgba(239, 68, 68, 0.15); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">
+            ⚠️</div>
+        <div>
+            <div
+                style="font-weight: 800; font-size: 16px; color: white; letter-spacing: 0.5px; font-family: 'Outfit', sans-serif;">
+                <span id="selectedCountText">0</span> ITEMS SELECTED
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Bulk delete operation</div>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 15px; align-items: center;">
+        <form id="bulkDeleteForm" method="POST" action="{% url 'delete_items_bulk' %}"
+            onsubmit="return confirm('WARNING: Are you sure you want to delete all selected items? This will cascade and delete all associated BOM components, operations, and logs. This cannot be undone!')">
+            {% csrf_token %}
+            <input type="hidden" name="item_ids" id="bulkDeleteInput" value="">
+            <button type="submit"
+                style="background: #ef4444; color: white; border: none; padding: 12px 28px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 15px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
+                🗑️ Delete Selected
+            </button>
+        </form>
+        <button type="button" onclick="deselectAllItems()"
+            style="background: transparent; color: white; border: 1px solid rgba(255,255,255,0.15); padding: 12px 24px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 15px; transition: all 0.2s;">
+            Cancel
+        </button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const selectAllCheckbox = document.getElementById("selectAllItems");
+        const itemCheckboxes = document.querySelectorAll(".item-checkbox");
+        const bulkActionsPanel = document.getElementById("bulkActionsPanel");
+        const selectedCountText = document.getElementById("selectedCountText");
+        const bulkDeleteInput = document.getElementById("bulkDeleteInput");
+
+        function updateBulkPanel() {
+            const checkedBoxes = document.querySelectorAll(".item-checkbox:checked");
+            const checkedCount = checkedBoxes.length;
+
+            if (checkedCount > 0) {
+                bulkActionsPanel.style.display = "flex";
+                setTimeout(() => {
+                    bulkActionsPanel.style.bottom = "30px";
+                }, 10);
+
+                selectedCountText.innerText = checkedCount;
+                const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+                bulkDeleteInput.value = selectedIds.join(",");
+            } else {
+                bulkActionsPanel.style.bottom = "-100px";
+                setTimeout(() => {
+                    if (document.querySelectorAll(".item-checkbox:checked").length === 0) {
+                        bulkActionsPanel.style.display = "none";
+                    }
+                }, 300);
+            }
+        }
+
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener("change", function () {
+                const isChecked = selectAllCheckbox.checked;
+                itemCheckboxes.forEach(cb => {
+                    cb.checked = isChecked;
+                });
+                updateBulkPanel();
+            });
+        }
+
+        itemCheckboxes.forEach(cb => {
+            cb.addEventListener("change", function () {
+                if (!cb.checked && selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                }
+                const allChecked = Array.from(itemCheckboxes).every(c => c.checked);
+                if (allChecked && selectAllCheckbox) {
+                    selectAllCheckbox.checked = true;
+                }
+                updateBulkPanel();
+            });
+        });
+
+        window.deselectAllItems = function () {
+            itemCheckboxes.forEach(cb => {
+                cb.checked = false;
+            });
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            updateBulkPanel();
+        };
+    });
+</script>
 
 <div id="workerProfileDrawer" class="drawer" style="width: 600px;">
     <div class="drawer-header" style="display:flex; justify-content:space-between; align-items:center;">
@@ -2228,3 +3094,4 @@
             payments.</p>
     </div>
 </div>
+{% endblock %}

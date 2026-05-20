@@ -1,4 +1,5 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
 
 from inventory.views import (
 
@@ -25,6 +26,7 @@ from inventory.views import (
     issue_machining,
 
     delete_item,
+    delete_items_bulk,
     delete_client,
     delete_worker,
     delete_job_worker,
@@ -52,6 +54,18 @@ from inventory.views import (
 )
 
 urlpatterns = [
+
+    path(
+        'login/',
+        auth_views.LoginView.as_view(template_name='login.html'),
+        name='login'
+    ),
+
+    path(
+        'logout/',
+        auth_views.LogoutView.as_view(),
+        name='logout'
+    ),
 
     path(
         '',
@@ -129,6 +143,11 @@ urlpatterns = [
         'delete-item/<int:item_id>/',
         delete_item,
         name='delete_item'
+    ),
+    path(
+        'delete-items-bulk/',
+        delete_items_bulk,
+        name='delete_items_bulk'
     ),
     path(
         'delete-client/<int:client_id>/',

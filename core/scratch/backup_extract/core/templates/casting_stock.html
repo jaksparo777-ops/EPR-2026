@@ -1,0 +1,300 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<h1 style="
+font-size:42px;
+margin-bottom:8px;
+">
+    Casting Stock Analytics
+</h1>
+
+<p style="
+color:#64748b;
+margin-bottom:25px;
+">
+    Client wise and item wise casting stock analysis
+</p>
+
+
+
+<!-- GRAPH -->
+
+<div style="
+display:grid;
+grid-template-columns:320px 1fr;
+gap:24px;
+margin-bottom:24px;
+align-items:start;
+">
+
+    <!-- FILTERS -->
+
+    <div class="card">
+
+        <h2 style="
+        margin-bottom:20px;
+        ">
+            Filters
+        </h2>
+
+        <div style="margin-bottom:18px;">
+
+            <label style="
+            display:block;
+            margin-bottom:8px;
+            font-size:13px;
+            font-weight:600;
+            color:#64748b;
+            ">
+                Search Item
+            </label>
+
+            <input
+                type="text"
+                id="itemSearch"
+                placeholder="Search item..."
+                onkeyup="filterTable()"
+            >
+
+        </div>
+
+        <div style="margin-bottom:18px;">
+
+            <label style="
+            display:block;
+            margin-bottom:8px;
+            font-size:13px;
+            font-weight:600;
+            color:#64748b;
+            ">
+                Search Client
+            </label>
+
+            <input
+                type="text"
+                id="clientSearch"
+                placeholder="Search client..."
+                onkeyup="filterTable()"
+            >
+
+        </div>
+
+        <div>
+
+            <label style="
+            display:block;
+            margin-bottom:8px;
+            font-size:13px;
+            font-weight:600;
+            color:#64748b;
+            ">
+                Filter Date
+            </label>
+
+            <input
+                type="date"
+                id="dateFilter"
+            >
+
+        </div>
+
+    </div>
+
+
+
+    <!-- SMALL GRAPH -->
+
+    <div class="card">
+
+        <h2 style="
+        margin-bottom:20px;
+        ">
+            Production Distribution
+        </h2>
+
+        <div style="
+        max-width:420px;
+        margin:auto;
+        ">
+
+            <canvas id="stockChart"></canvas>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- TABLE -->
+
+<div class="card">
+
+    <h2 style="
+    margin-bottom:20px;
+    ">
+        Client Wise Casting Stock
+    </h2>
+
+    <table id="stockTable">
+
+        <tr>
+
+            <th>Client</th>
+
+            <th>Code</th>
+
+            <th>Item</th>
+
+            <th>Pcs</th>
+
+            <th>Weight</th>
+
+        </tr>
+
+        {% for row in rows %}
+
+        <tr>
+
+            <td>
+                {{ row.client }}
+            </td>
+
+            <td>
+                {{ row.code }}
+            </td>
+
+            <td>
+                {{ row.item }}
+            </td>
+
+            <td>
+                {{ row.pcs }}
+            </td>
+
+            <td>
+                {{ row.weight }}
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+</div>
+
+
+
+<script>
+
+const ctx =
+    document.getElementById('stockChart');
+
+new Chart(ctx, {
+
+    type: 'pie',
+
+    data: {
+
+        labels: {{ graph_labels|safe }},
+
+        datasets: [{
+
+    label: 'Pieces',
+
+    data: {{ graph_values|safe }},
+
+    backgroundColor: [
+
+        '#3b82f6',
+        '#10b981',
+        '#f59e0b',
+        '#ef4444',
+        '#8b5cf6',
+        '#06b6d4',
+        '#f97316',
+        '#84cc16'
+
+    ],
+
+    borderWidth: 1
+
+}]
+
+    },
+
+    options: {
+
+        responsive: true,
+
+        plugins: {
+
+            legend: {
+                display: false
+            }
+
+        },
+
+        scales: {
+
+            y: {
+                beginAtZero: true
+            }
+
+        }
+
+    }
+
+});
+function filterTable(){
+
+    const itemValue =
+        document.getElementById('itemSearch')
+        .value
+        .toLowerCase();
+
+    const clientValue =
+        document.getElementById('clientSearch')
+        .value
+        .toLowerCase();
+
+    const rows =
+        document.querySelectorAll(
+            '#stockTable tr'
+        );
+
+    rows.forEach((row, index) => {
+
+        if(index === 0){
+            return;
+        }
+
+        const client =
+            row.cells[0]
+            .innerText
+            .toLowerCase();
+
+        const item =
+            row.cells[2]
+            .innerText
+            .toLowerCase();
+
+        const show =
+            client.includes(clientValue)
+            &&
+            item.includes(itemValue);
+
+        row.style.display =
+            show ? '' : 'none';
+
+    });
+
+}
+</script>
+
+{% endblock %}

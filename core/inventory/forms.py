@@ -27,6 +27,22 @@ class ItemForm(forms.ModelForm):
             'casting_required', 'machining_required', 'polishing_required', 'packing_required', 'notes'
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import Category, Material
+        
+        cats = Category.objects.all().order_by('name')
+        self.fields['category'] = forms.ChoiceField(
+            choices=[(c.name, c.name) for c in cats],
+            widget=forms.Select(attrs={'class': 'form-control'})
+        )
+        
+        mats = Material.objects.all().order_by('name')
+        self.fields['material'] = forms.ChoiceField(
+            choices=[(m.name, m.name) for m in mats],
+            widget=forms.Select(attrs={'class': 'form-control'})
+        )
+
 class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
@@ -45,4 +61,4 @@ class WorkerForm(forms.ModelForm):
 class JobWorkerForm(forms.ModelForm):
     class Meta:
         model = JobWorker
-        fields = ['name', 'process', 'phone', 'email', 'address', 'gst_number']
+        fields = ['name', 'process', 'phone', 'email', 'address', 'gst_number', 'jw_code']

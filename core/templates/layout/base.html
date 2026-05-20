@@ -407,10 +407,7 @@
 
                 </a>
 
-                <a href="{% url 'assembly' %}"
-                   class="{% if request.resolver_match.url_name == 'assembly' %}active{% endif %}">
-                    🧩 Assembly (Kitting)
-                </a>
+
 
                 <a href="{% url 'dispatch' %}"
                    class="{% if request.resolver_match.url_name == 'dispatch' %}active{% endif %}">
@@ -444,24 +441,37 @@
         <!-- FOOTER -->
 
         <div class="sidebar-footer">
+            {% if user.is_authenticated %}
+                <div class="user-email">
+                    {{ user.email|default:user.username }}
+                </div>
 
-            <div class="user-email">
-                {{ user.email|default:user.username }}
-            </div>
+                {% if user.is_staff %}
+                <div class="admin-badge">ADMIN</div>
+                {% else %}
+                <div class="admin-badge" style="background:rgba(16,185,129,0.1); color:#10b981;">OPERATOR</div>
+                {% endif %}
 
-            {% if user.is_staff %}
-            <div class="admin-badge">ADMIN</div>
+                <br>
+
+                <form id="logout-form" action="{% url 'logout' %}" method="POST" style="display: none;">
+                    {% csrf_token %}
+                </form>
+                <a href="#"
+                   onclick="document.getElementById('logout-form').submit(); return false;"
+                   class="logout">
+                    ⎋ Sign out
+                </a>
             {% else %}
-            <div class="admin-badge" style="background:rgba(16,185,129,0.1); color:#10b981;">OPERATOR</div>
+                <div class="user-email">Guest User</div>
+                <div class="admin-badge" style="background:rgba(156,163,175,0.1); color:#9ca3af;">GUEST</div>
+                
+                <br>
+                
+                <a href="{% url 'login' %}" class="logout" style="color: #4f46e5; font-weight: 600;">
+                    🔑 Sign in
+                </a>
             {% endif %}
-
-            <br>
-
-            <a href="#"
-               class="logout">
-                ⎋ Sign out
-            </a>
-
         </div>
 
     </div>
