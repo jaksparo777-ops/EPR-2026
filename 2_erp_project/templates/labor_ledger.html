@@ -1,0 +1,1408 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<style>
+    :root {
+        --accent-blue: #3b82f6;
+        --accent-green: #10b981;
+        --card-dark: #111827;
+        --border-soft: rgba(255, 255, 255, 0.08);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+    }
+
+    .attendance-cell {
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .attendance-cell:hover {
+        background: rgba(255, 255, 255, 0.06) !important;
+    }
+    .attendance-cell.active-editing {
+        background: rgba(59, 130, 246, 0.15) !important;
+        box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.4);
+    }
+
+    .attendance-cell.success-pulse {
+        animation: successPulseKeyframe 0.5s ease-out;
+    }
+    @keyframes successPulseKeyframe {
+        0% { background: rgba(16, 185, 129, 0.4) !important; }
+        100% { background: transparent; }
+    }
+
+    .attendance-cell.error-pulse {
+        animation: errorPulseKeyframe 0.5s ease-out;
+    }
+    @keyframes errorPulseKeyframe {
+        0% { background: rgba(239, 68, 68, 0.4) !important; }
+        100% { background: transparent; }
+    }
+
+    .inline-ot-input {
+        width: 50px;
+        padding: 4px;
+        font-size: 13px;
+        font-weight: bold;
+        text-align: center;
+        background: #1f2937 !important;
+        border: 1.5px solid var(--accent-blue) !important;
+        border-radius: 6px;
+        color: white !important;
+        outline: none;
+        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .summary-card {
+        background: var(--card-dark);
+        border: 1px solid var(--border-soft);
+        padding: 30px;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .summary-card::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 4px; height: 100%;
+        background: var(--accent-blue);
+    }
+
+    .summary-label {
+        font-size: 14px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+
+    .summary-value {
+        font-size: 36px;
+        font-weight: 800;
+        color: white;
+    }
+
+    .tab-nav {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        background: rgba(255,255,255,0.03);
+        padding: 8px;
+        border-radius: 15px;
+        width: fit-content;
+        border: 1px solid var(--border-soft);
+    }
+
+    .tab-nav button {
+        background: transparent;
+        color: var(--text-secondary);
+        border: none;
+        padding: 10px 25px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+        font-size: 18px;
+    }
+
+    .tab-nav button.active {
+        background: var(--accent-blue);
+        color: white;
+    }
+
+    .ledger-section {
+        display: none;
+    }
+
+    .ledger-section.active {
+        display: block;
+    }
+
+    .drawer {
+        position: fixed;
+        right: -100vw !important;
+        top: 0;
+        width: 600px;
+        height: 100vh;
+        background: #0f172a;
+        border-left: 1px solid var(--border-soft);
+        z-index: 1000;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 40px;
+        overflow-y: auto;
+    }
+
+    .drawer.active {
+        right: 0 !important;
+    }
+
+    .drawer-backdrop {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        display: none;
+        z-index: 999;
+    }
+
+    .drawer-backdrop.active {
+        display: block;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        letter-spacing: 1px;
+    }
+
+    .attendance-toggle {
+        display: flex;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 4px;
+        border-radius: 12px;
+        border: 1px solid var(--border-soft);
+        width: 200px;
+        position: relative;
+    }
+
+    .toggle-btn {
+        flex: 1;
+        padding: 8px 0;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: 0.2s all ease;
+        color: var(--text-secondary);
+        z-index: 1;
+    }
+
+    .toggle-btn.active {
+        color: white;
+    }
+
+    .toggle-btn.absent.active { background: #ef4444; }
+    .toggle-btn.half.active { background: #f59e0b; }
+    .toggle-btn.present.active { background: #10b981; }
+
+    .worker-name-label {
+        font-size: 16px;
+        font-weight: 700;
+        color: white;
+    }
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+    <div>
+        <h1 style="font-size:40px; margin:0;">Labor Ledger</h1>
+        <p style="margin:5px 0 0 0; color:var(--text-secondary);">Manage payroll and job work payables for {{ month_name }}</p>
+    </div>
+    <div style="display:flex; gap:12px;">
+        <button onclick="openAttendanceDrawer()" style="background:var(--accent-green); color:white; border:none; padding:15px 25px; border-radius:12px; font-weight:bold; cursor:pointer;">Mark Today's Attendance</button>
+        <button onclick="openPaymentDrawer()" style="background:var(--accent-blue); color:white; border:none; padding:15px 25px; border-radius:12px; font-weight:bold; cursor:pointer;">Record Payment</button>
+    </div>
+</div>
+
+<div class="summary-grid">
+    <div class="summary-card">
+        <div class="summary-label">Total Staff Payables (Est.)</div>
+        <div class="summary-value">₹{{ total_staff_earnings|floatformat:2 }}</div>
+    </div>
+    <div class="summary-card" style="--accent-blue: var(--accent-green);">
+        <div class="summary-label">Total Job Work Payables</div>
+        <div class="summary-value">₹{{ total_jw_balance|floatformat:2 }}</div>
+    </div>
+</div>
+
+<div class="tab-nav">
+    <button id="btn-staff" class="active" onclick="showSection('staff')">Staff Payroll (Internal)</button>
+    <button id="btn-jw" onclick="showSection('jw')">Job Work Ledger (External)</button>
+    <button id="btn-sheet" onclick="showSection('sheet')">Monthly Attendance Sheet</button>
+</div>
+
+<!-- STAFF SECTION -->
+<div id="section-staff" class="ledger-section active">
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Worker Name</th>
+                    <th>Process</th>
+                    <th>Model / Rate</th>
+                    <th style="text-align:right;">Attendance (✓/=/✕)</th>
+                    <th style="text-align:right;">Loan Balance</th>
+                    <th style="text-align:right;">Earnings</th>
+                    <th style="text-align:right;">Paid</th>
+                    <th style="text-align:right;">Repaid</th>
+                    <th style="text-align:right;">Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in staff_ledger %}
+                <tr>
+                    <td>
+                        <div style="font-weight:bold; cursor:pointer; color:var(--accent-blue);" onclick="openWorkerProfile('{{ entry.worker.id }}')">
+                            {{ entry.worker.name }}
+                        </div>
+                    </td>
+                    <td style="font-size:12px; color:var(--text-secondary); text-transform:capitalize;">{{ entry.worker.get_process_display }}</td>
+                    <td>
+                        <div style="font-size:12px; font-weight:bold;">{{ entry.worker.get_salary_model_display }}</div>
+                        <div style="font-size:11px; color:var(--text-secondary);">₹{% if entry.worker.salary_model == 'DAILY' %}{{ entry.worker.daily_rate }}{% else %}{{ entry.worker.monthly_fixed_salary }}{% endif %}</div>
+                    </td>
+                    <td style="text-align:right; font-family: monospace;">
+                        <span style="color:#10b981;">{{ entry.days_present }}</span> / 
+                        <span style="color:#f59e0b;">{{ entry.half_days }}</span> / 
+                        <span style="color:#ef4444;">{{ entry.days_absent }}</span>
+                    </td>
+                    <td style="text-align:right;">
+                        {% if entry.active_loan %}
+                        <div style="font-size:12px; font-weight:bold; color:#ef4444;">₹{{ entry.active_loan.remaining_balance|floatformat:0 }}</div>
+                        <div style="font-size:10px; color:var(--text-secondary);">EMI: ₹{{ entry.active_loan.emi_amount|floatformat:0 }}</div>
+                        {% else %}
+                        <span style="color:var(--text-secondary); font-size:11px;">No Loan</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right; font-weight:bold; color:var(--accent-blue);">₹{{ entry.earnings|floatformat:0 }}</td>
+                    <td style="text-align:right; font-size:12px;">₹{{ entry.total_paid|floatformat:0 }}</td>
+                    <td style="text-align:right;">
+                        {% if entry.total_repaid > 0 %}
+                        <span style="color:#10b981; font-weight:bold; font-size:12px;">₹{{ entry.total_repaid|floatformat:0 }}</span>
+                        {% elif entry.active_loan %}
+                        <button onclick="quickLoanRepayment('{{ entry.worker.id }}', '{{ entry.active_loan.emi_amount }}')"
+                                style="background:var(--accent-blue); color:white; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;">Pay EMI</button>
+                        {% else %}
+                        <span style="color:var(--text-secondary);">---</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right; font-weight:bold; {% if entry.balance > 0 %}color:#ef4444;{% else %}color:#10b981;{% endif %}">₹{{ entry.balance|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- JOB WORK SECTION -->
+<div id="section-jw" class="ledger-section">
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Job Work Unit</th>
+                    <th>Service</th>
+                    <th style="text-align:right;">Loan Balance</th>
+                    <th style="text-align:right;">Total Earned</th>
+                    <th style="text-align:right;">Total Paid</th>
+                    <th style="text-align:right;">Repaid</th>
+                    <th style="text-align:right;">Outstanding Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in jw_ledger %}
+                <tr>
+                    <td>
+                        <div style="font-weight:bold; color:var(--accent-blue); cursor:pointer;" 
+                             onclick="openJobWorkerProfile('{{ entry.jw.id }}')">
+                            {{ entry.jw.name }}
+                        </div>
+                        <div style="font-size:12px; color:var(--text-secondary);">GST: {{ entry.jw.gst_number|default:"N/A" }}</div>
+                    </td>
+                    <td><span style="text-transform:capitalize;">{{ entry.jw.process }}</span></td>
+                    <td style="text-align:right;">
+                        {% if entry.active_loan %}
+                        <div style="font-size:12px; font-weight:bold; color:#ef4444;">₹{{ entry.active_loan.remaining_balance|floatformat:0 }}</div>
+                        <div style="font-size:10px; color:var(--text-secondary);">EMI: ₹{{ entry.active_loan.emi_amount|floatformat:0 }}</div>
+                        {% else %}
+                        <span style="color:var(--text-secondary); font-size:11px;">No Loan</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right; font-weight:bold;">₹{{ entry.total_earned|floatformat:0 }}</td>
+                    <td style="text-align:right;">₹{{ entry.total_paid|floatformat:0 }}</td>
+                    <td style="text-align:right;">
+                        {% if entry.total_repaid > 0 %}
+                        <span style="color:#10b981; font-weight:bold; font-size:12px;">₹{{ entry.total_repaid|floatformat:0 }}</span>
+                        {% elif entry.active_loan %}
+                        <button onclick="quickLoanRepayment('jw_{{ entry.jw.id }}', '{{ entry.active_loan.emi_amount }}')"
+                                style="background:var(--accent-blue); color:white; border:none; padding:4px 8px; border-radius:6px; font-size:10px; cursor:pointer;">Pay EMI</button>
+                        {% else %}
+                        <span style="color:var(--text-secondary);">---</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right; font-weight:bold; {% if entry.balance > 0 %}color:#ef4444;{% else %}color:#10b981;{% endif %}">₹{{ entry.balance|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MONTHLY SHEET SECTION -->
+<div id="section-sheet" class="ledger-section">
+    <div class="card" style="padding:0; overflow-x:auto;">
+        <table style="border-collapse:collapse; min-width:1400px; width:100%;">
+            <thead>
+                <tr style="background:rgba(255,255,255,0.02); position:sticky; top:0; z-index:10;">
+                    <th style="position:sticky; left:0; background:var(--card-dark); z-index:11; min-width:180px; padding:20px; border-right:2px solid var(--border-soft); text-align:left;">Staff Member</th>
+                    {% for d in days_range %}
+                    <th style="text-align:center; padding:10px; font-size:11px; min-width:40px; border-right:1px solid rgba(255,255,255,0.05); color:var(--text-secondary);">{{ d }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in attendance_matrix %}
+                <tr style="border-bottom:1px solid var(--border-soft);">
+                    <td style="position:sticky; left:0; background:var(--card-dark); z-index:5; padding:15px 20px; font-weight:bold; border-right:2px solid var(--border-soft); color:var(--accent-blue);">
+                        {{ row.worker.name }}
+                        <div style="font-size:9px; font-weight:normal; color:var(--text-secondary); text-transform:uppercase;">{{ row.worker.get_process_display }}</div>
+                    </td>
+                    {% for day in row.days %}
+                    <td class="attendance-cell"
+                        data-worker-id="{{ row.worker.id }}"
+                        data-worker-name="{{ row.worker.name }}"
+                        data-date="{{ day.date_str }}"
+                        data-day="{{ day.day }}"
+                        data-status="{% if day.status %}{{ day.status }}{% else %}NONE{% endif %}"
+                        data-ot="{{ day.ot }}"
+                        style="text-align:center; padding:10px; font-size:16px; border-right:1px solid rgba(255,255,255,0.05); position:relative;"
+                        onclick="handleCellClick(this, event)"
+                        onmouseenter="setHoveredCell(this)"
+                        onmouseleave="clearHoveredCell(this)">
+                        <div class="cell-status-container">
+                            {% if day.status == 'PRESENT' %}
+                            <span style="color:#10b981;">✓</span>
+                            {% elif day.status == 'HALF_DAY' %}
+                            <span style="color:#f59e0b;">=</span>
+                            {% elif day.status == 'ABSENT' %}
+                            <span style="color:#ef4444;">✕</span>
+                            {% else %}
+                            <span style="color:var(--text-secondary); opacity:0.2;">·</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="cell-ot-indicator" style="position:absolute; top:2px; right:2px; width:4px; height:4px; background:var(--accent-blue); border-radius:50%; {% if day.ot == 0 %}display:none;{% endif %}" title="OT: {{ day.ot }}h"></div>
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div style="margin-top:20px; display:flex; gap:20px; font-size:12px; color:var(--text-secondary); justify-content:center;">
+        <div style="display:flex; align-items:center; gap:8px;"><span style="color:#10b981; font-weight:bold;">✓</span> Present</div>
+        <div style="display:flex; align-items:center; gap:8px;"><span style="color:#f59e0b; font-weight:bold;">=</span> Half Day</div>
+        <div style="display:flex; align-items:center; gap:8px;"><span style="color:#ef4444; font-weight:bold;">✕</span> Absent</div>
+        <div style="display:flex; align-items:center; gap:8px;"><div style="width:4px; height:4px; background:var(--accent-blue); border-radius:50%;"></div> Overtime Recorded</div>
+    </div>
+</div>
+
+
+<!-- ATTENDANCE DRAWER -->
+<div id="drawerBackdrop" class="drawer-backdrop" onclick="closeAllDrawers()"></div>
+<div id="attendanceDrawer" class="drawer">
+    <h2 style="margin:0 0 30px 0;">Mark Attendance</h2>
+    <form id="attendanceForm">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Date</label>
+            <input type="text" name="date" id="attendance-date-input" 
+                   style="width: 100%; padding: 15px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius: 12px; color: white; cursor: pointer;"
+                   placeholder="Select Date">
+        </div>
+        <div style="max-height: 50vh; overflow-y: auto; margin-bottom: 20px;">
+            {% for entry in staff_ledger %}
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:rgba(255,255,255,0.03); border-radius:16px; margin-bottom:12px; border:1px solid var(--border-soft);">
+                <div class="worker-name-label" style="flex: 1;">{{ entry.worker.name }}</div>
+                
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <!-- OVERTIME INPUT -->
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <label style="font-size: 9px; color: var(--text-secondary); margin-bottom: 4px;">OT (HOURS)</label>
+                        <input type="number" name="ot_{{ entry.worker.id }}" value="0" min="0" step="0.5" 
+                               style="width: 65px; padding: 6px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius: 8px; color: white; text-align: center; font-size: 14px; outline: none;">
+                    </div>
+
+                    <div class="attendance-toggle" id="toggle-container-{{ entry.worker.id }}">
+                        <div class="toggle-btn absent" onclick="setAttendance(this, 'ABSENT', '{{ entry.worker.id }}')">✕</div>
+                        <div class="toggle-btn half" onclick="setAttendance(this, 'HALF_DAY', '{{ entry.worker.id }}')">=</div>
+                        <div class="toggle-btn present active" onclick="setAttendance(this, 'PRESENT', '{{ entry.worker.id }}')">✓</div>
+                        <input type="hidden" name="status_{{ entry.worker.id }}" id="input-{{ entry.worker.id }}" value="PRESENT">
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <button type="button" onclick="saveAttendance()" style="width:100%; padding:15px; background:var(--accent-green); font-weight:bold; border-radius:12px;">Save Attendance</button>
+    </form>
+</div>
+
+<!-- QUICK DISBURSEMENT DRAWER (ADVANCE & LOAN) -->
+<div id="paymentDrawer" class="drawer" style="width: 450px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+        <h2 style="margin:0; color:white; font-size:24px;">Quick Cash Outflow</h2>
+        <button onclick="closePaymentDrawer()" style="background:none; border:none; color:white; font-size:28px; cursor:pointer;">✕</button>
+    </div>
+    
+    <form id="paymentForm">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Select Staff / Job Worker</label>
+            <select name="target_id" required style="width:100%; padding:15px; background:var(--input-dark); border:1px solid var(--border-soft); border-radius:12px; color:white; font-size:16px;">
+                <option value="">-- Choose Recipient --</option>
+                <optgroup label="INTERNAL STAFF">
+                    {% for w in staff_ledger %}
+                    <option value="w_{{ w.worker.id }}">{{ w.worker.name }}</option>
+                    {% endfor %}
+                </optgroup>
+                <optgroup label="JOB WORKERS (EXTERNAL)">
+                    {% for jw in jw_ledger %}
+                    <option value="jw_{{ jw.jw.id }}">{{ jw.jw.name }}</option>
+                    {% endfor %}
+                </optgroup>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Transaction Type</label>
+            <select name="payment_type" id="q-payment-type" onchange="toggleLoanFields(this.value)" style="width:100%; padding:15px; background:var(--input-dark); border:1px solid var(--border-soft); border-radius:12px; color:white; font-size:16px;">
+                <option value="ADVANCE">Advance (Small Amount)</option>
+                <option value="NEW_LOAN">New Loan (Large Amount)</option>
+                <option value="LOAN_REPAYMENT">Direct Loan Repayment</option>
+                <option value="SALARY">Salary Settlement</option>
+            </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <div class="form-group">
+                <label id="label-amount">Amount (₹)</label>
+                <input type="number" step="0.01" name="amount" required placeholder="0.00" style="width:100%; padding:15px; background:var(--input-dark); border:1px solid var(--border-soft); border-radius:12px; color:white; font-size:16px;">
+            </div>
+            
+            <div id="q-emi-box" class="form-group" style="display:none;">
+                <label>Monthly EMI (₹)</label>
+                <input type="number" step="0.01" name="emi_amount" placeholder="EMI" style="width:100%; padding:15px; background:var(--input-dark); border:1px solid var(--border-soft); border-radius:12px; color:white; font-size:16px;">
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top:10px;">
+            <label>Payment Mode</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+                <label style="background:rgba(255,255,255,0.03); padding:12px; border-radius:10px; border:1px solid var(--border-soft); text-align:center; cursor:pointer;">
+                    <input type="radio" name="payment_mode" value="CASH" checked> Cash
+                </label>
+                <label style="background:rgba(255,255,255,0.03); padding:12px; border-radius:10px; border:1px solid var(--border-soft); text-align:center; cursor:pointer;">
+                    <input type="radio" name="payment_mode" value="BANK"> Bank
+                </label>
+                <label style="background:rgba(255,255,255,0.03); padding:12px; border-radius:10px; border:1px solid var(--border-soft); text-align:center; cursor:pointer;">
+                    <input type="radio" name="payment_mode" value="UPI"> UPI
+                </label>
+            </div>
+        </div>
+
+        <button type="button" onclick="savePayment()" style="width:100%; padding:20px; background:var(--accent-blue); color:white; border:none; font-weight:900; font-size:18px; border-radius:15px; margin-top:20px; cursor:pointer; box-shadow:0 10px 20px rgba(59,130,246,0.3);">CONFIRM TRANSACTION</button>
+    </form>
+</div>
+
+<!-- JOB WORKER PROFILE DRAWER -->
+<div id="jobWorkerProfileDrawer" class="drawer" style="width: 650px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+        <h2 id="profile-worker-name" style="margin:0; color:white; font-size:24px;">Job Worker Profile</h2>
+        <button onclick="closeJobWorkerProfile()" style="background:none; border:none; color:white; font-size:28px; cursor:pointer;">✕</button>
+    </div>
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; background:rgba(255,255,255,0.03); padding:20px; border-radius:15px; border:1px solid var(--border-soft); margin-bottom:25px;">
+        <div>
+            <label style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; display:block;">Service Process</label>
+            <span id="profile-worker-process" style="font-weight:bold; color:var(--accent-blue); text-transform:capitalize;">---</span>
+        </div>
+        <div>
+            <label style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; display:block;">GST Number</label>
+            <span id="profile-worker-gst" style="font-weight:bold;">---</span>
+        </div>
+        <div>
+            <label style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; display:block;">Phone / Contact</label>
+            <span id="profile-worker-phone" style="font-weight:bold;">---</span>
+        </div>
+        <div>
+            <label style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; display:block;">Email</label>
+            <span id="profile-worker-email" style="font-weight:bold;">---</span>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div style="display:flex; gap:15px; border-bottom:1px solid var(--border-soft); margin-bottom:20px;">
+        <button onclick="showProfileTab('history')" id="tab-btn-history" style="background:none; border:none; color:var(--accent-blue); font-weight:bold; padding:10px 0; cursor:pointer; border-bottom:2px solid var(--accent-blue);">Statement History</button>
+        <button onclick="showProfileTab('rates')" id="tab-btn-rates" style="background:none; border:none; color:var(--text-secondary); font-weight:bold; padding:10px 0; cursor:pointer;">Prices & Rates</button>
+    </div>
+
+    <!-- TAB: HISTORY -->
+    <div id="profile-tab-history" class="profile-tab">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0; font-size:14px; color:var(--text-secondary);">RECENT TRANSACTIONS</h3>
+            <a id="generate-report-btn" href="#" target="_blank" style="background:#10b981; color:white; text-decoration:none; padding:8px 16px; border-radius:8px; font-weight:bold; font-size:12px;">Monthly Report</a>
+        </div>
+        <table style="width:100%;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--border-soft);">
+                    <th style="padding:10px; text-align:left; font-size:11px;">DATE</th>
+                    <th style="padding:10px; text-align:left; font-size:11px;">DESCRIPTION</th>
+                    <th style="padding:10px; text-align:right; font-size:11px;">EARNED</th>
+                    <th style="padding:10px; text-align:right; font-size:11px;">PAID</th>
+                </tr>
+            </thead>
+            <tbody id="profile-ledger-body"></tbody>
+        </table>
+    </div>
+
+    <!-- TAB: RATES -->
+    <div id="profile-tab-rates" class="profile-tab" style="display:none;">
+        <table style="width:100%;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--border-soft);">
+                    <th style="padding:10px; text-align:left; font-size:11px;">ITEM</th>
+                    <th style="padding:10px; text-align:right; font-size:11px;">RATE (₹)</th>
+                    <th style="padding:10px; text-align:right; font-size:11px;"></th>
+                </tr>
+            </thead>
+            <tbody id="profile-assignments-body"></tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" style="padding-top:20px;">
+                        <div style="background:rgba(255,255,255,0.02); padding:15px; border-radius:12px; border:1px dashed var(--border-soft);">
+                            <div style="font-size:11px; color:var(--text-secondary); margin-bottom:8px;">LINK NEW ITEM</div>
+                            <div style="display:flex; gap:10px;">
+                                <select id="assign-item-id" style="flex:1; background:#1e293b; color:white; border:1px solid var(--border-soft); padding:8px; border-radius:8px;">
+                                    <option value="">Select Item...</option>
+                                    {% for item in items %}
+                                    <option value="{{ item.id }}">{{ item.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="number" id="assign-item-rate" step="0.01" placeholder="0.00" style="width:80px; background:#1e293b; color:white; border:1px solid var(--border-soft); padding:8px; border-radius:8px;">
+                                <button onclick="assignItemToWorker()" style="background:var(--accent-blue); color:white; border:none; padding:8px 15px; border-radius:8px; font-weight:bold; cursor:pointer;">Add</button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<script>
+    let activeEditingCell = null;
+    let hoveredCell = null;
+    let clickTimeout = null;
+    let clickCount = 0;
+
+    // Track active hovered cell for keyboard hotkeys
+    function setHoveredCell(cell) {
+        hoveredCell = cell;
+    }
+
+    function clearHoveredCell(cell) {
+        if (hoveredCell === cell) {
+            hoveredCell = null;
+        }
+    }
+
+    // Keyboard Hotkey Listener
+    document.addEventListener('keydown', async function(event) {
+        if (!hoveredCell) return;
+        
+        // If the user is currently typing in an inline overtime input, ignore hotkeys
+        if (document.activeElement && document.activeElement.classList.contains('inline-ot-input')) {
+            return;
+        }
+
+        const key = event.key.toLowerCase();
+        let newStatus = null;
+
+        if (key === 'p') newStatus = 'PRESENT';
+        else if (key === 'a') newStatus = 'ABSENT';
+        else if (key === 'h') newStatus = 'HALF_DAY';
+        else if (key === 'c' || event.key === 'Backspace' || event.key === 'Delete') newStatus = 'NONE';
+
+        if (newStatus !== null) {
+            event.preventDefault();
+            const cell = hoveredCell;
+            const workerId = cell.getAttribute('data-worker-id');
+            const date = cell.getAttribute('data-date');
+            const ot = cell.getAttribute('data-ot') || '0';
+
+            // Visual feedback pulse instantly
+            cell.classList.remove('success-pulse', 'error-pulse');
+            
+            try {
+                const updated = await saveAttendanceState(workerId, newStatus, date, ot);
+                if (updated) {
+                    updateCellUI(cell, newStatus, ot);
+                    cell.classList.add('success-pulse');
+                } else {
+                    cell.classList.add('error-pulse');
+                }
+            } catch (err) {
+                console.error(err);
+                cell.classList.add('error-pulse');
+            }
+        }
+    });
+
+    // Multi-click Detector & Inline OT Input trigger
+    function handleCellClick(cell, event) {
+        event.stopPropagation();
+        
+        // If an inline OT input is already active inside this cell, ignore additional clicks
+        if (cell.querySelector('.inline-ot-input')) {
+            return;
+        }
+
+        // Check current status
+        const status = cell.getAttribute('data-status') || 'NONE';
+        const ot = cell.getAttribute('data-ot') || '0';
+
+        // 1. If status is PRESENT or HALF_DAY, clicking immediately enters inline overtime input!
+        if (status === 'PRESENT' || status === 'HALF_DAY') {
+            // Cancel any pending multi-click timer
+            if (clickTimeout) {
+                clearTimeout(clickTimeout);
+                clickTimeout = null;
+                clickCount = 0;
+            }
+            activateInlineOvertimeInput(cell);
+            return;
+        }
+
+        // 2. Otherwise, detect multi-clicks (1, 2, or 3 clicks) to toggle status
+        clickCount++;
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+        }
+
+        clickTimeout = setTimeout(async () => {
+            const currentClicks = clickCount;
+            clickCount = 0;
+            clickTimeout = null;
+
+            let newStatus = 'NONE';
+            if (currentClicks === 1) newStatus = 'PRESENT';
+            else if (currentClicks === 2) newStatus = 'ABSENT';
+            else if (currentClicks >= 3) newStatus = 'HALF_DAY';
+
+            const workerId = cell.getAttribute('data-worker-id');
+            const date = cell.getAttribute('data-date');
+
+            cell.classList.remove('success-pulse', 'error-pulse');
+            try {
+                const updated = await saveAttendanceState(workerId, newStatus, date, ot);
+                if (updated) {
+                    updateCellUI(cell, newStatus, ot);
+                    cell.classList.add('success-pulse');
+                } else {
+                    cell.classList.add('error-pulse');
+                }
+            } catch (err) {
+                console.error(err);
+                cell.classList.add('error-pulse');
+            }
+        }, 250); // 250ms window to detect double/triple click
+    }
+
+    // Activate the inline OT input directly inside the cell
+    function activateInlineOvertimeInput(cell) {
+        // Close any other open inline OT inputs first
+        document.querySelectorAll('.inline-ot-input').forEach(input => {
+            input.blur();
+        });
+
+        const statusContainer = cell.querySelector('.cell-status-container');
+        const currentOt = cell.getAttribute('data-ot') || '0';
+
+        // Save current HTML to restore in case of failure or blur
+        const originalHTML = statusContainer.innerHTML;
+
+        statusContainer.innerHTML = `<input type="number" step="0.5" min="0" max="24" class="inline-ot-input" value="${currentOt}">`;
+        
+        const input = statusContainer.querySelector('.inline-ot-input');
+        input.focus();
+        input.select();
+
+        let isSaving = false;
+
+        async function saveInlineOtValue() {
+            if (isSaving) return;
+            isSaving = true;
+
+            const newOt = parseFloat(input.value || '0');
+            const status = cell.getAttribute('data-status') || 'PRESENT';
+            const workerId = cell.getAttribute('data-worker-id');
+            const date = cell.getAttribute('data-date');
+
+            cell.classList.remove('success-pulse', 'error-pulse');
+            try {
+                const updated = await saveAttendanceState(workerId, status, date, newOt);
+                if (updated) {
+                    cell.setAttribute('data-ot', newOt);
+                    // Restore UI checkmark/symbol
+                    updateCellUI(cell, status, newOt);
+                    cell.classList.add('success-pulse');
+                } else {
+                    statusContainer.innerHTML = originalHTML;
+                    cell.classList.add('error-pulse');
+                }
+            } catch (err) {
+                console.error(err);
+                statusContainer.innerHTML = originalHTML;
+                cell.classList.add('error-pulse');
+            }
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                input.blur(); // Triggers saveInlineOtValue
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                isSaving = true; // prevent saving
+                statusContainer.innerHTML = originalHTML; // restore
+            }
+        });
+
+        input.addEventListener('blur', function() {
+            saveInlineOtValue();
+        });
+    }
+
+    // AJAX helper to submit attendance state changes
+    async function saveAttendanceState(workerId, status, date, otHours) {
+        const formData = new FormData();
+        formData.append('worker_id', workerId);
+        formData.append('status', status);
+        formData.append('date', date);
+        formData.append('ot_hours', otHours);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        try {
+            const response = await fetch('{% url "mark_attendance" %}', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            return data.status === 'success';
+        } catch (err) {
+            console.error(err);
+            return false;
+        }
+    }
+
+    // Helper to update grid cell visually in-place
+    function updateCellUI(cell, status, ot) {
+        cell.setAttribute('data-status', status);
+        cell.setAttribute('data-ot', ot);
+
+        const container = cell.querySelector('.cell-status-container');
+        if (status === 'PRESENT') {
+            container.innerHTML = '<span style="color:#10b981;">✓</span>';
+        } else if (status === 'HALF_DAY') {
+            container.innerHTML = '<span style="color:#f59e0b;">=</span>';
+        } else if (status === 'ABSENT') {
+            container.innerHTML = '<span style="color:#ef4444;">✕</span>';
+        } else {
+            container.innerHTML = '<span style="color:var(--text-secondary); opacity:0.2;">·</span>';
+        }
+
+        const indicator = cell.querySelector('.cell-ot-indicator');
+        const parsedOt = parseFloat(ot || '0');
+        if (parsedOt > 0 && (status === 'PRESENT' || status === 'HALF_DAY')) {
+            indicator.style.display = 'block';
+            indicator.setAttribute('title', `OT: ${parsedOt}h`);
+        } else {
+            indicator.style.display = 'none';
+        }
+    }
+
+    function showSection(section) {
+        document.querySelectorAll('.ledger-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById('section-' + section).classList.add('active');
+        document.getElementById('btn-' + section).classList.add('active');
+    }
+
+    function openAttendanceDrawer() {
+        document.getElementById('attendanceDrawer').classList.add('active');
+        document.getElementById('drawerBackdrop').classList.add('active');
+        loadAttendanceForDate();
+    }
+
+    async function loadAttendanceForDate() {
+        const date = document.getElementById('attendance-date-input').value;
+        if (!date) return;
+
+        const res = await fetch(`/api/attendance/fetch/?date=${date}`);
+        const data = await res.json();
+        const records = data.attendance || {};
+
+        // Reset all to defaults first
+        document.querySelectorAll('[id^="toggle-container-"]').forEach(container => {
+            const workerId = container.id.replace('toggle-container-', '');
+            const record = records[workerId];
+
+            // Reset UI
+            container.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            const statusInput = document.getElementById('input-' + workerId);
+            const otInput = document.querySelector(`input[name="ot_${workerId}"]`);
+
+            if (record) {
+                // Load existing
+                statusInput.value = record.status;
+                otInput.value = record.ot;
+                
+                let btnClass = 'present';
+                if (record.status === 'ABSENT') btnClass = 'absent';
+                else if (record.status === 'HALF_DAY') btnClass = 'half';
+                
+                container.querySelector(`.toggle-btn.${btnClass}`).classList.add('active');
+            } else {
+                // Default to Present
+                statusInput.value = 'PRESENT';
+                otInput.value = 0;
+                container.querySelector('.toggle-btn.present').classList.add('active');
+            }
+        });
+    }
+
+    function openPaymentDrawer() {
+        document.getElementById('paymentDrawer').classList.add('active');
+        document.getElementById('drawerBackdrop').classList.add('active');
+    }
+
+    function closeAllDrawers() {
+        document.querySelectorAll('.drawer').forEach(d => d.classList.remove('active'));
+        document.getElementById('drawerBackdrop').classList.remove('active');
+        currentProfileWorkerId = null;
+    }
+
+    // JOB WORKER PROFILE LOGIC
+    let currentProfileWorkerId = null;
+
+    async function openJobWorkerProfile(id) {
+        closeAllDrawers();
+        currentProfileWorkerId = id;
+        document.getElementById('jobWorkerProfileDrawer').classList.add('active');
+        document.getElementById('drawerBackdrop').classList.add('active');
+        showProfileTab('history');
+
+        try {
+            const response = await fetch(`/api/job-worker/${id}/profile/`);
+            const data = await response.json();
+
+            document.getElementById('profile-worker-name').innerText = data.name;
+            document.getElementById('profile-worker-process').innerText = data.process;
+            document.getElementById('profile-worker-gst').innerText = data.gst || 'N/A';
+            document.getElementById('profile-worker-phone').innerText = data.phone || '---';
+            document.getElementById('profile-worker-email').innerText = data.email || '---';
+
+            // Report link
+            const now = new Date();
+            const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('generate-report-btn').href = `/ledger/job-worker/${id}/report/?month=${currentMonth}`;
+
+            // Assignments
+            const tbody = document.getElementById('profile-assignments-body');
+            tbody.innerHTML = '';
+            data.items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border-soft)';
+                tr.innerHTML = `
+                    <td style="padding:10px; font-size:13px;">${item.item_name}</td>
+                    <td style="padding:10px; text-align:right; font-weight:bold;">₹${parseFloat(item.rate).toFixed(2)}</td>
+                    <td style="padding:10px; text-align:right;">
+                        <button onclick="removeAllocation('${item.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer;">✕</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Ledger
+            const lbody = document.getElementById('profile-ledger-body');
+            lbody.innerHTML = '';
+            data.ledger.forEach(entry => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border-soft)';
+                
+                let earnedText = '-';
+                if (entry.is_inward) {
+                    if (entry.has_rate) {
+                        earnedText = '₹' + entry.earned.toFixed(0);
+                    } else {
+                        earnedText = '<span style="color:#ef4444; font-size:10px; font-weight:800; background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px; display:inline-block;">₹0 (No Rate Set)</span>';
+                    }
+                } else if (entry.earned > 0) {
+                    earnedText = '₹' + entry.earned.toFixed(0);
+                }
+
+                tr.innerHTML = `
+                    <td style="padding:10px; font-size:11px;">${entry.date}</td>
+                    <td style="padding:10px; font-size:11px;">${entry.description}</td>
+                    <td style="padding:10px; text-align:right; font-weight:bold; color:#10b981;">${earnedText}</td>
+                    <td style="padding:10px; text-align:right; font-weight:bold; color:#ef4444;">${entry.paid > 0 ? '₹'+entry.paid.toFixed(0) : '-'}</td>
+                `;
+                lbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error(e);
+            alert('Failed to load profile');
+        }
+    }
+
+    function showProfileTab(tab) {
+        document.querySelectorAll('.profile-tab').forEach(t => t.style.display = 'none');
+        document.getElementById('profile-tab-' + tab).style.display = 'block';
+        
+        document.getElementById('tab-btn-history').style.color = 'var(--text-secondary)';
+        document.getElementById('tab-btn-rates').style.color = 'var(--text-secondary)';
+        document.getElementById('tab-btn-history').style.borderBottom = 'none';
+        document.getElementById('tab-btn-rates').style.borderBottom = 'none';
+        
+        const btn = document.getElementById('tab-btn-' + tab);
+        btn.style.color = 'var(--accent-blue)';
+        btn.style.borderBottom = '2px solid var(--accent-blue)';
+    }
+
+    function closeJobWorkerProfile() {
+        document.getElementById('jobWorkerProfileDrawer').classList.remove('active');
+        document.getElementById('drawerBackdrop').classList.remove('active');
+    }
+
+    async function assignItemToWorker() {
+        const itemId = document.getElementById('assign-item-id').value;
+        const rate = document.getElementById('assign-item-rate').value;
+        if (!itemId || !rate) return alert('Select item and rate');
+
+        const fd = new FormData();
+        fd.append('item_id', itemId);
+        fd.append('rate', rate);
+        fd.append('worker_id', 'jw_' + currentProfileWorkerId);
+
+        const res = await fetch('{% url "add_worker_allocation" %}', {
+            method: 'POST',
+            body: fd,
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        });
+        const data = await res.json();
+        if (data.status === 'success') openJobWorkerProfile(currentProfileWorkerId);
+    }
+
+    async function removeAllocation(id) {
+        if (!confirm('Remove this allocation?')) return;
+        const res = await fetch(`/api/allocation/${id}/delete/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        });
+        const data = await res.json();
+        if (data.status === 'success') openJobWorkerProfile(currentProfileWorkerId);
+    }
+
+    function setAttendance(btn, status, workerId) {
+        const container = document.getElementById('toggle-container-' + workerId);
+        container.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('input-' + workerId).value = status;
+    }
+
+    async function saveAttendance() {
+        const form = document.getElementById('attendanceForm');
+        const formData = new FormData(form);
+        
+        // Find all hidden status inputs to know which workers are being processed
+        const entries = [];
+        form.querySelectorAll('input[name^="status_"]').forEach(input => {
+            const workerId = input.name.replace('status_', '');
+            const status = input.value;
+            const ot = form.querySelector(`input[name="ot_${workerId}"]`).value;
+            entries.push({worker_id: workerId, status: status, ot: ot});
+        });
+
+        for (let entry of entries) {
+            const fd = new FormData();
+            fd.append('worker_id', entry.worker_id);
+            fd.append('status', entry.status);
+            fd.append('ot_hours', entry.ot);
+            fd.append('date', formData.get('date'));
+            
+            await fetch('{% url "mark_attendance" %}', {
+                method: 'POST',
+                body: fd,
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            });
+        }
+        location.reload();
+    }
+
+    async function savePayment() {
+        const form = document.getElementById('paymentForm');
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch('{% url "record_labor_payment" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert(data.error);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    // --- INTERNAL WORKER PROFILE ---
+    function openWorkerProfile(id) {
+        closeAllDrawers();
+        const drawer = document.getElementById('workerProfileDrawer');
+        drawer.classList.add('active');
+        document.getElementById('drawerBackdrop').classList.add('active');
+        
+        document.getElementById('worker-report-link').href = `/worker/${id}/report/`;
+        
+        fetch(`/api/worker/${id}/profile/`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('worker-profile-name').innerText = data.name;
+                document.getElementById('worker-profile-id-view').innerText = data.employee_id;
+                document.getElementById('worker-profile-designation-view').innerText = data.designation;
+                document.getElementById('worker-profile-model').innerText = data.salary_model;
+                document.getElementById('worker-profile-rate').innerText = '₹' + data.base_rate;
+                
+                document.getElementById('worker-profile-joining-view').innerText = data.joining_date;
+                document.getElementById('worker-profile-identity-view').innerText = data.identity_no;
+                document.getElementById('worker-profile-blood-view').innerText = data.blood_group;
+                document.getElementById('worker-profile-shift-view').innerText = data.shift_hours + 'h';
+                
+                document.getElementById('worker-stat-earned').innerText = '₹' + data.stats.earned;
+                document.getElementById('worker-stat-paid').innerText = '₹' + data.stats.paid;
+                document.getElementById('worker-stat-balance').innerText = '₹' + data.stats.balance;
+                
+                // Update Monthly Stats
+                document.getElementById('stat-days-present').innerText = data.stats.present;
+                document.getElementById('stat-days-half').innerText = data.stats.half;
+                document.getElementById('stat-days-absent').innerText = data.stats.absent;
+
+                // Render Calendar
+                renderAttendanceCalendar(data);
+                
+                // Payments
+                const payBody = document.getElementById('worker-payment-body');
+                payBody.innerHTML = data.payments.map(p => `
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:10px; font-size:12px;">${p.date}</td>
+                        <td style="padding:10px; font-size:11px; text-transform:uppercase; color:var(--text-secondary);">${p.mode}</td>
+                        <td style="padding:10px; text-align:right; font-weight:bold;">₹${p.amount}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="3" style="text-align:center; padding:20px; color:var(--text-secondary);">No records</td></tr>';
+                
+                showWorkerTab('attendance');
+            });
+    }
+
+    function renderAttendanceCalendar(data) {
+        const grid = document.getElementById('attendance-calendar-grid');
+        grid.innerHTML = '';
+        
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('calendar-month-name').innerText = `${monthNames[data.month-1]} ${data.year}`;
+
+        // Header for weekdays
+        ['S','M','T','W','T','F','S'].forEach(day => {
+            const el = document.createElement('div');
+            el.style = "text-align:center; font-size:10px; color:var(--text-secondary); padding-bottom:5px; font-weight:bold;";
+            el.innerText = day;
+            grid.appendChild(el);
+        });
+
+        const firstDay = new Date(data.year, data.month - 1, 1).getDay();
+        const daysInMonth = new Date(data.year, data.month, 0).getDate();
+
+        // Map attendance by date string
+        const attMap = {};
+        data.attendance.forEach(a => attMap[a.raw_date] = a);
+
+        // Fill empty slots before 1st
+        for(let i=0; i < firstDay; i++) {
+            grid.appendChild(document.createElement('div'));
+        }
+
+        // Fill dates
+        for(let d=1; d <= daysInMonth; d++) {
+            const dateStr = `${data.year}-${String(data.month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const record = attMap[dateStr];
+            
+            const cell = document.createElement('div');
+            cell.style = `
+                aspect-ratio: 1;
+                background: rgba(255,255,255,0.03);
+                border-radius: 8px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid ${record ? 'rgba(255,255,255,0.1)' : 'var(--border-soft)'};
+                position: relative;
+            `;
+
+            const dateNum = document.createElement('span');
+            dateNum.style = "font-size:11px; font-weight:bold; color:var(--text-secondary);";
+            dateNum.innerText = d;
+            cell.appendChild(dateNum);
+
+            if (record) {
+                const symbol = document.createElement('div');
+                let color = "#10b981"; // Present
+                let icon = "✓";
+                if (record.raw_status === 'ABSENT') { color = "#ef4444"; icon = "✕"; }
+                else if (record.raw_status === 'HALF_DAY') { color = "#f59e0b"; icon = "="; }
+                
+                symbol.style = `font-size:14px; font-weight:bold; color:${color}; margin-top:2px;`;
+                symbol.innerText = icon;
+                cell.appendChild(symbol);
+
+                if (record.ot > 0) {
+                    const otIndicator = document.createElement('div');
+                    otIndicator.style = "position:absolute; top:2px; right:2px; width:4px; height:4px; background:var(--accent-blue); border-radius:50%;";
+                    otIndicator.title = `OT: ${record.ot}h`;
+                    cell.appendChild(otIndicator);
+                }
+            }
+
+            grid.appendChild(cell);
+        }
+    }
+
+    function toggleLoanFields(val) {
+        const emiBox = document.getElementById('q-emi-box');
+        const amountLabel = document.getElementById('label-amount');
+        
+        if (val === 'NEW_LOAN') {
+            emiBox.style.display = 'block';
+            amountLabel.innerText = "Total Loan Amount (₹)";
+        } else {
+            emiBox.style.display = 'none';
+            amountLabel.innerText = "Amount (₹)";
+        }
+    }
+
+    function savePayment() {
+        const form = document.getElementById('paymentForm');
+        const formData = new FormData(form);
+        
+        fetch("{% url 'record_labor_payment' %}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+
+    function quickLoanRepayment(workerId, emiAmount) {
+        if (!confirm(`Record EMI payment of ₹${emiAmount}?`)) return;
+        
+        const formData = new FormData();
+        formData.append('target_id', 'w_' + workerId);
+        formData.append('amount', emiAmount);
+        formData.append('payment_type', 'LOAN_REPAYMENT');
+        formData.append('payment_mode', 'CASH');
+        formData.append('notes', 'Monthly EMI repayment (Quick)');
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch("{% url 'record_labor_payment' %}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error recording repayment: ' + (data.error || 'Unknown error'));
+            }
+        });
+    }
+
+    function closeWorkerProfile() {
+        document.getElementById('workerProfileDrawer').classList.remove('active');
+        document.getElementById('drawerBackdrop').classList.remove('active');
+    }
+
+    function showWorkerTab(tab) {
+        document.querySelectorAll('.w-tab-content').forEach(c => c.style.display = 'none');
+        document.getElementById('w-content-' + tab).style.display = 'block';
+        
+        document.getElementById('w-tab-attendance').style.borderBottom = tab === 'attendance' ? '2px solid var(--accent-blue)' : 'none';
+        document.getElementById('w-tab-attendance').style.color = tab === 'attendance' ? 'var(--accent-blue)' : 'var(--text-secondary)';
+        
+        document.getElementById('w-tab-payments').style.borderBottom = tab === 'payments' ? '2px solid var(--accent-blue)' : 'none';
+        document.getElementById('w-tab-payments').style.color = tab === 'payments' ? 'var(--accent-blue)' : 'var(--text-secondary)';
+    }
+
+</script>
+
+
+<!-- INTERNAL WORKER PROFILE DRAWER -->
+<div id="workerProfileDrawer" class="drawer" style="width: 600px;">
+    <div class="drawer-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+        <div style="display:flex; align-items:center; gap:15px;">
+            <div style="width:50px; height:50px; background:var(--accent-blue); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold; color:white;">
+                <span>W</span>
+            </div>
+            <div>
+                <h2 id="worker-profile-name" style="margin:0; color:white; font-size:20px;">Worker Name</h2>
+                <div style="display:flex; gap:10px; align-items:center; margin-top:2px;">
+                    <span id="worker-profile-id-view" style="background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; font-size:10px; color:var(--text-secondary);">EMP-000</span>
+                    <span id="worker-profile-designation-view" style="font-size:12px; color:var(--accent-blue); font-weight:600;">Designation</span>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <a id="worker-report-link" href="#" target="_blank" 
+               style="background:#10b981; color:white; text-decoration:none; padding:8px 16px; border-radius:8px; font-weight:bold; font-size:12px; display:flex; align-items:center; gap:6px;">
+                <span>Monthly Report</span>
+            </a>
+            <button onclick="closeWorkerProfile()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">✕</button>
+        </div>
+    </div>
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px; margin-bottom:25px;">
+        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; border:1px solid var(--border-soft);">
+            <label style="font-size:10px; color:var(--text-secondary); display:block; margin-bottom:5px;">EARNED (MONTH)</label>
+            <span id="worker-stat-earned" style="font-size:18px; font-weight:bold; color:#10b981;">₹0</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; border:1px solid var(--border-soft);">
+            <label style="font-size:10px; color:var(--text-secondary); display:block; margin-bottom:5px;">PAID</label>
+            <span id="worker-stat-paid" style="font-size:18px; font-weight:bold; color:white;">₹0</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; border:1px solid var(--border-soft);">
+            <label style="font-size:10px; color:var(--text-secondary); display:block; margin-bottom:5px;">BALANCE</label>
+            <span id="worker-stat-balance" style="font-size:18px; font-weight:bold; color:var(--accent-blue);">₹0</span>
+        </div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.03); padding:20px; border-radius:16px; border:1px solid var(--border-soft); margin-bottom:25px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+            <div>
+                <label style="font-size:10px; color:var(--text-secondary); text-transform:uppercase; display:block; margin-bottom:5px;">Salary Model</label>
+                <span id="worker-profile-model" style="font-weight:bold; color:var(--accent-blue); font-size:15px;">---</span>
+            </div>
+            <div style="text-align:right;">
+                <label style="font-size:10px; color:var(--text-secondary); text-transform:uppercase; display:block; margin-bottom:5px;">Rate / Shift</label>
+                <span id="worker-profile-rate" style="font-weight:bold; font-size:15px;">₹0</span> / <span id="worker-profile-shift-view" style="color:var(--text-secondary);">8h</span>
+            </div>
+        </div>
+        
+        <div style="margin-top:20px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.05); display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px;">
+            <div>
+                <label style="font-size:10px; color:var(--text-secondary); display:block; margin-bottom:3px;">JOINED</label>
+                <span id="worker-profile-joining-view" style="font-size:12px; font-weight:600;">---</span>
+            </div>
+            <div>
+                <label style="font-size:10px; color:var(--text-secondary); display:block; margin-bottom:3px;">AADHAR / ID</label>
+                <span id="worker-profile-identity-view" style="font-size:12px; font-weight:600;">---</span>
+            </div>
+            <div style="text-align:right;">
+                <label style="font-size:10px; color:var(--text-secondary); display:block; margin-bottom:3px;">BLOOD GROUP</label>
+                <span id="worker-profile-blood-view" style="font-size:12px; font-weight:600; color:#ef4444;">---</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div style="display:flex; gap:15px; border-bottom:1px solid var(--border-soft); margin-bottom:20px;">
+        <button onclick="showWorkerTab('attendance')" id="w-tab-attendance" style="background:none; border:none; color:var(--accent-blue); font-weight:bold; padding:10px 0; cursor:pointer; border-bottom:2px solid var(--accent-blue);">Attendance Log</button>
+        <button onclick="showWorkerTab('payments')" id="w-tab-payments" style="background:none; border:none; color:var(--text-secondary); font-weight:bold; padding:10px 0; cursor:pointer;">Payment History</button>
+    </div>
+
+    <div id="w-content-attendance" class="w-tab-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <div id="calendar-month-name" style="font-weight:bold; font-size:16px; color:white;">Monthly View</div>
+            <div style="display:flex; gap:10px; font-size:10px;">
+                <span style="color:#10b981;">✓ Present</span>
+                <span style="color:#f59e0b;">= Half</span>
+                <span style="color:#ef4444;">✕ Absent</span>
+            </div>
+        </div>
+        
+        <!-- CALENDAR GRID -->
+        <div id="attendance-calendar-grid" style="display:grid; grid-template-columns: repeat(7, 1fr); gap:8px; margin-bottom:20px;">
+            <!-- Days will be injected here -->
+        </div>
+
+        <!-- MONTHLY SUMMARY CARDS -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+            <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:10px; text-align:center; border:1px solid var(--border-soft);">
+                <div style="font-size:9px; color:var(--text-secondary); margin-bottom:4px;">PRESENT</div>
+                <div id="stat-days-present" style="font-weight:bold; color:#10b981; font-size:16px;">0</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:10px; text-align:center; border:1px solid var(--border-soft);">
+                <div style="font-size:9px; color:var(--text-secondary); margin-bottom:4px;">HALF DAYS</div>
+                <div id="stat-days-half" style="font-weight:bold; color:#f59e0b; font-size:16px;">0</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:10px; text-align:center; border:1px solid var(--border-soft);">
+                <div style="font-size:9px; color:var(--text-secondary); margin-bottom:4px;">ABSENT</div>
+                <div id="stat-days-absent" style="font-weight:bold; color:#ef4444; font-size:16px;">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="w-content-payments" class="w-tab-content" style="display:none;">
+        <table style="width:100%;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--border-soft);">
+                    <th style="padding:10px; text-align:left; font-size:11px;">DATE</th>
+                    <th style="padding:10px; text-align:left; font-size:11px;">MODE</th>
+                    <th style="padding:10px; text-align:right; font-size:11px;">AMOUNT</th>
+                </tr>
+            </thead>
+            <tbody id="worker-payment-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Initialize Flatpickr for the attendance date
+    flatpickr("#attendance-date-input", {
+        altInput: true,
+        altFormat: "d/m/Y",
+        dateFormat: "Y-m-d",
+        defaultDate: "today",
+        theme: "dark",
+        onChange: function(selectedDates, dateStr, instance) {
+            loadAttendanceForDate();
+        }
+    });
+</script>
+{% endblock %}

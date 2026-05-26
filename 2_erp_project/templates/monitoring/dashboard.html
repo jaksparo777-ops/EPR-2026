@@ -1,0 +1,670 @@
+{% extends 'layout/base.html' %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .dashboard-header {
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dashboard-subtitle {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-top: 4px;
+    }
+
+    /* KPI grid */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .kpi-card {
+        background: var(--glass-card);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+    }
+
+    .kpi-card:hover {
+        border-color: var(--glass-border-glow);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .kpi-icon-box {
+        width: 54px;
+        height: 54px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .kpi-icon-indigo { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.25); }
+    .kpi-icon-cyan { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.25); }
+    .kpi-icon-danger { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); }
+
+    .kpi-data {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .kpi-val {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--text-title);
+        line-height: 1;
+    }
+
+    .kpi-lbl {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+
+    /* Pulse animation */
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--success);
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+        }
+        100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+    }
+
+    /* Columns layout */
+    .monitor-layout {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 30px;
+        align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+        .monitor-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Terminal/Row lists */
+    .session-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-top: 20px;
+    }
+
+    .session-row {
+        background: rgba(255, 255, 255, 0.015);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        transition: all 0.2s;
+    }
+
+    .session-row:hover {
+        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .session-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .session-user {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        color: var(--text-title);
+    }
+
+    .session-badge {
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .badge-admin { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.25); }
+    .badge-user { background: rgba(245, 158, 11, 0.15); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.25); }
+
+    .device-icon {
+        font-size: 14px;
+        margin-right: 4px;
+    }
+
+    .session-details {
+        font-size: 12px;
+        color: var(--text-secondary);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        background: rgba(0, 0, 0, 0.15);
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.01);
+    }
+
+    .session-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .btn-kill {
+        padding: 6px 12px;
+        font-size: 11px;
+        border-radius: 8px;
+    }
+
+    /* Audit log filters */
+    .filter-panel {
+        background: rgba(0, 0, 0, 0.15);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr auto;
+        gap: 12px;
+        align-items: end;
+    }
+
+    @media (max-width: 768px) {
+        .filter-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .btn-filter-action {
+        height: 45px;
+    }
+
+    /* Terminal logs */
+    .terminal-container {
+        background: #04060b;
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+    }
+
+    .terminal-header {
+        background: #090e17;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .term-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+    .td-red { background: #ef4444; }
+    .td-yellow { background: #f59e0b; }
+    .td-green { background: #10b981; }
+
+    .term-title {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-left: 8px;
+    }
+
+    .terminal-body {
+        max-height: 560px;
+        overflow-y: auto;
+        padding: 16px;
+    }
+
+    .log-item {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12.5px;
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.015);
+        line-height: 1.5;
+        transition: background 0.15s;
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .log-item:hover {
+        background: rgba(255, 255, 255, 0.015);
+    }
+
+    .log-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .log-time {
+        color: #64748b;
+    }
+
+    .log-action-badge {
+        font-weight: 800;
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 3px;
+        text-transform: uppercase;
+    }
+
+    .la-create { background: rgba(16, 185, 129, 0.12); color: #34d399; }
+    .la-update { background: rgba(59, 130, 246, 0.12); color: #60a5fa; }
+    .la-delete { background: rgba(239, 68, 68, 0.12); color: #f87171; }
+    .la-login { background: rgba(139, 92, 246, 0.12); color: #c084fc; }
+    .la-logout { background: rgba(107, 114, 128, 0.12); color: #9ca3af; }
+    .la-terminate { background: rgba(220, 38, 38, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .log-dept-badge {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-secondary);
+        font-size: 10px;
+        padding: 1px 5px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    .log-user {
+        color: #e2e8f0;
+        font-weight: 700;
+    }
+
+    .log-ip {
+        color: #475569;
+        font-size: 11px;
+    }
+
+    .log-content {
+        color: #cbd5e1;
+        margin-left: 2px;
+    }
+
+    .log-details {
+        font-size: 11.5px;
+        color: var(--text-secondary);
+        border-left: 2px solid rgba(255, 255, 255, 0.05);
+        padding-left: 10px;
+        margin-top: 2px;
+        margin-left: 2px;
+        font-style: italic;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div>
+        <h1>🛡 Security Control Center</h1>
+        <div class="dashboard-subtitle">Real-time operator connection terminal and secure system audit trails</div>
+    </div>
+    <div>
+        <a href="{% url 'export_audit_logs' %}{% if request.META.QUERY_STRING %}?{{ request.META.QUERY_STRING }}{% endif %}" class="btn btn-primary" style="display: flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 700; height: 45px; padding: 0 20px;">
+            📥 Export Audit Logs (CSV)
+        </a>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-icon-box kpi-icon-indigo">
+            <span class="pulse-dot"></span>
+        </div>
+        <div class="kpi-data">
+            <div class="kpi-val">{{ active_ops_count }}</div>
+            <div class="kpi-lbl">Active Operators</div>
+        </div>
+    </div>
+    
+    <div class="kpi-card">
+        <div class="kpi-icon-box kpi-icon-cyan">
+            📱
+        </div>
+        <div class="kpi-data">
+            <div class="kpi-val">{{ total_active_devices }}</div>
+            <div class="kpi-lbl">Active Sessions</div>
+        </div>
+    </div>
+    
+    <div class="kpi-card">
+        <div class="kpi-icon-box kpi-icon-danger">
+            🚨
+        </div>
+        <div class="kpi-data">
+            <div class="kpi-val">{{ alerts_today }}</div>
+            <div class="kpi-lbl">Alerts Today</div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Charts Row -->
+<div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); margin-bottom: 30px;">
+    <div class="card" style="margin-bottom: 0; padding: 24px; background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: 16px;">
+        <h3 style="margin-top: 0; margin-bottom: 15px; color: var(--text-title); display: flex; align-items: center; gap: 8px;">📊 Operations by Department</h3>
+        <div style="position: relative; height: 260px;">
+            <canvas id="deptChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 0; padding: 24px; background: var(--glass-card); border: 1px solid var(--glass-border); border-radius: 16px;">
+        <h3 style="margin-top: 0; margin-bottom: 15px; color: var(--text-title); display: flex; align-items: center; gap: 8px;">📈 Security Event Actions</h3>
+        <div style="position: relative; height: 260px;">
+            <canvas id="actionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Grid Layout -->
+<div class="monitor-layout">
+    
+    <!-- LEFT COLUMN: Live Operator Connections -->
+    <div class="card">
+        <h3>💻 Live Operator Terminals</h3>
+        <p class="dashboard-subtitle" style="margin-bottom: 20px;">Active sessions in the last 15 minutes</p>
+        
+        <div class="session-list">
+            {% for s in active_sessions %}
+                <div class="session-row">
+                    <div class="session-top">
+                        <div class="session-user">
+                            <span class="pulse-dot"></span>
+                            {{ s.user.username }}
+                            {% if s.user.is_superuser or s.user.is_staff %}
+                                <span class="session-badge badge-admin">Admin</span>
+                            {% else %}
+                                <span class="session-badge badge-user">Operator</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="session-details">
+                        <div>
+                            <span class="device-icon">
+                                {% if s.device_type == 'Mobile' %}📱
+                                {% elif s.device_type == 'Tablet' %}📟
+                                {% elif s.device_type == 'Bot' %}🤖
+                                {% else %}💻
+                                {% endif %}
+                            </span>
+                            <strong>{{ s.device_type }}</strong> — {{ s.browser }} on {{ s.os }}
+                        </div>
+                        <div>🔌 IP Address: <code>{{ s.ip_address }}</code></div>
+                        <div style="color: var(--text-muted);">🕒 Active: {{ s.last_activity|timesince }} ago</div>
+                    </div>
+                    
+                    <div class="session-actions">
+                        {% if s.session_key != request.session.session_key %}
+                            <form action="{% url 'terminate_session' s.id %}" method="POST" onsubmit="return confirm('Security Warning: Are you sure you want to force disconnect {{ s.user.username }}? This immediately revokes their system credentials.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-kill">
+                                    🛑 Kill Session
+                                </button>
+                            </form>
+                        {% else %}
+                            <span style="font-size: 11px; color: var(--success); font-weight: 700; padding: 6px 12px;">
+                                🟢 Current Session (You)
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <div class="empty-state">No active sessions found.</div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- RIGHT COLUMN: Searchable Security Audit logs -->
+    <div class="card">
+        <h3>📺 Operational Audit Stream</h3>
+        <p class="dashboard-subtitle" style="margin-bottom: 20px;">System transactions, data insertions, and permission edits</p>
+        
+        <!-- Filter Form -->
+        <div class="filter-panel">
+            <form method="GET" action="" class="filter-grid">
+                <div>
+                    <label for="id_q" class="kpi-lbl" style="margin-bottom: 6px; display: block;">Search Keywords</label>
+                    <input type="text" name="q" id="id_q" placeholder="Search operator, message, item..." value="{{ query }}">
+                </div>
+                
+                <div>
+                    <label for="id_dept" class="kpi-lbl" style="margin-bottom: 6px; display: block;">Department</label>
+                    <select name="dept" id="id_dept">
+                        <option value="">All Departments</option>
+                        {% for code, label in departments %}
+                            <option value="{{ code }}" {% if dept_filter == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="id_action" class="kpi-lbl" style="margin-bottom: 6px; display: block;">Action</label>
+                    <select name="action" id="id_action">
+                        <option value="">All Actions</option>
+                        {% for code, label in actions %}
+                            <option value="{{ code }}" {% if action_filter == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn btn-filter-action" title="Apply Filters">🔍 Search</button>
+                    {% if query or dept_filter or action_filter %}
+                        <a href="{% url 'monitoring_dashboard' %}" class="btn btn-secondary btn-filter-action" style="text-decoration: none;" title="Reset Filters">🧹 Clear</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+        
+        <!-- Terminal Stream -->
+        <div class="terminal-container">
+            <div class="terminal-header">
+                <span class="term-dot td-red"></span>
+                <span class="term-dot td-yellow"></span>
+                <span class="term-dot td-green"></span>
+                <span class="term-title">Foundry Security Kernel Log</span>
+            </div>
+            
+            <div class="terminal-body">
+                {% for log in logs %}
+                    <div class="log-item">
+                        <div class="log-meta">
+                            <span class="log-time">[{{ log.timestamp|date:"Y-m-d H:i:s" }}]</span>
+                            
+                            <span class="log-action-badge 
+                                {% if log.action == 'CREATE' %}la-create
+                                {% elif log.action == 'UPDATE' %}la-update
+                                {% elif log.action == 'DELETE' %}la-delete
+                                {% elif log.action == 'LOGIN' %}la-login
+                                {% elif log.action == 'LOGOUT' %}la-logout
+                                {% elif log.action == 'TERMINATE' %}la-terminate
+                                {% endif %}">
+                                {{ log.action }}
+                            </span>
+                            
+                            <span class="log-dept-badge">{{ log.get_department_display }}</span>
+                            
+                            <span class="log-user">👤 {{ log.user.username|default:"System Kernel" }}</span>
+                            
+                            {% if log.ip_address %}
+                                <span class="log-ip">📡 {{ log.ip_address }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="log-content">
+                            👉 <strong>{{ log.object_repr|default:"" }}</strong>
+                        </div>
+                        
+                        {% if log.details %}
+                            <div class="log-details">{{ log.details }}</div>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <div class="empty-state">No kernel logs found matching filters.</div>
+                {% endfor %}
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Department Activity Chart
+        const ctxDept = document.getElementById('deptChart').getContext('2d');
+        const deptLabels = {{ dept_chart_labels|safe }};
+        const deptData = {{ dept_chart_data|safe }};
+
+        new Chart(ctxDept, {
+            type: 'bar',
+            data: {
+                labels: deptLabels.length ? deptLabels : ['No Data'],
+                datasets: [{
+                    label: 'Audit Events',
+                    data: deptData.length ? deptData : [0],
+                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                    borderColor: 'rgba(99, 102, 241, 0.85)',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    hoverBackgroundColor: 'rgba(99, 102, 241, 0.45)',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#090e17',
+                        borderColor: 'rgba(255, 255, 255, 0.08)',
+                        borderWidth: 1,
+                        titleColor: '#818cf8',
+                        bodyColor: '#cbd5e1'
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                        ticks: { color: '#64748b' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                        ticks: { color: '#64748b', precision: 0 }
+                    }
+                }
+            }
+        });
+
+        // Action Breakdown Chart
+        const ctxAction = document.getElementById('actionChart').getContext('2d');
+        const actionLabels = {{ action_chart_labels|safe }};
+        const actionData = {{ action_chart_data|safe }};
+
+        new Chart(ctxAction, {
+            type: 'doughnut',
+            data: {
+                labels: actionLabels.length ? actionLabels : ['No Data'],
+                datasets: [{
+                    data: actionData.length ? actionData : [1],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.25)',  // Create
+                        'rgba(59, 130, 246, 0.25)',  // Update
+                        'rgba(239, 68, 68, 0.25)',   // Delete
+                        'rgba(139, 92, 246, 0.25)',  // Login
+                        'rgba(107, 114, 128, 0.25)',  // Logout
+                        'rgba(245, 158, 11, 0.25)',   // Terminate
+                    ],
+                    borderColor: [
+                        '#10b981',
+                        '#3b82f6',
+                        '#ef4444',
+                        '#8b5cf6',
+                        '#6b7280',
+                        '#f59e0b',
+                    ],
+                    borderWidth: 2,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#cbd5e1',
+                            font: { size: 11 },
+                            padding: 12
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#090e17',
+                        borderColor: 'rgba(255, 255, 255, 0.08)',
+                        borderWidth: 1,
+                        bodyColor: '#cbd5e1'
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: erp_postgres_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=foundry_erp
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres_secure_pass123
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d foundry_erp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: erp_web_app
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=django-insecure-docker-env-key-999
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,web
+      - DB_NAME=foundry_erp
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres_secure_pass123
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

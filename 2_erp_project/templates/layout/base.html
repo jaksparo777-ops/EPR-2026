@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foundry ERP — Premium Modular Control Center</title>
+    
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Flatpickr for beautiful calendars -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
+    <!-- Tom Select for searchable dropdowns -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <style>
+        /* Modern CSS resets & variables */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        :root {
+            /* Base Theme (Obsidian Dark) */
+            --bg-obsidian: #07090e;
+            --bg-accent: #0b0e14;
+            --glass-card: rgba(13, 17, 26, 0.65);
+            --glass-sidebar: rgba(10, 12, 20, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.045);
+            --border-soft: var(--glass-border);
+            --glass-border-glow: rgba(99, 102, 241, 0.12);
+            
+            /* Text Hierarchy */
+            --text-title: #f8fafc;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            
+            /* Curated HSL Accents */
+            --accent-indigo: hsl(250, 89%, 65%);
+            --accent-indigo-glow: rgba(99, 102, 241, 0.3);
+            --accent-gold: hsl(38, 92%, 50%);
+            --accent-cyan: hsl(180, 100%, 45%);
+            
+            --success: hsl(142, 70%, 45%);
+            --success-glow: rgba(16, 185, 129, 0.15);
+            --danger: hsl(350, 80%, 55%);
+            --danger-glow: rgba(239, 68, 68, 0.15);
+            --warning: hsl(45, 93%, 47%);
+            
+            /* Inputs */
+            --input-bg: rgba(6, 8, 12, 0.65);
+            
+            /* Shadows */
+            --shadow-sm: 0 4px 12px 0 rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 10px 30px -10px rgba(0, 0, 0, 0.35);
+            --shadow-lg: 0 20px 50px -15px rgba(0, 0, 0, 0.6);
+            --shadow-glow: 0 0 20px 2px rgba(99, 102, 241, 0.08);
+        }
+
+        body {
+            background: var(--bg-obsidian);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.03) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            font-size: 15px;
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+            scrollbar-gutter: stable;
+        }
+
+        /* Beautiful Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 99px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 99px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+
+        /* Layout Structure */
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Premium Glass Sidebar */
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            background: var(--glass-sidebar);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: var(--text-primary);
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid var(--glass-border);
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .logo-section {
+            padding: 30px 24px;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .logo-text-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-title {
+            font-size: 19px;
+            font-weight: 800;
+            color: var(--text-title);
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 30%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-subtitle {
+            font-size: 11px;
+            color: var(--accent-indigo);
+            margin-top: 1px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .menu {
+            padding: 24px 16px;
+        }
+
+        .menu-label {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            padding-left: 16px;
+        }
+
+        .menu a {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+        }
+
+        .menu a:hover {
+            background: rgba(255, 255, 255, 0.035);
+            color: var(--text-title);
+            transform: translateX(3px);
+        }
+
+        .menu a.active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.05) 100%);
+            color: #818cf8;
+            font-weight: 700;
+            border-color: rgba(99, 102, 241, 0.25);
+            box-shadow: 0 4px 15px -5px rgba(99, 102, 241, 0.2);
+        }
+
+        .content {
+            margin-left: 280px;
+            width: calc(100% - 280px);
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        .sidebar-footer {
+            padding: 24px;
+            border-top: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .user-email {
+            font-size: 13px;
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+        }
+
+        .logout {
+            color: var(--danger);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .logout:hover {
+            color: #fca5a5;
+            transform: translateX(2px);
+        }
+
+        /* Glassmorphic Cards */
+        .card {
+            background: var(--glass-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .card:hover {
+            border-color: var(--glass-border-glow);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+        }
+
+        h1, h2, h3, h4 {
+            color: var(--text-title);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        p {
+            color: var(--text-secondary);
+        }
+
+        /* Sleek Modern Tables */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        table th {
+            background: rgba(255, 255, 255, 0.015);
+            padding: 16px 20px;
+            text-align: left;
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--glass-border);
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: background 0.2s;
+        }
+
+        table tr:hover td {
+            background: rgba(255, 255, 255, 0.018);
+        }
+
+        table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Custom Premium Inputs */
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--input-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.25s ease;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent-indigo);
+            box-shadow: 0 0 0 3px var(--accent-indigo-glow);
+            background: var(--bg-accent);
+        }
+
+        /* Modern styled options inside native select */
+        select option {
+            background-color: var(--bg-accent);
+            color: var(--text-primary);
+        }
+
+        /* Buttons & Actions */
+        button, .btn {
+            background: linear-gradient(135deg, var(--accent-indigo) 0%, #4f46e5 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px -3px rgba(99, 102, 241, 0.4);
+        }
+
+        button:hover, .btn:hover {
+            opacity: 1;
+            transform: translateY(-1.5px);
+            box-shadow: 0 8px 20px -3px rgba(99, 102, 241, 0.6);
+        }
+
+        button:active, .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--text-secondary);
+            box-shadow: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            box-shadow: 0 4px 15px -3px var(--danger-glow);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 8px 20px -3px rgba(220, 38, 38, 0.5);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            box-shadow: 0 4px 15px -3px var(--success-glow);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 8px 20px -3px rgba(5, 150, 105, 0.5);
+        }
+
+        /* Toast Styling */
+        .toast-container {
+            position: fixed;
+            right: 30px;
+            bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 9999;
+        }
+
+        .toast {
+            min-width: 320px;
+            padding: 16px 20px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            background: var(--glass-sidebar);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            animation: toast-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .toast-success { border-left: 4px solid var(--success); }
+        .toast-error { border-left: 4px solid var(--danger); }
+        .toast-info { border-left: 4px solid var(--accent-indigo); }
+        .toast-warning { border-left: 4px solid var(--warning); }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0;
+            box-shadow: none;
+        }
+        .toast-close:hover {
+            color: var(--text-title);
+            background: none;
+            box-shadow: none;
+        }
+
+        @keyframes toast-in {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* TOM SELECT DARK THEME OVERRIDES */
+        .ts-control {
+            background: var(--input-bg) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--glass-border) !important;
+            border-radius: 12px !important;
+            padding: 12px 16px !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        }
+        .ts-dropdown {
+            background: #0f131c !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--glass-border) !important;
+            border-radius: 12px !important;
+            box-shadow: var(--shadow-lg) !important;
+            margin-top: 5px !important;
+            padding: 6px !important;
+            z-index: 1001 !important;
+        }
+        .ts-dropdown .active {
+            background: var(--accent-indigo) !important;
+            color: white !important;
+            border-radius: 8px !important;
+        }
+        .ts-dropdown .option {
+            padding: 10px 14px !important;
+            font-size: 14px !important;
+            border-radius: 8px !important;
+            cursor: pointer !important;
+        }
+        .ts-dropdown .option:hover {
+            background: rgba(255, 255, 255, 0.035) !important;
+            color: var(--text-title) !important;
+        }
+        .ts-control input {
+            color: white !important;
+        }
+        .ts-wrapper.single .ts-control::after {
+            border-color: var(--text-secondary) transparent transparent transparent !important;
+        }
+        .ts-wrapper.focus .ts-control {
+            border-color: var(--accent-indigo) !important;
+            box-shadow: 0 0 0 3px var(--accent-indigo-glow) !important;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div>
+            <!-- LOGO -->
+            <div class="logo-section">
+                <div class="logo-box">
+                    <img src="/static/img/logo.jpg" alt="Logo">
+                </div>
+                <div class="logo-text-wrapper">
+                    <div class="logo-title">Foundry ERP</div>
+                    <div class="logo-subtitle">Casting → Dispatch</div>
+                </div>
+            </div>
+
+            <!-- MENU (Role-Based Access Controlled) -->
+            <div class="menu">
+                <div class="menu-label">Operations</div>
+                
+                <a href="{% url 'dashboard' %}"
+                   class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    📊 Dashboard
+                </a>
+
+                <a href="{% url 'unified_dashboard' %}"
+                   class="{% if request.resolver_match.url_name == 'unified_dashboard' %}active{% endif %}">
+                    🌐 Multi-Company Board
+                </a>
+
+
+                {% if is_production_operator %}
+                <a href="{% url 'casting_entry' %}"
+                   class="{% if request.resolver_match.url_name == 'casting_entry' %}active{% endif %}">
+                    🔥 Casting
+                </a>
+
+                <a href="{% url 'machining_entry' %}"
+                   class="{% if request.resolver_match.url_name == 'machining_entry' %}active{% endif %}">
+                    🛠 Machining
+                </a>
+
+                <a href="{% url 'polishing_entry' %}"
+                   class="{% if request.resolver_match.url_name == 'polishing_entry' %}active{% endif %}">
+                    ✨ Polishing
+                </a>
+                {% endif %}
+
+                {% if is_logistics_supervisor %}
+                <a href="{% url 'packaging' %}"
+                   class="{% if request.resolver_match.url_name == 'packaging' %}active{% endif %}">
+                    📦 Packaging
+                </a>
+
+                <a href="{% url 'dispatch' %}"
+                   class="{% if request.resolver_match.url_name == 'dispatch' %}active{% endif %}">
+                    🚚 Dispatch & Sales
+                </a>
+                {% endif %}
+
+                {% if is_hr_manager or is_system_admin %}
+                <div class="menu-label" style="margin-top: 24px;">Administration</div>
+                {% endif %}
+
+                {% if is_hr_manager %}
+                <a href="{% url 'master_data' %}"
+                   class="{% if request.resolver_match.url_name == 'master_data' %}active{% endif %}">
+                    ⚙ Master Data
+                </a>
+
+                <a href="{% url 'labor_ledger' %}"
+                   class="{% if request.resolver_match.url_name == 'labor_ledger' %}active{% endif %}">
+                    💹 Labor Ledger
+                </a>
+                {% endif %}
+
+                {% if is_system_admin %}
+                <a href="{% url 'monitoring_dashboard' %}"
+                   class="{% if request.resolver_match.url_name == 'monitoring_dashboard' %}active{% endif %}">
+                    🛡 Security Monitor
+                </a>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="sidebar-footer">
+            {% if user.is_authenticated %}
+                <div class="user-email">
+                    {{ user.email|default:user.username }}
+                </div>
+
+                {% if user.is_superuser or is_system_admin %}
+                <div class="admin-badge">SYSTEM ADMIN</div>
+                {% elif is_hr_manager %}
+                <div class="admin-badge" style="background: rgba(16, 185, 129, 0.12); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.2);">HR MANAGER</div>
+                {% elif is_logistics_supervisor %}
+                <div class="admin-badge" style="background: rgba(59, 130, 246, 0.12); color: #93c5fd; border-color: rgba(59, 130, 246, 0.2);">LOGISTICS SUP</div>
+                {% elif is_production_operator %}
+                <div class="admin-badge" style="background: rgba(245, 158, 11, 0.12); color: #fde047; border-color: rgba(245, 158, 11, 0.2);">PROD OPERATOR</div>
+                {% else %}
+                <div class="admin-badge" style="background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.2);">OPERATOR</div>
+                {% endif %}
+
+                <br>
+
+                <form id="logout-form" action="{% url 'logout' %}" method="POST" style="display: none;">
+                    {% csrf_token %}
+                </form>
+                <a href="#" onclick="document.getElementById('logout-form').submit(); return false;" class="logout">
+                    ⎋ Sign out
+                </a>
+            {% else %}
+                <div class="user-email">Guest User</div>
+                <div class="admin-badge" style="background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.2);">GUEST</div>
+                <br>
+                <a href="{% url 'login' %}" class="logout" style="color: var(--accent-indigo); font-weight: 700;">
+                    🔑 Sign in
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- PAGE CONTENT -->
+    <div class="content">
+        {% if messages %}
+            <div class="toast-container">
+                {% for message in messages %}
+                    <div class="toast toast-{{ message.tags }}" role="alert">
+                        <span>{{ message }}</span>
+                        <button type="button" class="toast-close" aria-label="Dismiss">×</button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const toasts = document.querySelectorAll('.toast');
+
+        toasts.forEach(toast => {
+            const close = toast.querySelector('.toast-close');
+            const timeout = setTimeout(() => {
+                toast.style.opacity = 0;
+                setTimeout(() => toast.remove(), 300);
+            }, 6000);
+
+            close.addEventListener('click', () => {
+                clearTimeout(timeout);
+                toast.style.opacity = 0;
+                setTimeout(() => toast.remove(), 300);
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

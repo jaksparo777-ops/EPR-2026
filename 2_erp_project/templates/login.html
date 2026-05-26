@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Foundry ERP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #070a13;
+            --card-glass: rgba(17, 24, 39, 0.75);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --accent-blue: #4f46e5;
+            --accent-glow: rgba(79, 70, 229, 0.15);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --input-bg: rgba(10, 15, 30, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glowing Background Elements */
+        .ambient-glow-1 {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(79, 70, 229, 0.12) 0%, transparent 70%);
+            top: -100px;
+            left: -100px;
+            z-index: 0;
+            animation: float-slow 15s infinite alternate;
+        }
+
+        .ambient-glow-2 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(180, 83, 9, 0.08) 0%, transparent 70%);
+            bottom: -150px;
+            right: -150px;
+            z-index: 0;
+            animation: float-slow 20s infinite alternate-reverse;
+        }
+
+        @keyframes float-slow {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, 30px) scale(1.1); }
+        }
+
+        /* Glassmorphic Login Container */
+        .login-container {
+            width: 100%;
+            max-width: 440px;
+            padding: 40px;
+            background: var(--card-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            position: relative;
+            transform: translateY(0);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fade-in 0.8s ease-out;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 35px;
+            text-align: center;
+        }
+
+        .logo-box {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #312e81 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-box img {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            object-fit: cover;
+        }
+
+        .logo-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            transition: color 0.2s;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 16px;
+            color: var(--text-secondary);
+            font-size: 16px;
+            pointer-events: none;
+            transition: color 0.2s;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px 14px 44px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            transition: all 0.25s ease;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+            background: rgba(10, 15, 30, 0.8);
+        }
+
+        .form-input:focus + .input-icon {
+            color: var(--text-primary);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #4338ca 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+            transition: all 0.25s ease;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        /* Error/Alert Banners */
+        .alert-card {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: #f87171;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .alert-icon {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow-1"></div>
+    <div class="ambient-glow-2"></div>
+
+    <div class="login-container">
+        
+        <div class="logo-section">
+            <div class="logo-box">
+                <img src="/static/img/logo.jpg" alt="Logo">
+            </div>
+            <div class="logo-title">Foundry ERP</div>
+            <div class="logo-subtitle">Casting → Dispatch</div>
+        </div>
+
+        {% if form.errors %}
+            <div class="alert-card">
+                <span class="alert-icon">⚠️</span>
+                <span>Invalid username or password. Please try again.</span>
+            </div>
+        {% endif %}
+
+        <form method="POST" action="{% url 'login' %}">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">👤</span>
+                    <input class="form-input" 
+                           type="text" 
+                           name="username" 
+                           id="username" 
+                           placeholder="Enter username" 
+                           required 
+                           autocomplete="username"
+                           autofocus>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input class="form-input" 
+                           type="password" 
+                           name="password" 
+                           id="password" 
+                           placeholder="Enter password" 
+                           required 
+                           autocomplete="current-password">
+                </div>
+            </div>
+
+            <input type="hidden" name="next" value="{{ next|default:'/' }}">
+
+            <button type="submit" class="btn-submit">
+                <span>Sign In</span>
+                <span>→</span>
+            </button>
+        </form>
+
+        <div class="footer-note">
+            Foundry ERP Suite &bull; Secure Terminal Portal
+        </div>
+
+    </div>
+
+</body>
+</html>

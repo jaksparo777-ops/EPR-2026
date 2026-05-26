@@ -1,0 +1,1583 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<style>
+    :root {
+        --indigo-primary: #6366f1;
+        --indigo-glow: rgba(99, 102, 241, 0.15);
+        --glass-bg: rgba(17, 24, 39, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 32px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .polishing-header {
+        margin-bottom: 40px;
+    }
+
+    .polishing-header h1 {
+        font-size: 64px;
+        background: linear-gradient(135deg, #fff 0%, #6366f1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -2px;
+        margin-bottom: 8px;
+    }
+
+    .polishing-header p {
+        font-size: 20px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    /* Direction Toggle */
+    .dir-toggle-container {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+        padding: 2px;
+        border: 1px solid var(--glass-border);
+        margin-bottom: 0;
+        height: 38px;
+        display: flex;
+        align-items: center;
+    }
+
+    .dir-toggle-pill {
+        display: flex;
+        position: relative;
+        height: 34px;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .dir-toggle-option {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--text-secondary);
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .dir-toggle-option.active {
+        color: white;
+    }
+
+    .dir-toggle-slider {
+        position: absolute;
+        height: 100%;
+        width: 50%;
+        border-radius: 8px;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 1;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .dir-toggle-pill[data-dir="polishing_in"] .dir-toggle-slider {
+        left: 50%;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .dir-toggle-pill[data-dir="polishing_out"] .dir-toggle-slider {
+        left: 0;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    }
+
+    /* Main Layout */
+    .main-grid {
+        display: grid;
+        grid-template-columns: 480px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    /* Item Row Styling */
+    .item-row {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .item-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: var(--indigo-primary);
+        transform: translateX(4px);
+    }
+
+    .row-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 12px;
+    }
+
+    .stat-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .stat-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: white;
+    }
+
+    .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .remove-row-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        font-size: 16px;
+        transition: all 0.2s;
+    }
+
+    .remove-row-btn:hover {
+        background: #ef4444;
+        color: white;
+    }
+
+    .bom-indicator {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+    }
+
+    .bom-tag {
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        color: #818cf8;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    /* Tabs */
+    .nav-tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .nav-tab {
+        padding: 12px 24px;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--glass-border);
+        color: var(--text-secondary);
+        transition: all 0.2s;
+    }
+
+    .nav-tab.active {
+        background: var(--indigo-primary);
+        color: white;
+        border-color: var(--indigo-primary);
+        box-shadow: 0 10px 20px var(--indigo-glow);
+    }
+
+    /* Status Badges */
+    .badge {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-in {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .badge-out {
+        background: rgba(99, 102, 241, 0.1);
+        color: #818cf8;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        box-shadow: 0 10px 30px var(--indigo-glow);
+        width: 100%;
+        margin-top: 12px;
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--glass-border);
+        color: var(--text-primary);
+        width: 100%;
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Table custom */
+    .recent-table th {
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        display: block;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    /* Entry Mode Toggle */
+    .mode-toggle-container {
+        display: flex;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        padding: 4px;
+        margin-bottom: 24px;
+    }
+
+    .mode-btn {
+        flex: 1;
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+    }
+
+    .mode-btn.active {
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .mode-btn.active.sets-active {
+        color: #818cf8;
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .mode-btn.active.single-active {
+        color: #fbbf24;
+        background: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.2);
+    }
+</style>
+
+<div class="polishing-header">
+    <h1>Polishing</h1>
+    <p>Manage machined inventory through the polishing stage</p>
+</div>
+
+<div class="nav-tabs">
+    <div class="nav-tab active" onclick="switchMainTab('new')">NEW MOVEMENT</div>
+    <div class="nav-tab" onclick="switchMainTab('stock')">MACHINING STOCK</div>
+    <div class="nav-tab" onclick="switchMainTab('ledger')">FULL LEDGER</div>
+</div>
+
+<!-- NEW MOVEMENT SECTION -->
+<div id="new-section" class="tab-content">
+    <div class="main-grid">
+        <!-- FORM COLUMN -->
+        <div class="glass-card">
+            <h3 style="margin-bottom:24px;font-size:20px;letter-spacing:1px;">RECORD TRANSACTION</h3>
+
+            <form method="POST" id="polishingForm">
+                {% csrf_token %}
+                <input type="hidden" name="edit_id" id="editIdInput" value="">
+                <input type="hidden" name="direction" id="dirInput" value="polishing_out">
+
+                <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; margin-bottom: 20px;">
+                    <!-- Direction Pill -->
+                    <div>
+                        <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Direction</label>
+                        <div class="dir-toggle-container" style="margin-bottom: 0;">
+                            <div class="dir-toggle-pill" data-dir="polishing_out" onclick="toggleDirection()">
+                                <div class="dir-toggle-slider"></div>
+                                <div class="dir-toggle-option active" id="opt-out">ISSUE</div>
+                                <div class="dir-toggle-option" id="opt-in">RECEIVE</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Worker Selection -->
+                    <div>
+                        <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Assigned Worker</label>
+                        <select name="worker" id="workerSelect" style="width: 100%;">
+                            <option value="">Select Worker...</option>
+                            {% if workers %}
+                            <optgroup label="🏠 Internal Staff">
+                                {% for w in workers %}
+                                <option value="w_{{ w.id }}">{{ w.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                            {% if job_workers %}
+                            <optgroup label="🏗️ External Job Work">
+                                {% for jw in job_workers %}
+                                <option value="jw_{{ jw.id }}">{{ jw.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Hidden dynamic transaction data array -->
+                <input type="hidden" name="transaction_data" id="transaction-data-input">
+
+                <div id="items-container">
+                    <!-- Rows will be injected here -->
+                </div>
+
+                <button type="button" class="btn-secondary" style="margin-bottom:12px;" onclick="addItemRow()">
+                    + ADD ITEM
+                </button>
+
+                <button type="submit" class="btn-primary">
+                    SAVE TRANSACTION
+                </button>
+            </form>
+        </div>
+
+        <!-- ASSIGNED WORK IN PROGRESS (WIP) -->
+        <div class="glass-card">
+            <h3 style="margin-bottom:24px;font-size:20px;letter-spacing:1px; display:flex; align-items:center; gap:10px;">
+                <span style="color:var(--accent-blue);">●</span> ASSIGNED WORK IN PROGRESS (WIP)
+            </h3>
+
+            <div style="overflow-x:auto; max-height:480px; overflow-y:auto;">
+                <table class="recent-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 16px;">Item Details</th>
+                            <th colspan="2" style="text-align:right; padding-right:24px;">Pending Qty</th>
+                            <th style="text-align:right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for worker_name, items_list in polishing_stock.items %}
+                        <!-- Worker Header -->
+                        <tr style="background: rgba(99, 102, 241, 0.08); border-left: 4px solid var(--accent-blue);">
+                            <td colspan="4" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:14px; text-shadow: 0 0 10px rgba(59, 130, 246, 0.4);">👤</span>
+                                        <span style="font-weight:800; color:var(--text-primary); font-size:12px; text-transform:uppercase; letter-spacing:0.8px;">{{ worker_name }}</span>
+                                    </div>
+                                    <span style="background:rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); color:var(--text-secondary); font-size:10px; padding:2px 8px; border-radius:4px; font-weight:800;">{{ items_list|length }} items pending</span>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        {% for row in items_list %}
+                        <!-- Item Row -->
+                        <tr>
+                            <td style="padding-left: 28px; vertical-align:middle;">
+                                <div style="font-weight:700; color:var(--text-primary); font-size:14px; letter-spacing:0.5px;">{{ row.item_code }}</div>
+                                <div style="font-size:12px; color:var(--text-secondary);">{{ row.item_name }}</div>
+                            </td>
+                            <td colspan="2" style="text-align:right; font-weight:800; color:var(--accent-blue); vertical-align:middle; padding-right:24px;">
+                                {{ row.under_process }} pcs
+                            </td>
+                            <td style="text-align:right; vertical-align:middle;">
+                                <button type="button" class="btn-primary"
+                                    style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.2); padding:6px 12px; font-size:11px; font-weight:800; border-radius:8px; cursor:pointer;"
+                                    onclick="handleMarkInClick(event, '?mark_in_group=true&worker_id={{ row.worker_id }}&item_id={{ row.item_id }}', '{{ row.item_code }}', {{ row.under_process }})">
+                                    Mark IN
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align:center; padding:24px; color:var(--text-secondary); font-style:italic;">
+                                <i>✨</i> No pending polishing assignments
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECENT ACTIVITY (Full Width Below Grid) -->
+    <div class="glass-card" style="margin-top:24px;">
+        <h3 style="margin-bottom:24px;font-size:20px;letter-spacing:1px;">RECENT ACTIVITY</h3>
+
+        <div style="overflow-x:auto;">
+            <table class="recent-table">
+                <thead>
+                    <tr>
+                        <th>DATE</th>
+                        <th>TYPE</th>
+                        <th>ITEM</th>
+                        <th>WORKER</th>
+                        <th>QTY</th>
+                        <th>ACTION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in recent %}
+                    <tr>
+                        <td>{{ row.created_at|date:"d M" }}</td>
+                        <td>
+                            {% if row.transaction_type == 'polishing_out' %}
+                            <span class="badge badge-out">ISSUE</span>
+                            {% else %}
+                            <span class="badge badge-in">RECEIVE</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-weight:700;">{{ row.item.code }}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">{{ row.item.name }}</div>
+                        </td>
+                        <td>
+                            {% if row.worker %}{{ row.worker.name }}{% else %}{{ row.job_worker.name }}{% endif %}
+                        </td>
+                        <td>
+                            <div style="font-weight:700;">{{ row.quantity }} pcs</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">{{ row.weight }} kg</div>
+                        </td>
+                        <td style="text-align:right;">
+                            <div style="display:flex; gap:8px; justify-content:flex-end; align-items:center;">
+                                {% if row.transaction_type == "polishing_out" %}
+                                    {% if row.id in completed_ids %}
+                                        <span style="color:#10b981;font-size:12px;font-weight:700;margin-right:8px;">✓ RECEIVED</span>
+                                    {% else %}
+                                        <a href="#" class="btn-primary"
+                                            onclick="handleMarkInClick(event, '?mark_in={{ row.id }}', '{{ row.item.code }}', {{ row.quantity }})"
+                                            style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.2); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; text-decoration:none; display:inline-block; line-height:1.2;">MARK IN</a>
+                                    {% endif %}
+                                {% endif %}
+
+                                <button type="button" class="btn-secondary"
+                                    style="background:rgba(79, 70, 229, 0.1); color:#818cf8; border:1px solid rgba(79, 70, 229, 0.2); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; cursor:pointer;"
+                                    onclick='editPolishingTransaction({
+                                        id: "{{ row.id }}",
+                                        type: "{{ row.transaction_type }}",
+                                        item_id: "{{ row.item.id }}",
+                                        item_name: "{{ row.item.code }} - {{ row.item.name }}",
+                                        worker_id: "{% if row.worker %}w_{{ row.worker.id }}{% elif row.job_worker %}jw_{{ row.job_worker.id }}{% endif %}",
+                                        qty: "{{ row.quantity }}",
+                                        weight: "{{ row.weight }}"
+                                    })'>
+                                    EDIT
+                                </button>
+
+                                <a href="?delete_id={{ row.id }}" class="btn-secondary"
+                                    style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; text-decoration:none; cursor:pointer;"
+                                    onclick="return confirm('Are you sure you want to delete this Polishing transaction? Deleting parent set transactions will also remove auto-consumed component inventory entries.');">
+                                    DELETE
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <i>✨</i>
+                            No recent polishing activity
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- STOCK TAB -->
+<div id="stock-section" class="tab-content" style="display:none;">
+    <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:24px;">
+        <div class="glass-card">
+            <h3 style="margin-bottom:24px;">INDIVIDUAL PIECES</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ITEM</th>
+                        <th>STOCK</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    {% if item.item_type != 'SET' and item.current_stock > 0 %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:700;">{{ item.code }}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">{{ item.name }}</div>
+                        </td>
+                        <td><span class="badge badge-in">{{ item.current_stock }}</span></td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="glass-card" style="border-color: var(--accent-gold);">
+            <h3 style="margin-bottom:24px; color:var(--accent-gold);">READY FOR KITTING (SETS)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>SET ITEM</th>
+                        <th>POSSIBLE SETS</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    {% if item.components.exists %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:700;">{{ item.code }}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">{{ item.name }}</div>
+                        </td>
+                        <td><span class="badge"
+                                style="background:rgba(180,83,9,0.1); color:var(--accent-gold); font-size:16px;">{{ item.set_capacity }}</span></td>
+                        <td>
+                            {% if item.set_capacity > 0 %}
+                            <span style="color:#10b981; font-size:12px; font-weight:700;">● READY</span>
+                            {% else %}
+                            <span style="color:#ef4444; font-size:12px; font-weight:700;">○ LACKING PARTS</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- LEDGER TAB -->
+<div id="ledger-section" class="tab-content" style="display:none;">
+    <div class="glass-card">
+        <h3 style="margin-bottom:24px;">POLISHING HISTORY</h3>
+        <!-- Reuse full ledger view logic if needed, or simple list -->
+        <table>
+            <thead>
+                <tr>
+                    <th>DATE</th>
+                    <th>WORKER</th>
+                    <th>ITEM</th>
+                    <th>QTY</th>
+                    <th>WEIGHT</th>
+                    <th>TRANSACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in recent %}
+                <tr>
+                    <td>{{ row.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>{% if row.worker %}{{ row.worker.name }}{% elif row.job_worker %}{{ row.job_worker.name }}{% endif %}</td>
+                    <td>{{ row.item.name }}</td>
+                    <td>{{ row.quantity }}</td>
+                    <td>{{ row.weight }} kg</td>
+                    <td>{{ row.transaction_type|upper }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Master Data for JS -->
+<script id="item-data" type="application/json">
+    [
+        {% for item in items %}
+        {
+            "id": "{{ item.id }}",
+            "code": "{{ item.code }}",
+            "name": "{{ item.name }}",
+            "lot_size": {{ item.lot_size|default:0 }},
+            "lot_with_box": {{ item.lot_with_box|default:0 }},
+            "weight": {{ item.machining_weight|default:0 }},
+            "available": {{ item.available_stock|default:0 }},
+            "is_set": {% if item.components.exists %}true{% else %}false{% endif %},
+            "components": [
+                {% if item.components.exists %}
+                    {% for comp in item.components.all %}
+                    {
+                        "id": "{{ comp.component_item.id }}", 
+                        "name": "{{ comp.component_item.name }}", 
+                        "qty_per_set": {{ comp.quantity }}
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                {% endif %}
+            ]
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+</script>
+
+<script id="stock-data" type="application/json">
+    {
+        {% for key, value in piece_stock.items %}
+        "{{ key }}": {{ value }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    }
+</script>
+
+<script id="set-capacity-data" type="application/json">
+    {
+        {% for key, value in set_capacity.items %}
+        "{{ key }}": {{ value }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    }
+</script>
+
+<script id="allocation-data" type="application/json">
+    [
+        {% for alloc in allocations %}
+        {
+            "item_id": "{{ alloc.item.id }}",
+            "worker_id": "{% if alloc.worker %}w_{{ alloc.worker.id }}{% elif alloc.job_worker %}jw_{{ alloc.job_worker.id }}{% endif %}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+</script>
+
+<script>
+    const itemsMaster = JSON.parse(document.getElementById('item-data').textContent);
+    const stockMaster = JSON.parse(document.getElementById('stock-data').textContent);
+    const capacityMaster = JSON.parse(document.getElementById('set-capacity-data').textContent);
+    const allocationsMaster = JSON.parse(document.getElementById('allocation-data').textContent || '[]');
+    let rowCount = 0;
+    let workerTS = null;
+    const rowTomSelects = {};
+    let lastAllocatedItemId = null;
+
+    function toggleDirection() {
+        const container = document.querySelector('.dir-toggle-pill');
+        const input = document.getElementById('dirInput');
+        const current = container.dataset.dir;
+
+        if (current === 'polishing_out') {
+            container.dataset.dir = 'polishing_in';
+            input.value = 'polishing_in';
+            document.getElementById('opt-out').classList.remove('active');
+            document.getElementById('opt-in').classList.add('active');
+        } else {
+            container.dataset.dir = 'polishing_out';
+            input.value = 'polishing_out';
+            document.getElementById('opt-in').classList.remove('active');
+            document.getElementById('opt-out').classList.add('active');
+        }
+    }
+
+    function togglePackaging(id, pkgType) {
+        const regBtn = document.getElementById(`pkg-reg-${id}`);
+        const boxBtn = document.getElementById(`pkg-box-${id}`);
+        const pkgInput = document.getElementById(`pkg-input-${id}`);
+        
+        pkgInput.value = pkgType;
+        pkgInput.dataset.pkg = pkgType;
+        
+        if (pkgType === 'box') {
+            regBtn.style.background = 'transparent';
+            regBtn.style.color = 'var(--text-secondary)';
+            regBtn.style.border = 'none';
+            boxBtn.style.background = 'rgba(255,255,255,0.05)';
+            boxBtn.style.color = '#fbbf24';
+            boxBtn.style.border = '1px solid rgba(251, 191, 36, 0.2)';
+        } else {
+            boxBtn.style.background = 'transparent';
+            boxBtn.style.color = 'var(--text-secondary)';
+            boxBtn.style.border = 'none';
+            regBtn.style.background = 'rgba(255,255,255,0.05)';
+            regBtn.style.color = 'white';
+            regBtn.style.border = 'none';
+        }
+        
+        // Recalculate row
+        calculateRow(id);
+    }
+
+    // (Entry mode switching removed in favor of Unified mixed-mode transaction builder)
+
+    function switchMainTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+
+        document.getElementById(tab + '-section').style.display = 'block';
+        event.currentTarget.classList.add('active');
+    }
+
+    function filterPolishingItemsByWorker(workerId) {
+        let allowedItems = itemsMaster;
+        if (workerId) {
+            const allocatedIds = allocationsMaster.filter(a => a.worker_id === workerId).map(a => a.item_id);
+            const allowedItemIds = new Set(allocatedIds.map(id => id.toString()));
+            itemsMaster.forEach(it => {
+                if (it.is_set && it.components && it.components.length > 0) {
+                    const hasAllocatedComponent = it.components.some(c => allowedItemIds.has(c.id.toString()));
+                    if (hasAllocatedComponent) {
+                        allowedItemIds.add(it.id.toString());
+                    }
+                }
+            });
+            allowedItems = itemsMaster.filter(it => allowedItemIds.has(it.id.toString()));
+            if (allowedItems.length === 0) allowedItems = itemsMaster;
+        }
+
+        Object.keys(rowTomSelects).forEach(id => {
+            const ts = rowTomSelects[id];
+            if (ts) {
+                const currentVal = ts.getValue();
+                ts.clearOptions();
+
+                const optionsToAdd = allowedItems.map(it => ({
+                    value: it.id,
+                    text: `${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}`
+                }));
+                ts.addOptions(optionsToAdd);
+
+                if (currentVal && allowedItems.some(it => it.id == currentVal)) {
+                    ts.setValue(currentVal, true);
+                } else {
+                    ts.setValue('', true);
+                }
+            }
+        });
+    }
+
+    function addItemRow() {
+        const id = rowCount++;
+
+        const workerId = workerTS ? workerTS.getValue() : '';
+        let allowedItems = itemsMaster;
+        if (workerId) {
+            const allocatedIds = allocationsMaster.filter(a => a.worker_id === workerId).map(a => a.item_id);
+            const allowedItemIds = new Set(allocatedIds.map(id => id.toString()));
+            itemsMaster.forEach(it => {
+                if (it.is_set && it.components && it.components.length > 0) {
+                    const hasAllocatedComponent = it.components.some(c => allowedItemIds.has(c.id.toString()));
+                    if (hasAllocatedComponent) {
+                        allowedItemIds.add(it.id.toString());
+                    }
+                }
+            });
+            allowedItems = itemsMaster.filter(it => allowedItemIds.has(it.id.toString()));
+            if (allowedItems.length === 0) allowedItems = itemsMaster;
+        }
+
+        console.log(`Adding dynamic mixed row. Items count: ${allowedItems.length}`);
+
+        const html = `
+            <div class="item-row" id="row-${id}" style="border-left: 4px solid #fbbf24; padding: 20px;">
+                <div class="remove-row-btn" onclick="removeRow(${id})" style="top: 10px; right: 10px;">×</div>
+                
+                <!-- Row 1: SELECT ITEM / SET (100% Width) -->
+                <div style="margin-bottom: 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <label class="stat-label" style="margin-bottom:0;">SELECT ITEM / SET</label>
+                    </div>
+                    <select name="item[]" class="item-select" onchange="handleItemChange(${id}, this)">
+                        <option value="">Search...</option>
+                        ${allowedItems.map(it => `<option value="${it.id}">${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}</option>`).join('')}
+                    </select>
+                </div>
+                
+                <!-- Row 2: Inputs Grid (3 Columns: Packaging, Lots, Extra Pieces) -->
+                <div id="input-grid-${id}" style="display:grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; margin-bottom: 16px; align-items: end;">
+                    <div id="pkg-container-${id}">
+                        <label class="stat-label">PACKAGING</label>
+                        <div style="display:flex; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); border-radius:10px; padding:2px; height:38px; align-items:center;">
+                            <button type="button" class="pkg-btn active pkg-regular-btn" style="flex:1; height:32px; border-radius:8px; font-size:10px; font-weight:800; border:none; background:rgba(255,255,255,0.05); color:white; cursor:pointer;" id="pkg-reg-${id}" onclick="togglePackaging(${id}, 'regular')">REGULAR</button>
+                            <button type="button" class="pkg-btn pkg-box-btn" style="flex:1; height:32px; border-radius:8px; font-size:10px; font-weight:800; border:none; background:transparent; color:var(--text-secondary); cursor:pointer;" id="pkg-box-${id}" onclick="togglePackaging(${id}, 'box')">BOX</button>
+                        </div>
+                        <input type="hidden" id="pkg-input-${id}" class="pkg-toggle-pill" data-pkg="regular" value="regular">
+                    </div>
+                    
+                    <div class="input-group" id="lot-container-${id}" style="margin-bottom:0;">
+                        <label class="stat-label" id="lot-label-${id}">BULK LOTS <span style="font-size:8px; color:var(--text-secondary); font-weight:normal;" id="lot-size-span-${id}">(Lot: 0)</span></label>
+                        <input type="number" name="lots[]" value="0" min="0" oninput="calculateRow(${id})" style="height:38px; margin:0;">
+                    </div>
+                    
+                    <div class="input-group" id="extra-group-${id}" style="margin-bottom:0;">
+                        <label class="stat-label" id="extra-label-${id}">+ EXTRA PCS</label>
+                        <input type="number" name="manual[]" value="0" min="0" oninput="calculateRow(${id})" style="height:38px; margin:0;">
+                    </div>
+                </div>
+
+                <!-- Row 3: Display Summary Grid -->
+                <div class="row-grid" style="margin-top:16px; border-top:1px solid var(--glass-border); padding-top:16px;">
+                    <div>
+                        <div class="stat-label">TOTAL QTY</div>
+                        <div class="stat-value"><span id="qty-display-${id}">0</span> pcs</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">WEIGHT</div>
+                        <div class="stat-value"><span id="wt-display-${id}">0.000</span> kg</div>
+                        <input type="hidden" name="weight[]" id="wt-input-${id}" value="0">
+                    </div>
+                </div>
+
+                <div id="bom-display-${id}" class="bom-indicator"></div>
+
+                <!-- Dynamic components overrides -->
+                <div id="components-drawer-${id}" style="margin-top:16px; border-top:1px dashed var(--glass-border); padding-top:16px; display:none;">
+                    <div class="stat-label" style="color:var(--accent-gold); margin-bottom:12px; font-size:11px;">📦 Set Components overrides</div>
+                    <div id="components-list-${id}" style="display:flex; flex-direction:column; gap:12px;"></div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('items-container').insertAdjacentHTML('beforeend', html);
+
+        const ts = new TomSelect(`#row-${id} .item-select`, {
+            create: false,
+            valueField: 'value',
+            labelField: 'text',
+            searchField: ['text'],
+            options: allowedItems.map(it => ({
+                value: it.id,
+                text: `${it.is_set ? '📦 [SET] ' : '🧩 [SINGLE] '}${it.code} - ${it.name}`
+            })),
+            placeholder: 'Search...',
+            allowEmptyOption: true,
+            sortField: { field: 'text', direction: 'asc' }
+        });
+        rowTomSelects[id] = ts;
+
+        // Ensure TomSelect change reliably triggers handleItemChange and recalculates quantities
+        ts.on('change', function() {
+            const selectEl = document.querySelector(`#row-${id} .item-select`);
+            if (selectEl && selectEl.nextElementSibling) {
+                selectEl.nextElementSibling.style.border = '';
+                selectEl.nextElementSibling.style.boxShadow = '';
+            }
+            handleItemChange(id);
+        });
+    }
+
+    function removeRow(id) {
+        document.getElementById(`row-${id}`).remove();
+        delete rowTomSelects[id];
+    }
+
+    function handleItemChange(id) {
+        const compList = document.getElementById(`components-list-${id}`);
+        if (compList) {
+            compList.innerHTML = '';
+        }
+
+        const ts = rowTomSelects[id];
+        const itemId = ts ? ts.getValue() : '';
+
+        // Auto-select allocated worker when an item is selected
+        if (itemId) {
+            let alloc = allocationsMaster.find(a => {
+                if (a.item_id == itemId) {
+                    const optExists = document.querySelector(`#workerSelect option[value="${a.worker_id}"]`);
+                    return !!optExists;
+                }
+                return false;
+            });
+
+            // Component Fallback: If it's a SET and has no direct allocation, check components' allocations
+            if (!alloc) {
+                const item = itemsMaster.find(it => it.id == itemId);
+                if (item && item.is_set && item.components && item.components.length > 0) {
+                    for (const comp of item.components) {
+                        const compAlloc = allocationsMaster.find(a => {
+                            if (a.item_id == comp.id) {
+                                const optExists = document.querySelector(`#workerSelect option[value="${a.worker_id}"]`);
+                                return !!optExists;
+                            }
+                            return false;
+                        });
+                        if (compAlloc) {
+                            alloc = compAlloc;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (alloc && workerTS) {
+                workerTS.setValue(alloc.worker_id);
+            }
+        }
+
+        calculateRow(id);
+    }
+
+    function calculateRow(id) {
+        const row = document.getElementById(`row-${id}`);
+        if (!row) return;
+        const ts = rowTomSelects[id];
+        const selectedValue = ts ? ts.getValue() : '';
+        const lots = parseInt(row.querySelector('[name="lots[]"]').value || 0);
+        const extra = parseInt(row.querySelector('[name="manual[]"]').value || 0);
+        const bomDisplay = document.getElementById(`bom-display-${id}`);
+        const pkgType = document.getElementById(`pkg-input-${id}`).value;
+
+        const pkgContainer = document.getElementById(`pkg-container-${id}`);
+        const lotContainer = document.getElementById(`lot-container-${id}`);
+        const extraGroup = document.getElementById(`extra-group-${id}`);
+        const extraLabel = document.getElementById(`extra-label-${id}`);
+        const inputGrid = document.getElementById(`input-grid-${id}`);
+        const lotsInput = row.querySelector('[name="lots[]"]');
+        const manualInput = row.querySelector('[name="manual[]"]');
+
+        const item = itemsMaster.find(it => it.id == selectedValue);
+        if (!item) {
+            document.getElementById(`lot-size-span-${id}`).innerText = '(Lot: 0)';
+            document.getElementById(`components-drawer-${id}`).style.display = 'none';
+            document.getElementById(`qty-display-${id}`).innerText = 0;
+            document.getElementById(`wt-display-${id}`).innerText = '0.000';
+            document.getElementById(`wt-input-${id}`).value = 0;
+            bomDisplay.innerHTML = '';
+
+            if (pkgContainer) pkgContainer.style.display = 'block';
+            if (lotContainer) lotContainer.style.display = 'block';
+            if (extraGroup) extraGroup.style.display = 'block';
+            if (extraLabel) extraLabel.innerText = '+ EXTRA PCS';
+            if (inputGrid) inputGrid.style.gridTemplateColumns = '1.4fr 1fr 1fr';
+            return;
+        }
+
+        // Update lot size multiplier based on packaging choice (with fallback to lot_size if lot_with_box is 0/undefined)
+        let lotSize = item.lot_size || 1;
+        if (pkgType === 'box') {
+            lotSize = (item.lot_with_box && item.lot_with_box > 0) ? item.lot_with_box : (item.lot_size || 1);
+        }
+        document.getElementById(`lot-size-span-${id}`).innerText = `(Lot: ${lotSize})`;
+
+        // Visual feedback based on item type
+        row.style.borderLeftColor = item.is_set ? '#6366f1' : '#fbbf24';
+
+        let currentLots = lots;
+        let currentExtra = extra;
+
+        if (item.is_set) {
+            // SET Item: Show Packaging, Lots, and Extra Pcs
+            if (pkgContainer) pkgContainer.style.display = 'block';
+            if (lotContainer) lotContainer.style.display = 'block';
+            if (extraGroup) extraGroup.style.display = 'block';
+            if (extraLabel) extraLabel.innerText = '+ EXTRA PCS';
+            if (inputGrid) inputGrid.style.gridTemplateColumns = '1.4fr 1fr 1fr';
+        } else {
+            // SINGLE Item: Hide Packaging & Lots, Show ONLY Extra Pcs renamed to "PCS"
+            if (pkgContainer) pkgContainer.style.display = 'none';
+            if (lotContainer) lotContainer.style.display = 'none';
+            if (extraGroup) extraGroup.style.display = 'block';
+            if (extraLabel) extraLabel.innerText = 'PCS';
+            if (inputGrid) inputGrid.style.gridTemplateColumns = '1fr';
+            if (lotsInput) lotsInput.value = 0;
+            currentLots = 0;
+        }
+
+        const totalQty = (currentLots * lotSize) + currentExtra;
+        const totalWt = (totalQty * item.weight).toFixed(3);
+
+        document.getElementById(`qty-display-${id}`).innerText = totalQty;
+        document.getElementById(`wt-display-${id}`).innerText = totalWt;
+        document.getElementById(`wt-input-${id}`).value = totalWt;
+
+        // Render BOM/Set components overrides if it's a SET
+        const compDrawer = document.getElementById(`components-drawer-${id}`);
+        const compList = document.getElementById(`components-list-${id}`);
+
+        if (item.is_set && item.components.length > 0) {
+            compDrawer.style.display = 'block';
+
+            if (compList.children.length === 0) {
+                compList.innerHTML = item.components.map(c => {
+                    const available = stockMaster[c.id] || 0;
+                    return `
+                        <div class="comp-row-override" id="comp-row-${id}-${c.id}" data-comp-id="${c.id}" data-qty-per-set="${c.qty_per_set}">
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); padding:10px 14px; border-radius:12px; flex-wrap:wrap; gap:10px;">
+                                <div style="flex:1; min-width:150px;">
+                                    <div style="font-size:12px; font-weight:700; color:white;">${c.name}</div>
+                                    <div style="font-size:10px; color:var(--text-secondary);">Stock: <span id="comp-stock-val-${id}-${c.id}">${available}</span> pcs</div>
+                                </div>
+                                <div style="width:100px;">
+                                    <div class="stat-label" style="font-size:9px; margin-bottom:4px;">Calc Qty</div>
+                                    <div style="font-size:13px; font-weight:700; color:var(--indigo-primary);"><span id="comp-calc-qty-${id}-${c.id}">0</span> pcs</div>
+                                </div>
+                                <div class="input-group" style="width:110px;">
+                                    <label class="stat-label" style="font-size:9px; margin-bottom:2px;">+ Extra pcs</label>
+                                    <input type="number" class="comp-extra-input" value="0" min="0" style="height:32px; font-size:11px; padding:4px 8px; border-radius:8px; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); color:white; text-align:center;" oninput="calculateRow(${id})">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Update nested components calculated amounts
+            item.components.forEach(c => {
+                const calcQty = c.qty_per_set * totalQty;
+                const compRow = document.getElementById(`comp-row-${id}-${c.id}`);
+                const extraInput = compRow.querySelector('.comp-extra-input');
+                const extraVal = parseInt(extraInput.value || 0);
+                const totalCompQty = calcQty + extraVal;
+
+                document.getElementById(`comp-calc-qty-${id}-${c.id}`).innerText = totalCompQty;
+
+                // Validation against machining stock
+                const available = stockMaster[c.id] || 0;
+                const containerDiv = compRow.querySelector('div');
+                if (totalCompQty > available) {
+                    containerDiv.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                    containerDiv.style.background = 'rgba(239, 68, 68, 0.05)';
+                } else {
+                    containerDiv.style.borderColor = 'var(--glass-border)';
+                    containerDiv.style.background = 'rgba(255,255,255,0.02)';
+                }
+            });
+
+            bomDisplay.innerHTML = '';
+        } else {
+            compDrawer.style.display = 'none';
+            compList.innerHTML = '';
+            bomDisplay.innerHTML = '';
+        }
+    }
+
+    function setDirection(dir) {
+        const container = document.querySelector('.dir-toggle-pill');
+        const input = document.getElementById('dirInput');
+        
+        container.dataset.dir = dir;
+        input.value = dir;
+        
+        if (dir === 'polishing_in') {
+            document.getElementById('opt-out').classList.remove('active');
+            document.getElementById('opt-in').classList.add('active');
+        } else {
+            document.getElementById('opt-in').classList.remove('active');
+            document.getElementById('opt-out').classList.add('active');
+        }
+    }
+
+    function quickReceivePolishing(data) {
+        // 1. Smooth Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // 2. Set direction to RECEIVE
+        setDirection('polishing_in');
+
+        // 3. Clear container & Add exactly one fresh item row
+        const container = document.getElementById('items-container');
+        container.innerHTML = '';
+        
+        // Reset the dynamic TomSelect instances map
+        Object.keys(rowTomSelects).forEach(id => {
+            delete rowTomSelects[id];
+        });
+        
+        rowCount = 0;
+        addItemRow(); // This creates row with id 0
+
+        // 4. Set Worker
+        if (workerTS) {
+            workerTS.setValue(data.worker_id);
+        }
+
+        // 5. Select Item on row 0
+        const ts = rowTomSelects[0];
+        if (ts) {
+            const item_id_str = data.item_id.toString();
+            let originalOpt = itemsMaster.find(item => item.id.toString() === item_id_str);
+            if (!originalOpt && data.item_name) {
+                originalOpt = {
+                    id: item_id_str,
+                    name: data.item_name,
+                    code: data.item_name.split(' - ')[0] || data.item_name,
+                    is_set: data.item_name.includes('[SET]'),
+                    components: []
+                };
+            }
+            if (originalOpt) {
+                if (!ts.options[item_id_str]) {
+                    ts.addOption({
+                        value: item_id_str,
+                        text: (originalOpt.is_set ? '📦 [SET] ' : '🧩 [SINGLE] ') + originalOpt.code + ' - ' + originalOpt.name
+                    });
+                }
+            }
+            ts.setValue(item_id_str);
+        }
+
+        // 6. Convert pieces to lots if applicable
+        const item = itemsMaster.find(it => it.id.toString() === data.item_id.toString());
+        if (item) {
+            const lotSize = item.lot_size || 1;
+            const row = document.getElementById('row-0');
+            if (row) {
+                const lotsInput = row.querySelector('[name="lots[]"]');
+                const manualInput = row.querySelector('[name="manual[]"]');
+                
+                if (lotsInput && manualInput) {
+                    const lots = Math.floor(data.qty / lotSize);
+                    const remainder = data.qty % lotSize;
+                    lotsInput.value = lots;
+                    manualInput.value = remainder;
+                } else if (lotsInput) {
+                    lotsInput.value = Math.ceil(data.qty / lotSize);
+                }
+            }
+        }
+
+        calculateRow(0);
+
+        // 7. Directly save/submit the transaction!
+        const form = document.getElementById('polishingForm');
+        if (form) {
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.click();
+                } else {
+                    form.submit();
+                }
+            }
+        }
+    }
+    window.quickReceivePolishing = quickReceivePolishing;
+
+    function editPolishingTransaction(data) {
+        // 1. Smooth Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // 2. Set direction
+        setDirection(data.type);
+
+        // 3. Set edit_id value
+        document.getElementById('editIdInput').value = data.id;
+
+        // 4. Clear container & Add exactly one fresh item row
+        const container = document.getElementById('items-container');
+        container.innerHTML = '';
+        
+        // Reset the dynamic TomSelect instances map
+        Object.keys(rowTomSelects).forEach(id => {
+            delete rowTomSelects[id];
+        });
+        
+        rowCount = 0;
+        addItemRow(); // This creates row with id 0
+
+        // 5. Set Worker
+        if (workerTS) {
+            workerTS.setValue(data.worker_id);
+        }
+
+        // 6. Select Item on row 0
+        const ts = rowTomSelects[0];
+        if (ts) {
+            const item_id_str = data.item_id.toString();
+            let originalOpt = itemsMaster.find(item => item.id.toString() === item_id_str);
+            if (!originalOpt && data.item_name) {
+                originalOpt = {
+                    id: item_id_str,
+                    name: data.item_name,
+                    code: data.item_name.split(' - ')[0] || data.item_name,
+                    is_set: data.item_name.includes('[SET]'),
+                    components: []
+                };
+            }
+            if (originalOpt) {
+                if (!ts.options[item_id_str]) {
+                    ts.addOption({
+                        value: item_id_str,
+                        text: (originalOpt.is_set ? '📦 [SET] ' : '🧩 [SINGLE] ') + originalOpt.code + ' - ' + originalOpt.name
+                    });
+                }
+            }
+            ts.setValue(item_id_str);
+        }
+
+        // 7. Set lots, manual pieces and weight
+        const item = itemsMaster.find(it => it.id.toString() === data.item_id.toString());
+        if (item) {
+            const lotSize = item.lot_size || 1;
+            const lots = Math.floor(data.qty / lotSize);
+            const remainder = data.qty % lotSize;
+            
+            const row = document.getElementById('row-0');
+            if (row) {
+                const lotsInput = row.querySelector('[name="lots[]"]');
+                if (lotsInput) lotsInput.value = lots;
+
+                const manualInput = row.querySelector('[name="manual[]"]');
+                if (manualInput) manualInput.value = remainder;
+
+                const weightInput = row.querySelector('[name="weight[]"]');
+                if (weightInput) weightInput.value = data.weight;
+            }
+        }
+
+        calculateRow(0);
+
+        // 8. Update button text & insert cancel button if not present
+        const submitBtn = document.querySelector('#polishingForm button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.textContent = 'UPDATE TRANSACTION';
+            submitBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            submitBtn.style.boxShadow = '0 0 15px rgba(245, 158, 11, 0.4)';
+        }
+
+        let cancelBtn = document.getElementById('cancelEditBtn');
+        if (!cancelBtn) {
+            cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.id = 'cancelEditBtn';
+            cancelBtn.className = 'btn-secondary';
+            cancelBtn.textContent = 'CANCEL EDIT';
+            cancelBtn.style.marginTop = '8px';
+            cancelBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+            cancelBtn.style.color = '#ef4444';
+            cancelBtn.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+            cancelBtn.onclick = clearPolishingEdit;
+            submitBtn.parentNode.insertBefore(cancelBtn, submitBtn.nextSibling);
+        }
+    }
+    window.editPolishingTransaction = editPolishingTransaction;
+
+    function clearPolishingEdit() {
+        document.getElementById('editIdInput').value = '';
+        
+        const submitBtn = document.querySelector('#polishingForm button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.textContent = 'SAVE TRANSACTION';
+            submitBtn.style.background = '';
+            submitBtn.style.boxShadow = '';
+        }
+
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        if (cancelBtn) {
+            cancelBtn.remove();
+        }
+
+        // Reset inputs
+        const container = document.getElementById('items-container');
+        container.innerHTML = '';
+        Object.keys(rowTomSelects).forEach(id => {
+            delete rowTomSelects[id];
+        });
+        rowCount = 0;
+        addItemRow();
+
+        if (workerTS) {
+            workerTS.clear();
+        }
+    }
+    window.clearPolishingEdit = clearPolishingEdit;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        addItemRow(); // Start with one row
+
+        workerTS = new TomSelect("#workerSelect", {
+            create: false,
+            placeholder: 'Select Worker',
+            render: {
+                option: function (data, escape) {
+                    const id = data.id || data.value || '';
+                    const text = data.text || '';
+                    const isExternal = id.startsWith('jw_');
+                    
+                    let iconHtml = '🏠 ';
+                    if (isExternal) {
+                        iconHtml = `<img src="/static/img/logo.jpg" 
+                                     style="width:32px;height:32px;border-radius:6px;margin-right:12px;vertical-align:middle;object-fit:cover;border:1px solid rgba(255,255,255,0.1);" 
+                                     onerror="this.style.display='none'; this.nextSibling.style.display='inline';"
+                                     ><span style="display:none;margin-right:10px;">⚙️</span>`;
+                    }
+                    
+                    return `<div style="display:flex;align-items:center;padding:4px 0;">
+                                ${iconHtml}
+                                <span style="font-size:22px;font-weight:600;">${escape(text)}</span>
+                            </div>`;
+                },
+                item: function (data, escape) {
+                    const id = data.id || data.value || '';
+                    const text = data.text || '';
+                    const isExternal = id.startsWith('jw_');
+                    
+                    let iconHtml = '🏠 ';
+                    if (isExternal) {
+                        iconHtml = `<img src="/static/img/logo.jpg" 
+                                     style="width:34px;height:34px;border-radius:6px;margin-right:10px;vertical-align:middle;object-fit:cover;" 
+                                     onerror="this.style.display='none'; this.nextSibling.style.display='inline';"
+                                     ><span style="display:none;margin-right:8px;">⚙️</span>`;
+                    }
+                    
+                    return `<div style="display:flex;align-items:center;">
+                                ${iconHtml}
+                                <span style="font-size:24px;font-weight:600;">${escape(text)}</span>
+                            </div>`;
+                }
+            }
+        });
+
+        // Auto-select allocated item when a worker is chosen
+        workerTS.on('change', function(val) {
+            const control = document.querySelector('#workerSelect').nextElementSibling;
+            if (control) {
+                control.style.border = '';
+                control.style.boxShadow = '';
+            }
+            if (!val) {
+                lastAllocatedItemId = null;
+                filterPolishingItemsByWorker('');
+                return;
+            }
+            
+            filterPolishingItemsByWorker(val);
+            
+            const alloc = allocationsMaster.find(a => {
+                if (a.worker_id === val) {
+                    const optExists = document.querySelector(`#workerSelect option[value="${a.worker_id}"]`);
+                    return !!optExists;
+                }
+                return false;
+            });
+            if (alloc) {
+                let itemId = alloc.item_id;
+
+                // Parent Set Lookup: If the allocated item is a component of a SET, prefer selecting that SET in Polishing!
+                const parentSet = itemsMaster.find(it => it.is_set && it.components && it.components.some(c => c.id == itemId));
+                if (parentSet) {
+                    itemId = parentSet.id;
+                }
+
+                lastAllocatedItemId = itemId;
+                // Auto-fill empty rows with this item
+                Object.keys(rowTomSelects).forEach(id => {
+                    const ts = rowTomSelects[id];
+                    if (ts && !ts.getValue()) {
+                        ts.setValue(itemId);
+                    }
+                });
+            } else {
+                lastAllocatedItemId = null;
+            }
+        });
+
+        document.getElementById('polishingForm').addEventListener('submit', function(e) {
+            // 1. Validate Assigned Worker
+            const workerVal = workerTS.getValue();
+            if (!workerVal) {
+                e.preventDefault();
+                const control = document.querySelector('#workerSelect').nextElementSibling;
+                if (control) {
+                    control.style.border = '2px solid #ef4444';
+                    control.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.2)';
+                    control.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                alert("Please select an Assigned Worker before saving polishing entries.");
+                return;
+            }
+
+            // 2. Validate Row Selection
+            let hasEmptyRow = false;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const id = row.id.replace('row-', '');
+                const select = row.querySelector('.item-select');
+                if (select && !select.value) {
+                    hasEmptyRow = true;
+                    const control = select.nextElementSibling;
+                    if (control) {
+                        control.style.border = '2px solid #ef4444';
+                        control.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.2)';
+                        control.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+
+            if (hasEmptyRow) {
+                e.preventDefault();
+                alert("Please select an item for all transaction rows.");
+                return;
+            }
+
+            const rowsData = [];
+            
+            document.querySelectorAll('.item-row').forEach(row => {
+                const id = row.id.replace('row-', '');
+                const select = row.querySelector('.item-select');
+                const itemId = select.value;
+                if (!itemId) return;
+                
+                const packaging = document.getElementById(`pkg-input-${id}`).value;
+                const lots = parseInt(row.querySelector('[name="lots[]"]').value || 0);
+                const manual = parseInt(row.querySelector('[name="manual[]"]').value || 0);
+                const weight = parseFloat(row.querySelector('[name="weight[]"]').value || 0);
+                
+                const rowObj = {
+                    item_id: itemId,
+                    packaging: packaging,
+                    lots: lots,
+                    manual: manual,
+                    weight: weight
+                };
+                
+                const item = itemsMaster.find(it => it.id == itemId);
+                if (item && item.is_set) {
+                    rowObj.components = [];
+                    row.querySelectorAll('.comp-row-override').forEach(compRow => {
+                        const compId = compRow.dataset.compId;
+                        const qtyPerSet = parseInt(compRow.dataset.qtyPerSet);
+                        const extraInput = compRow.querySelector('.comp-extra-input');
+                        const extraQty = parseInt(extraInput.value || 0);
+                        
+                        const setLotSize = (packaging === 'box' ? (item.lot_with_box && item.lot_with_box > 0 ? item.lot_with_box : item.lot_size) : item.lot_size) || 1;
+                        const setTotalQty = (lots * setLotSize) + manual;
+                        const totalQty = (qtyPerSet * setTotalQty) + extraQty;
+                        
+                        rowObj.components.push({
+                            component_id: compId,
+                            qty_per_set: qtyPerSet,
+                            extra_qty: extraQty,
+                            total_qty: totalQty
+                        });
+                    });
+                }
+                
+                rowsData.push(rowObj);
+            });
+            
+            if (rowsData.length === 0) {
+                alert("Please add at least one item transaction.");
+                e.preventDefault();
+                return;
+            }
+            
+            document.getElementById('transaction-data-input').value = JSON.stringify(rowsData);
+        });
+    });
+
+    let markInClickTimer = null;
+    function handleMarkInClick(event, url, itemName, maxQty) {
+        event.preventDefault();
+        const targetUrl = url;
+        
+        if (event.detail === 2) {
+            // Double click detected! Clear single-click timer and show the modal
+            if (markInClickTimer) {
+                clearTimeout(markInClickTimer);
+                markInClickTimer = null;
+            }
+            openMarkInRejectionModal(targetUrl, itemName, maxQty);
+        } else if (event.detail === 1) {
+            // Single click - set timer to redirect in 250ms unless a second click arrives
+            markInClickTimer = setTimeout(() => {
+                window.location.href = targetUrl;
+            }, 250);
+        }
+    }
+
+    function openMarkInRejectionModal(targetUrl, itemName, maxQty) {
+        document.getElementById('rejectionModalTargetUrl').value = targetUrl;
+        document.getElementById('rejectionModalTitle').textContent = `Rejections for ${itemName}`;
+        document.getElementById('rejectionPcsInput').value = '0';
+        document.getElementById('rejectionPcsInput').max = maxQty;
+        document.getElementById('rejectionModalSubtitle').innerHTML = `Enter Defective/Rejected pieces found in this lot.<br><span style="color:var(--accent-gold); font-weight:700;">Max Available Qty: ${maxQty} pcs</span>`;
+        
+        const modal = document.getElementById('markInRejectionModal');
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            document.getElementById('rejectionPcsInput').focus();
+        }, 50);
+    }
+
+    function closeMarkInRejectionModal() {
+        document.getElementById('markInRejectionModal').style.display = 'none';
+    }
+
+    function submitRejectionModal(event) {
+        event.preventDefault();
+        const targetUrl = document.getElementById('rejectionModalTargetUrl').value;
+        const rejections = parseInt(document.getElementById('rejectionPcsInput').value || 0);
+        
+        const separator = targetUrl.includes('?') ? '&' : '?';
+        window.location.href = `${targetUrl}${separator}rejections=${rejections}`;
+    }
+</script>
+
+<!-- Glassmorphic Rejection Modal -->
+<div id="markInRejectionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center; transition: all 0.3s ease;">
+    <div style="background:rgba(20, 20, 30, 0.85); border:1px solid rgba(255,255,255,0.08); box-shadow:0 24px 60px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.02); border-radius:24px; padding:32px; width:420px; box-sizing:border-box; text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px; filter: drop-shadow(0 0 10px rgba(239,68,68,0.5));">🔍</div>
+        <h3 id="rejectionModalTitle" style="color:white; margin:0 0 8px 0; font-size:20px; font-weight:800; letter-spacing:0.5px;">Declare Rejections</h3>
+        <p id="rejectionModalSubtitle" style="color:var(--text-secondary); margin:0 0 24px 0; font-size:13px; line-height:1.4;">Enter any defective or rejected pieces found during inspection of this lot.</p>
+        
+        <form id="rejectionModalForm" onsubmit="submitRejectionModal(event)">
+            <input type="hidden" id="rejectionModalTargetUrl" value="">
+            
+            <div style="text-align:left; margin-bottom:24px;">
+                <label style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--text-secondary); letter-spacing:1px; display:block; margin-bottom:8px;">Defective Pieces (Rejections)</label>
+                <input type="number" id="rejectionPcsInput" value="0" min="0" required
+                    style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); border-radius:12px; color:white; padding:12px 16px; font-size:18px; font-weight:800; text-align:center; width:100%; box-sizing:border-box; transition:all 0.2s;"
+                    onfocus="this.select();">
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:12px;">
+                <button type="button" onclick="closeMarkInRejectionModal()" class="btn-secondary" style="margin:0; padding:12px 0; border-radius:12px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:1px;">Cancel</button>
+                <button type="submit" class="btn-primary" style="margin:0; padding:12px 0; border-radius:12px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:1px;">Save & Mark IN</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
