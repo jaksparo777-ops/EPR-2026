@@ -1,0 +1,1446 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<style>
+    /* Premium Theme Variables matching global look */
+    :root {
+        --indigo-primary: #3b82f6;
+        --indigo-glow: rgba(59, 130, 246, 0.15);
+        --glass-bg: rgba(17, 24, 39, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --card-bg: rgba(15, 23, 42, 0.45);
+        --accent-blue-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        --accent-green-gradient: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        --accent-gold-gradient: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+        --accent-purple-gradient: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 32px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+        border-color: rgba(59, 130, 246, 0.25);
+        box-shadow: 0 24px 60px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Selected Carton Card Styles matching Polishing */
+    .item-row {
+        background: rgba(255, 255, 255, 0.015);
+        border: 1px solid var(--glass-border);
+        border-left: 3px solid #3b82f6;
+        border-radius: 16px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+        position: relative;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .item-row:hover {
+        background: rgba(255, 255, 255, 0.035);
+        border-color: rgba(59, 130, 246, 0.4);
+        transform: translateX(4px);
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 480px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    .po-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+
+    @media (max-width: 1200px) {
+        .grid-2 {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .po-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Tabs Styling */
+    .dispatch-tabs {
+        display: flex;
+        gap: 12px;
+        border-bottom: 1px solid var(--glass-border);
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+    }
+
+    .dispatch-tab-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        padding: 10px 18px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+
+    .dispatch-tab-btn:hover {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .dispatch-tab-btn.active {
+        color: white;
+        background: rgba(59, 130, 246, 0.15);
+    }
+
+    @media (max-width: 991px) {
+        .dispatch-tabs {
+            width: 100%;
+            gap: 6px;
+        }
+        .dispatch-tab-btn {
+            flex: 1;
+            text-align: center;
+            padding: 8px 4px;
+            font-size: 11px;
+            border-radius: 6px;
+        }
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Table styling */
+    .dispatch-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .dispatch-table th {
+        background: rgba(255, 255, 255, 0.015);
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .dispatch-table td {
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        font-size: 13px;
+        color: var(--text-primary);
+        vertical-align: middle;
+    }
+
+    .dispatch-table tr:hover td {
+        background: rgba(255, 255, 255, 0.01);
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        border: none;
+        color: white;
+        padding: 14px 24px;
+        font-size: 16px;
+        font-weight: 800;
+        border-radius: 12px;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.3s;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .remove-row-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        font-size: 16px;
+        transition: all 0.2s;
+        z-index: 10;
+    }
+
+    .remove-row-btn:hover {
+        background: #ef4444;
+        color: white;
+    }
+
+    /* Drawer Overlay & Sliding Side Drawer */
+    .drawer-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .drawer-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .drawer {
+        position: fixed;
+        top: 0;
+        right: -460px;
+        width: 460px;
+        height: 100vh;
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border-left: 1px solid var(--glass-border);
+        box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .drawer.active {
+        right: 0 !important;
+    }
+
+    .drawer-header {
+        padding: 24px;
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .drawer-body {
+        padding: 24px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .drawer-close {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 28px;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .drawer-close:hover {
+        color: white;
+    }
+</style>
+
+<!-- HEADER SECTION -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
+    <div>
+        <h1
+            style="font-size:64px; font-weight:800; margin:0; letter-spacing:-2px; font-family:'Outfit', sans-serif; background: linear-gradient(135deg, #fff 0%, #3b82f6 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center;">
+            Dispatch & Sales
+            <span class="header-info-badge" tabindex="0" data-tooltip="Dispatch ready cartons or loose pieces to clients, assign to customer POs, and generate Delivery Challans." data-tooltip-pos="right" aria-label="Dispatch Info">ℹ️</span>
+        </h1>
+        <p style="color:var(--text-secondary); margin:6px 0 0; font-size:20px; font-weight:500;">
+            Symmetrically dispatch physical cartons or loose pieces to clients
+        </p>
+    </div>
+</div>
+
+<div class="grid-2">
+
+    <!-- DISPATCH FORM -->
+    <div class="glass-card">
+        <h3
+            style="margin-bottom:24px; font-size:22px; font-family:'Outfit', sans-serif; display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--accent-blue);">●</span> Dispatch Goods
+        </h3>
+
+        <form method="POST" action="{% url 'dispatch' %}">
+            {% csrf_token %}
+            <input type="hidden" name="dispatch_type" id="dispatchTypeInput" value="cartons">
+
+            <!-- Shared Client Selector -->
+            <div style="margin-bottom:24px;">
+                <label
+                    style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                    Select Client
+                </label>
+                <select name="client" required
+                    style="width:100%; padding:14px; background:rgba(15,23,42,0.6); border:1px solid var(--border-soft); border-radius:12px; color:var(--text-primary); outline:none; font-size:16px; transition:border 0.3s;">
+                    <option value="">Choose a client...</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}" data-pref="{{ client.packing_preference }}">{{ client.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Tab Headers -->
+            <div class="dispatch-tabs">
+                <button type="button" onclick="switchDispatchTab('cartons')" id="tabBtnCartons"
+                    class="dispatch-tab-btn active">
+                    📦 Select Ready Cartons
+                </button>
+                <button type="button" onclick="switchDispatchTab('manual')" id="tabBtnManual" class="dispatch-tab-btn">
+                    ✍️ Manual Pieces Override
+                </button>
+            </div>
+
+            <!-- Tab 1: Carton Selection -->
+            <div id="tabContentCartons" class="tab-content active">
+                <!-- Dynamic Cartons Container -->
+                <div id="cartons-container">
+                    <!-- Dynamic rows will be added here via JS -->
+                </div>
+
+                <!-- Add Carton Button -->
+                <button type="button" class="btn-submit" onclick="addCartonRow()"
+                    style="background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); color:var(--text-primary); margin-bottom:24px; box-shadow:none;">
+                    ＋ ADD CARTON TYPE
+                </button>
+
+                <!-- Compact Calculated Info Display Cards -->
+                <div
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: rgba(0,0,0,0.15); padding: 16px; border-radius: 12px; border: 1px solid var(--glass-border); margin-bottom: 24px;">
+                    <div>
+                        <div
+                            style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Total Qty / Sets</div>
+                        <div id="cartonTotalQtyDisplay"
+                            style="font-size: 22px; font-weight: 900; color: #3b82f6; margin-top: 4px;">0 Sets</div>
+                    </div>
+                    <div style="border-left: 1px solid rgba(255,255,255,0.05); padding-left: 16px;">
+                        <div
+                            style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            Total Weight</div>
+                        <div id="cartonTotalWeightDisplay"
+                            style="font-size: 22px; font-weight: 900; color: white; margin-top: 4px;">0.000 kg</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Manual Pieces Override -->
+            <div id="tabContentManual" class="tab-content">
+                <!-- Inner card system like Polishing -->
+                <div
+                    style="background: rgba(255, 255, 255, 0.015); border: 1px solid var(--glass-border); border-left: 3px solid #fbbf24; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+                    <!-- Select Item -->
+                    <div style="margin-bottom: 20px;">
+                        <label
+                            style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                            Select Finished Item / Set
+                        </label>
+                        <select name="item" id="itemSelect"
+                            style="width:100%; padding:14px; background:rgba(15,23,42,0.6); border:1px solid var(--glass-border); border-radius:12px; color:var(--text-primary); outline:none; font-size:16px;"
+                            onchange="updateCalculations()">
+                            <option value="" data-weight="0" data-lot="1" data-lotbox="1">Choose item...</option>
+                            {% for item in items %}
+                            <option value="{{ item.id }}" data-weight="{{ item.machining_weight|default:0 }}"
+                                data-lot="{{ item.lot_size|default:1 }}"
+                                data-lotbox="{{ item.lot_with_box|default:1 }}">
+                                {{ item.code }} - {{ item.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Packaging Mode Choice -->
+                    <div id="packingModeContainer" style="margin-bottom: 20px;">
+                        <label
+                            style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                            Packaging Type
+                        </label>
+                        <div
+                            style="display: flex; gap: 8px; background: rgba(0, 0, 0, 0.2); padding: 4px; border-radius: 10px; border: 1px solid var(--glass-border); width: fit-content;">
+                            <button type="button" id="btnPackRegular" onclick="setPackingMode('regular')"
+                                style="padding: 8px 16px; border: none; font-size: 11px; font-weight: 800; border-radius: 8px; cursor: pointer; text-transform: uppercase; background: #fbbf24; color: black; transition: all 0.3s;">
+                                Regular
+                            </button>
+                            <button type="button" id="btnPackBox" onclick="setPackingMode('box')"
+                                style="padding: 8px 16px; border: none; font-size: 11px; font-weight: 800; border-radius: 8px; cursor: pointer; text-transform: uppercase; background: none; color: var(--text-secondary); transition: all 0.3s;">
+                                Box / Lot
+                            </button>
+                        </div>
+                        <input type="hidden" name="packing_mode" id="packingModeInput" value="regular">
+                        <small id="lotSizeHelper"
+                            style="color:var(--text-secondary); font-size:11px; margin-top:8px; display:block;">
+                            Lot size: 1 pcs
+                        </small>
+                    </div>
+
+                    <!-- Inputs Grid -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px;">
+                        <div>
+                            <label
+                                style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                                Bulk Lots
+                            </label>
+                            <input type="number" name="cartons" id="cartonsInput" min="0" value="0"
+                                style="width:100%; padding:14px; background:rgba(15,23,42,0.6); border:1px solid var(--glass-border); border-radius:12px; color:var(--text-primary); outline:none;"
+                                oninput="updateCalculations()">
+                        </div>
+                        <div>
+                            <label
+                                style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                                Lot Size (pcs)
+                            </label>
+                            <input type="number" name="lot_size_multiplier" id="lotSizeInput" min="1" value="1"
+                                style="width:100%; padding:14px; background:rgba(15,23,42,0.6); border:1px solid var(--glass-border); border-radius:12px; color:var(--text-primary); outline:none;"
+                                oninput="updateCalculations()">
+                        </div>
+                        <div>
+                            <label
+                                style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                                + Extra Pcs
+                            </label>
+                            <input type="number" name="loose_pieces" id="loosePiecesInput" min="0" value="0"
+                                style="width:100%; padding:14px; background:rgba(15,23,42,0.6); border:1px solid var(--glass-border); border-radius:12px; color:var(--text-primary); outline:none;"
+                                oninput="updateCalculations()">
+                        </div>
+                    </div>
+
+                    <!-- Compact Calculated Info Display Cards -->
+                    <div
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: rgba(0,0,0,0.15); padding: 16px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                        <div>
+                            <div
+                                style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                                Total Qty</div>
+                            <div id="manualTotalQtyDisplay"
+                                style="font-size: 22px; font-weight: 900; color: #fbbf24; margin-top: 4px;">0 pcs</div>
+                        </div>
+                        <div style="border-left: 1px solid rgba(255,255,255,0.05); padding-left: 16px;">
+                            <div
+                                style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                                Calculated Weight</div>
+                            <div id="manualTotalWeightDisplay"
+                                style="font-size: 22px; font-weight: 900; color: white; margin-top: 4px;">0.000 kg</div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden actual values to post -->
+                    <input type="hidden" step="0.001" name="weight" id="weightInput" value="0">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn-submit">
+                🚚 DISPATCH ITEMS NOW
+            </button>
+        </form>
+    </div>
+
+    <!-- CUSTOMER PO BOARD (Fulfillment & Dispatch Control) -->
+    <div class="glass-card">
+        <h3
+            style="margin-bottom:24px; font-size:22px; font-family:'Outfit', sans-serif; display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--accent-blue);">●</span> Customer PO Board
+        </h3>
+
+        {% if not request.company %}
+        <!-- Company Selection Tabs (Owner's Portal) -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 24px; background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); padding: 4px; border-radius: 10px; width: fit-content; backdrop-filter: blur(10px); box-shadow: 0 4px 30px rgba(0,0,0,0.15);">
+            <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); padding: 0 10px;">🏢 Owner View:</div>
+            <div class="company-tab" onclick="switchCompanyFilter(null, this)" style="padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; color: white; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 6px;">
+                <span>🌐</span> All Companies
+            </div>
+            <div class="company-tab" onclick="switchCompanyFilter(1, this)" style="padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; color: var(--text-secondary); cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 6px;">
+                <span>🏭</span> NC (Casting)
+            </div>
+            <div class="company-tab" onclick="switchCompanyFilter(2, this)" style="padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; color: var(--text-secondary); cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 6px;">
+                <span>🛠</span> OM (Finishing)
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Dynamic 2x2 Grid Container -->
+        <div class="po-grid"
+            style="max-height: 800px; overflow-y: auto; padding-right: 4px;">
+            {% for po in active_orders %}
+            <div class="po-fulfillment-card" onclick="openPODrawer('{{ po.id }}')"
+                data-company-id="{{ po.client.company_id }}"
+                style="background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); border-radius: 14px; padding: 12px; position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 280px; transition: all 0.2s; cursor: pointer; z-index: 5;">
+                <div style="pointer-events: none;">
+                    <!-- Card Header -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <div>
+                            <div style="font-size: 13px; font-weight: 800; color: white;">📋 {{ po.order_number }}</div>
+                            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 1px;">Ref: {{ po.external_po_number }}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="badge" style="font-size: 8px; padding: 1px 4px; 
+                                {% if po.priority == 'URGENT' %}background:rgba(239,68,68,0.15); color:#ef4444;
+                                {% else %}background:rgba(255,255,255,0.05); color:var(--text-secondary);{% endif %}">
+                                {{ po.priority }}
+                            </span>
+                            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">{{ po.promised_date|date:"d M Y" }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Client Info -->
+                    <div
+                        style="font-size: 12px; font-weight: 800; color: #60a5fa; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        👤 {{ po.client.name }}
+                    </div>
+
+                    <!-- Item Fulfillment Rows (Compact & Scrollable) -->
+                    <div
+                        style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02); max-height: 110px; overflow-y: auto; padding-right: 4px;">
+                        {% for item in po.items.all %}
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 11px; align-items: center; gap: 8px;">
+                            <span style="font-weight: 700; color: var(--text-primary);">{{ item.item.code }}</span>
+                            <span style="font-weight: 700; text-align: right;
+                                {% if item.ready_stock >= item.remaining_quantity %}color:#10b981;
+                                {% else %}color:var(--text-secondary);{% endif %}">
+                                {{ item.remaining_qty_breakdown_text }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div style="pointer-events: none;">
+                    <!-- Fulfillment Readiness Progress Bar -->
+                    <div style="margin-bottom: 12px;">
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px;">
+                            <span style="color: var(--text-secondary);">Readiness:</span>
+                            <span style="font-weight: 800; color: #34d399;">{{ po.readiness_percentage }}%</span>
+                        </div>
+                        <div
+                            style="width: 100%; height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
+                            <div
+                                style="width: {{ po.readiness_percentage }}%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 2px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                 <div style="position: relative; z-index: 10; display: flex; gap: 8px; margin-top: 10px;">
+                    <!-- Auto-Fill (Ghost/Simple Style) -->
+                    <button type="button"
+                        onclick="event.stopPropagation(); triggerQuickDispatch('{{ po.client.id }}', '{{ po.id }}')"
+                        class="btn-submit"
+                        style="padding: 8px; font-size: 11px; font-weight: 700; border-radius: 6px; background: rgba(255, 255, 255, 0.03); color: var(--text-secondary); border: 1px solid var(--glass-border); box-shadow: none; cursor: pointer; transition: all 0.2s; flex: 1; height: auto; margin-top: 0;">
+                        ⚡ AUTO-FILL
+                    </button>
+                    
+                    <!-- Direct Dispatch Button (Shows only if readiness > 0) -->
+                    {% if po.readiness_percentage > 0 %}
+                    <button type="button"
+                        onclick="event.stopPropagation(); triggerInstantFulfillment('{{ po.id }}', '{{ po.order_number }}', '{{ po.readiness_percentage }}')"
+                        class="btn-submit"
+                        style="padding: 8px; font-size: 11px; font-weight: 800; border-radius: 6px; flex: 1.5; border: none; cursor: pointer; transition: all 0.2s; height: auto; margin-top: 0;
+                        {% if po.readiness_percentage >= 100 %}
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+                        {% else %}
+                            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2);
+                        {% endif %}">
+                        🚚 DISPATCH ({% if po.readiness_percentage >= 100 %}100%{% else %}PARTIAL{% endif %})
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div style="grid-column: span 2; text-align: center; padding: 60px 20px; color: var(--text-secondary);">
+                <i style="font-size: 28px; display: block; margin-bottom: 12px;">✨</i>
+                No active Customer POs pending fulfillment.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- SLIDING DETAIL/DISPATCH DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closePODrawer()"></div>
+<div class="drawer" id="poDrawer">
+    <div class="drawer-header">
+        <div>
+            <h2 id="drawerPONumber"
+                style="font-size: 24px; font-weight: 800; margin: 0; color: white; font-family: 'Outfit', sans-serif;">
+                SO-XXXX</h2>
+            <div id="drawerClientName"
+                style="color: var(--text-secondary); font-size: 14px; font-weight: 600; margin-top: 2px;">Client Details
+            </div>
+        </div>
+        <button class="drawer-close" onclick="closePODrawer()">×</button>
+    </div>
+    <div class="drawer-body">
+        <!-- Details grid -->
+        <div
+            style="background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); border-radius: 12px; padding: 16px; margin-bottom: 20px; font-size: 13px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div><span style="color: var(--text-secondary);">PO Ref:</span> <b id="drawerExternalRef"
+                    style="color: white;">--</b></div>
+            <div><span style="color: var(--text-secondary);">Promised Date:</span> <b id="drawerPromisedDate"
+                    style="color: white;">--</b></div>
+            <div><span style="color: var(--text-secondary);">Status:</span> <b id="drawerStatusText"
+                    style="color: white;">--</b></div>
+            <div><span style="color: var(--text-secondary);">Order Date:</span> <b id="drawerOrderDate"
+                    style="color: white;">--</b></div>
+        </div>
+
+        <div
+            style="background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+            <div
+                style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; color: var(--text-secondary);">
+                <span>Readiness (Ready / Needed)</span>
+                <span id="drawerReadinessPct" style="font-weight: 700; color: #34d399;">0%</span>
+            </div>
+            <div
+                style="width: 100%; height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
+                <div id="drawerReadinessProgress"
+                    style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 2px; transition: width 0.3s;">
+                </div>
+            </div>
+        </div>
+
+        <form id="drawerDispatchForm" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="dispatch_type" value="partial">
+
+            <div
+                style="font-weight: 800; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 12px; letter-spacing: 0.5px;">
+                PO Product Allocations</div>
+
+            <div id="drawerItemsList"
+                style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; max-height: 380px; overflow-y: auto; padding-right: 4px;">
+                <!-- dynamic item cards with inputs -->
+            </div>
+
+            <div style="border-top: 1px solid var(--glass-border); padding-top: 16px; margin-top: 20px;">
+                <div style="margin-bottom: 16px;">
+                    <label
+                        style="display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px;">Dispatch
+                        Notes</label>
+                    <input type="text" name="notes" placeholder="Optional dispatch remarks..."
+                        style="width: 100%; padding: 10px; background: rgba(15,23,42,0.6); border: 1px solid var(--glass-border); border-radius: 8px; color: white; outline: none; font-size: 13px;">
+                </div>
+                <button type="submit" class="btn-submit"
+                    style="margin-top: 0; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                    🚚 EXECUTE PARTIAL DISPATCH
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- RECENT DISPATCHES -->
+<div class="glass-card" style="margin-top:24px;">
+    <h3 style="margin-bottom:24px; font-size:20px; letter-spacing:1px; display:flex; align-items:center; gap:10px;">
+        <span style="color:var(--accent-blue);">●</span> RECENT DISPATCH LOGS
+    </h3>
+
+    <div class="table-responsive">
+        <table class="dispatch-table">
+            <thead>
+                <tr>
+                    <th>DATE / TIME</th>
+                    <th>CLIENT NAME</th>
+                    <th>ITEM DISPATCHED</th>
+                    <th style="text-align:right;">QUANTITY</th>
+                    <th style="text-align:right;">TOTAL WEIGHT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in recent_dispatches %}
+                <tr>
+                    <td style="color:var(--text-secondary);">{{ tx.created_at|date:"d M Y, H:i" }}</td>
+                    <td style="font-weight:700; color:var(--text-primary);">👤 {{ tx.client.name }}</td>
+                    <td>
+                        <div style="font-weight:700; color:var(--text-primary);">{{ tx.item.code }}</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">{{ tx.item.name }}</div>
+                    </td>
+                    <td style="text-align:right; font-weight:700; color:#f59e0b;">{{ tx.quantity }} pcs</td>
+                    <td style="text-align:right; color:var(--text-secondary);">{{ tx.weight }} kg</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                        No client dispatches recorded yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function switchDispatchTab(tab) {
+        document.getElementById('dispatchTypeInput').value = tab;
+
+        // Toggle buttons
+        document.getElementById('tabBtnCartons').classList.toggle('active', tab === 'cartons');
+        document.getElementById('tabBtnManual').classList.toggle('active', tab === 'manual');
+
+        // Toggle contents
+        document.getElementById('tabContentCartons').classList.toggle('active', tab === 'cartons');
+        document.getElementById('tabContentManual').classList.toggle('active', tab === 'manual');
+
+        // Adjust form validations
+        const itemSelect = document.getElementById('itemSelect');
+        if (tab === 'manual') {
+            if (itemSelect) itemSelect.setAttribute('required', 'required');
+        } else {
+            if (itemSelect) itemSelect.removeAttribute('required');
+        }
+    }
+
+    let cartonRowCount = 0;
+    const cartonTomSelects = {};
+
+    // Available carton models master data directly loaded into JS array
+    const availableCartonsMaster = [
+        {% for group in available_cartons %}
+    {
+        "name": "{{ group.name|escapejs }}",
+        "singleqty": {% with first_item=group.items_breakdown.0 %}{% if first_item %}{{ first_item.quantity }}{% else %}0{% endif %}{% endwith %},
+        "weight": {{ group.total_weight }},
+        "count": {{ group.count }},
+        "isset": {{ group.is_set|yesno:"true,false" }},
+        "sales_order_id": {% if group.sales_order_id %}"{{ group.sales_order_id }}"{% else %}null{% endif %},
+        "sales_order_number": {% if group.sales_order_number %}"{{ group.sales_order_number|escapejs }}"{% else %}null{% endif %},
+        "client_name": {% if group.client_name %}"{{ group.client_name|escapejs }}"{% else %}null{% endif %}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+    ];
+
+    function addCartonRow() {
+        const id = cartonRowCount++;
+        const container = document.getElementById('cartons-container');
+
+        const rowHtml = `
+            <div class="item-row" id="carton-row-${id}" style="border-left: 4px solid #3b82f6; padding: 20px 24px 20px 20px; display: block; position: relative;">
+                <div class="remove-row-btn" onclick="removeCartonRow(${id})" style="top: 8px; right: 8px; width: 24px; height: 24px; font-size: 14px;">×</div>
+                
+                <!-- Compact Side-by-Side Dynamic Grid -->
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: end;">
+                    <!-- Column 1: carton type -->
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                            carton type
+                        </label>
+                        <select name="carton_label_select[]" id="carton-select-${id}" class="carton-select" onchange="updateCartonCalculations()" required>
+                            <option value="">Search carton...</option>
+                            ${availableCartonsMaster.map(c => `
+                                <option value="${c.name}" data-qty="${c.singleqty}" data-weight="${c.weight}" data-count="${c.count}" data-isset="${c.isset}">
+                                    📦 ${c.name} ${c.sales_order_number ? `[Reserved: ${c.client_name} - ${c.sales_order_number}]` : ''}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+
+                    <!-- Column 2: carton qty -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                                carton qty
+                            </label>
+                        </div>
+                        <input type="number" name="carton_count[]" id="carton-count-${id}" min="1" value="1" required
+                               style="width:100%; padding:10px 14px; background:rgba(15,23,42,0.6); border:1px solid var(--glass-border); border-radius:12px; color:var(--text-primary); outline:none; height: 38px;"
+                               oninput="updateCartonCalculations()">
+                    </div>
+                </div>
+
+                <!-- Helper available counts row -->
+                <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary); display: flex; gap: 6px; align-items: center;">
+                    <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #3b82f6;"></span>
+                    <span id="carton-avail-helper-${id}">Available: 0 cartons</span>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', rowHtml);
+
+        // Wrap with premium TomSelect dropdown instantly
+        const selectEl = document.getElementById(`carton-select-${id}`);
+        if (selectEl && typeof TomSelect !== 'undefined') {
+            cartonTomSelects[id] = new TomSelect(selectEl, {
+                create: false,
+                sortField: {
+                    field: "text",
+                    direction: "asc"
+                },
+                placeholder: "Search carton name..."
+            });
+        }
+
+        updateCartonCalculations();
+    }
+
+    function removeCartonRow(id) {
+        // Destroy TomSelect instance cleanly
+        if (cartonTomSelects[id]) {
+            cartonTomSelects[id].destroy();
+            delete cartonTomSelects[id];
+        }
+
+        const row = document.getElementById(`carton-row-${id}`);
+        if (row) {
+            row.remove();
+        }
+        updateCartonCalculations();
+    }
+
+    // Dynamic Select Cartons transaction card calculations
+    function updateCartonCalculations() {
+        let grandTotalQty = 0;
+        let grandTotalWeight = 0.0;
+        let isSetAccumulator = false;
+
+        const selectEls = document.querySelectorAll('select.carton-select');
+        selectEls.forEach(selectEl => {
+            if (selectEl.tagName !== 'SELECT') return;
+
+            const id = selectEl.id.split('-')[2];
+            const countInput = document.getElementById(`carton-count-${id}`);
+            const availHelper = document.getElementById(`carton-avail-helper-${id}`);
+
+            if (!countInput || !availHelper) return;
+
+            const selectedOption = selectEl.options[selectEl.selectedIndex];
+            if (!selectedOption || !selectedOption.value) {
+                availHelper.textContent = "Available: 0 cartons";
+                countInput.removeAttribute('max');
+                return;
+            }
+
+            const isSet = selectedOption.getAttribute('data-isset') === 'true';
+            if (isSet) {
+                isSetAccumulator = true;
+            }
+
+            const singleQty = parseInt(selectedOption.getAttribute('data-qty')) || 0;
+            const totalWeightAll = parseFloat(selectedOption.getAttribute('data-weight')) || 0.0;
+            const totalAvailable = parseInt(selectedOption.getAttribute('data-count')) || 0;
+
+            // Limit count input max dynamically to physical count
+            countInput.setAttribute('max', totalAvailable);
+
+            let enteredCount = parseInt(countInput.value) || 0;
+            if (enteredCount > totalAvailable) {
+                enteredCount = totalAvailable;
+                countInput.value = totalAvailable;
+            }
+            if (enteredCount < 1) {
+                enteredCount = 1;
+                countInput.value = 1;
+            }
+
+            const computedQty = singleQty * enteredCount;
+            const computedWeight = (totalWeightAll / totalAvailable) * enteredCount;
+
+            grandTotalQty += computedQty;
+            grandTotalWeight += computedWeight;
+
+            availHelper.textContent = `Available: ${totalAvailable} carton${totalAvailable !== 1 ? 's' : ''}`;
+        });
+
+        const totalQtyDisplay = document.getElementById('cartonTotalQtyDisplay');
+        const totalWeightDisplay = document.getElementById('cartonTotalWeightDisplay');
+
+        totalQtyDisplay.textContent = isSetAccumulator ? `${grandTotalQty} Sets` : `${grandTotalQty} Qty`;
+        totalWeightDisplay.textContent = `${grandTotalWeight.toFixed(3)} kg`;
+    }
+
+    let dispatchClientTS = null;
+    let dispatchItemTS = null;
+
+    function initDispatchSelects() {
+        const clientSel = document.querySelector('select[name="client"]');
+        if (clientSel && typeof TomSelect !== 'undefined') {
+            dispatchClientTS = new TomSelect(clientSel, {
+                create: false,
+                placeholder: "Choose a client...",
+                allowEmptyOption: false,
+                onChange: function() {
+                    updateDefaultLotSize();
+                }
+            });
+        }
+
+        const itemSel = document.getElementById('itemSelect');
+        if (itemSel && typeof TomSelect !== 'undefined') {
+            dispatchItemTS = new TomSelect(itemSel, {
+                create: false,
+                placeholder: "Choose item...",
+                allowEmptyOption: false,
+                onChange: function() {
+                    updateDefaultLotSize();
+                }
+            });
+        }
+    }
+
+    // Initialize first carton row dynamically on load, handling already-fired DOMContentLoaded cleanly
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            initDispatchSelects();
+            addCartonRow();
+        });
+    } else {
+        initDispatchSelects();
+        addCartonRow();
+    }
+
+    let currentPackingMode = 'regular';
+
+    function setPackingMode(mode) {
+        currentPackingMode = mode;
+        document.getElementById('packingModeInput').value = mode;
+
+        const btnReg = document.getElementById('btnPackRegular');
+        const btnBox = document.getElementById('btnPackBox');
+
+        if (mode === 'regular') {
+            btnReg.style.background = '#fbbf24';
+            btnReg.style.color = 'black';
+            btnBox.style.background = 'none';
+            btnBox.style.color = 'var(--text-secondary)';
+        } else {
+            btnBox.style.background = '#fbbf24';
+            btnBox.style.color = 'black';
+            btnReg.style.background = 'none';
+            btnReg.style.color = 'var(--text-secondary)';
+        }
+
+        updateDefaultLotSize();
+    }
+
+    function updateDefaultLotSize() {
+        const clientSelect = document.querySelector('select[name="client"]');
+        const selectedClientOpt = clientSelect ? clientSelect.options[clientSelect.selectedIndex] : null;
+        
+        let clientPref = '';
+        if (selectedClientOpt) {
+            clientPref = selectedClientOpt.getAttribute('data-pref') || '';
+        }
+        
+        // Auto-select packaging mode based on client preference/default lot preference
+        if (clientPref) {
+            const btnReg = document.getElementById('btnPackRegular');
+            const btnBox = document.getElementById('btnPackBox');
+            if (clientPref.includes('BOX')) {
+                currentPackingMode = 'box';
+                document.getElementById('packingModeInput').value = 'box';
+                if (btnBox) {
+                    btnBox.style.background = '#fbbf24';
+                    btnBox.style.color = 'black';
+                }
+                if (btnReg) {
+                    btnReg.style.background = 'none';
+                    btnReg.style.color = 'var(--text-secondary)';
+                }
+            } else if (clientPref.includes('REG')) {
+                currentPackingMode = 'regular';
+                document.getElementById('packingModeInput').value = 'regular';
+                if (btnReg) {
+                    btnReg.style.background = '#fbbf24';
+                    btnReg.style.color = 'black';
+                }
+                if (btnBox) {
+                    btnBox.style.background = 'none';
+                    btnBox.style.color = 'var(--text-secondary)';
+                }
+            }
+        }
+        
+        let itemDefaultLot = 0;
+        let itemDefaultLotBox = 0;
+        
+        if (dispatchItemTS && dispatchItemTS.getValue()) {
+            const optionData = dispatchItemTS.options[dispatchItemTS.getValue()];
+            if (optionData) {
+                itemDefaultLot = parseInt(optionData.lot) || 0;
+                itemDefaultLotBox = parseInt(optionData.lotbox) || 0;
+            }
+        }
+        
+        let finalLotSize = 1;
+        if (currentPackingMode === 'box') {
+            finalLotSize = itemDefaultLotBox || 1;
+        } else {
+            finalLotSize = itemDefaultLot || 1;
+        }
+        
+        const lotSizeInput = document.getElementById('lotSizeInput');
+        if (lotSizeInput) {
+            lotSizeInput.value = finalLotSize;
+        }
+        updateCalculations();
+    }
+
+    // Dynamic Manual tab calculation logic
+    function updateCalculations() {
+        const cartonsInput = document.getElementById('cartonsInput');
+        const lotSizeInput = document.getElementById('lotSizeInput');
+        const loosePiecesInput = document.getElementById('loosePiecesInput');
+        const weightInput = document.getElementById('weightInput');
+        const lotSizeHelper = document.getElementById('lotSizeHelper');
+
+        const manualTotalQtyDisplay = document.getElementById('manualTotalQtyDisplay');
+        const manualTotalWeightDisplay = document.getElementById('manualTotalWeightDisplay');
+
+        if (!dispatchItemTS || !dispatchItemTS.getValue()) {
+            manualTotalQtyDisplay.textContent = "0 pcs";
+            manualTotalWeightDisplay.textContent = "0.000 kg";
+            weightInput.value = "0";
+            return;
+        }
+
+        const optionData = dispatchItemTS.options[dispatchItemTS.getValue()];
+        if (!optionData) {
+            manualTotalQtyDisplay.textContent = "0 pcs";
+            manualTotalWeightDisplay.textContent = "0.000 kg";
+            weightInput.value = "0";
+            return;
+        }
+
+        const weightPerPiece = parseFloat(optionData.weight) || 0;
+        const lotSize = parseInt(lotSizeInput.value) || 1;
+
+        if (lotSizeHelper) {
+            lotSizeHelper.textContent = `Multiplier lot size: ${lotSize} pcs`;
+        }
+
+        const cartons = parseInt(cartonsInput.value) || 0;
+        const loosePieces = parseInt(loosePiecesInput.value) || 0;
+
+        const totalPieces = (cartons * lotSize) + loosePieces;
+        const calculatedWeight = (totalPieces * weightPerPiece).toFixed(3);
+
+        manualTotalQtyDisplay.textContent = `${totalPieces} pcs`;
+        manualTotalWeightDisplay.textContent = `${calculatedWeight} kg`;
+        weightInput.value = calculatedWeight;
+    }
+
+    // Attach event listeners
+    if (!dispatchItemTS) {
+        document.getElementById('itemSelect').addEventListener('change', updateCalculations);
+    }
+
+    // Auto-fill Dispatch form based on PO Board trigger
+    function triggerQuickDispatch(clientId, poId) {
+        console.log("triggerQuickDispatch: Start for client", clientId, "PO", poId);
+        try {
+            // 1. Select the Client dropdown
+            const clientSelect = document.querySelector('select[name="client"]');
+            if (dispatchClientTS) {
+                console.log("Setting TomSelect client to:", clientId);
+                dispatchClientTS.setValue(clientId);
+            } else if (clientSelect) {
+                console.log("Setting standard select client to:", clientId);
+                clientSelect.value = clientId;
+                clientSelect.dispatchEvent(new Event('change'));
+            } else {
+                console.warn("Client dropdown element not found!");
+            }
+
+            // 2. Fetch PO item details
+            const apiUrl = `/orders/api/${poId}/`;
+            console.log("Fetching PO details from:", apiUrl);
+            fetch(apiUrl)
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! status: ${res.status}`);
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    console.log("PO details received:", data);
+                    if (!data || !data.items) {
+                        alert("No items found for this PO.");
+                        return;
+                    }
+
+                    // Switch to cartons tab
+                    switchDispatchTab('cartons');
+
+                    // Clear current carton selection rows
+                    const container = document.getElementById('cartons-container');
+                    if (container) {
+                        container.innerHTML = '';
+                    }
+                    Object.keys(cartonTomSelects).forEach(key => {
+                        if (cartonTomSelects[key]) {
+                            try { cartonTomSelects[key].destroy(); } catch(e) {}
+                        }
+                        delete cartonTomSelects[key];
+                    });
+                    cartonRowCount = 0;
+
+                    let filledAny = false;
+
+                    // Loop through PO items and search for ready matching cartons
+                    data.items.forEach(poItem => {
+                        const cleanItemCode = poItem.item_code.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                        console.log(`Checking item: ${poItem.item_code} (clean: ${cleanItemCode}), Ready stock: ${poItem.ready_stock}`);
+
+                        // Prioritize matching carton tagged specifically to this PO, then generic ones
+                        const matchingCarton = availableCartonsMaster.find(c => {
+                            const cleanCartonName = c.name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                            const codeMatches = cleanCartonName.includes(cleanItemCode);
+                            return codeMatches && String(c.sales_order_id) === String(poId);
+                        }) || availableCartonsMaster.find(c => {
+                            const cleanCartonName = c.name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                            const codeMatches = cleanCartonName.includes(cleanItemCode);
+                            return codeMatches && !c.sales_order_id;
+                        });
+
+                        if (matchingCarton) {
+                            console.log("Found matching carton in master:", matchingCarton.name);
+                        } else {
+                            console.log("No matching carton found in master for:", cleanItemCode);
+                        }
+
+                        if (matchingCarton && poItem.ready_stock > 0) {
+                            const singleQty = matchingCarton.singleqty || poItem.ready_stock;
+                            const qtyNeeded = Math.min(poItem.remaining_qty, poItem.ready_stock);
+
+                            let cartonsToDispatch = Math.ceil(qtyNeeded / singleQty);
+                            cartonsToDispatch = Math.min(cartonsToDispatch, matchingCarton.count);
+
+                            if (cartonsToDispatch > 0) {
+                                filledAny = true;
+                                const nextId = cartonRowCount;
+                                addCartonRow();
+
+                                setTimeout(() => {
+                                    const ts = cartonTomSelects[nextId];
+                                    if (ts) {
+                                        ts.setValue(matchingCarton.name);
+                                    } else {
+                                        const selectEl = document.getElementById(`carton-select-${nextId}`);
+                                        if (selectEl) selectEl.value = matchingCarton.name;
+                                    }
+                                    const countInput = document.getElementById(`carton-count-${nextId}`);
+                                    if (countInput) {
+                                        countInput.value = cartonsToDispatch;
+                                        updateCartonCalculations();
+                                    }
+                                }, 50);
+                            }
+                        }
+                    });
+
+                    if (!filledAny) {
+                        alert("No ready cartons found in stock for the items in this PO. Please ensure cartons are packed and marked READY before dispatching.");
+                    }
+
+                    // Smooth scroll operator to left side inputs card
+                    const scrollTarget = document.querySelector('.glass-card');
+                    if (scrollTarget) {
+                        scrollTarget.scrollIntoView({ behavior: 'smooth' });
+                    }
+
+                    const msg = `Auto-filled dispatch inputs for ${data.order_number}!`;
+                    showNotificationBadge(msg);
+                })
+                .catch(err => {
+                    console.error("Error auto-filling PO dispatch: ", err);
+                    alert("Error loading PO details: " + err.message);
+                });
+        } catch (e) {
+            console.error("Error in triggerQuickDispatch:", e);
+            alert("Error: " + e.message);
+        }
+    }
+
+    function triggerInstantFulfillment(poId, poNumber, readinessPct) {
+        console.log("triggerInstantFulfillment: Start for PO", poNumber, "ID", poId);
+        try {
+            const percent = parseFloat(readinessPct) || 0;
+            const msg = percent >= 100 
+                ? `Are you sure you want to execute a FULL dispatch (100%) for order ${poNumber}?` 
+                : `Are you sure you want to execute a PARTIAL dispatch (${readinessPct}%) for order ${poNumber}? This will dispatch all currently ready quantities.`;
+
+            if (!confirm(msg)) return;
+
+            const formData = new FormData();
+            formData.append('dispatch_type', 'full');
+            formData.append('notes', 'Instant dispatch from Customer PO Board');
+
+            const csrfTokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
+            const token = csrfTokenEl ? csrfTokenEl.value : '{{ csrf_token }}';
+
+            const dispatchUrl = `/orders/${poId}/dispatch/`;
+            console.log("Sending instant dispatch POST to:", dispatchUrl);
+
+            fetch(dispatchUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': token
+                }
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(text || `HTTP error! status: ${res.status}`);
+                    });
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log("Dispatch response received:", data);
+                if (data.success) {
+                    showNotificationBadge(`Successfully dispatched ${poNumber}!`);
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    alert(`Error: ${data.error || 'Dispatch failed.'}`);
+                }
+            })
+            .catch(err => {
+                console.error("Error executing instant dispatch:", err);
+                alert("Error executing dispatch: " + err.message);
+            });
+        } catch (e) {
+            console.error("Error in triggerInstantFulfillment:", e);
+            alert("Error: " + e.message);
+        }
+    }
+
+    function showNotificationBadge(msg) {
+        let badge = document.getElementById('quick-noti-badge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.id = 'quick-noti-badge';
+            badge.style.position = 'fixed';
+            badge.style.bottom = '30px';
+            badge.style.right = '30px';
+            badge.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            badge.style.color = 'white';
+            badge.style.padding = '12px 24px';
+            badge.style.borderRadius = '12px';
+            badge.style.boxShadow = '0 10px 25px rgba(16,185,129,0.3)';
+            badge.style.fontWeight = '800';
+            badge.style.fontSize = '13px';
+            badge.style.zIndex = '9999';
+            badge.style.transition = 'all 0.3s';
+            document.body.appendChild(badge);
+        }
+        badge.textContent = msg;
+        badge.style.opacity = '1';
+        badge.style.transform = 'translateY(0)';
+
+        setTimeout(() => {
+            badge.style.opacity = '0';
+            badge.style.transform = 'translateY(20px)';
+        }, 3500);
+    }
+
+    // Dynamic Sliding Drawer Control on Dispatch
+    function openPODrawer(poId) {
+        activePOId = poId;
+        document.getElementById('drawerItemsList').innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-secondary);">Loading PO details...</div>';
+
+        fetch(`/orders/api/${poId}/`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('drawerPONumber').textContent = data.order_number;
+
+                // Decode preference readable title
+                let prefTitle = "Flexible / Any Carton";
+                let prefColor = "#a7f3d0";
+                if (data.packing_preference === 'BOX_PREF') {
+                    prefTitle = "⭐ Box Lot Preferred (Flexible)";
+                    prefColor = "#fde047";
+                } else if (data.packing_preference === 'REG_PREF') {
+                    prefTitle = "⭐ Regular Preferred (Flexible)";
+                    prefColor = "#60a5fa";
+                } else if (data.packing_preference === 'BOX_STRICT') {
+                    prefTitle = "🛑 Strict Box Lot Only";
+                    prefColor = "#f87171";
+                } else if (data.packing_preference === 'REG_STRICT') {
+                    prefTitle = "🛑 Strict Regular Only";
+                    prefColor = "#f87171";
+                }
+
+                document.getElementById('drawerClientName').innerHTML = `
+                    👤 ${data.client_name} 
+                    <span class="badge" style="font-size:9px; padding:2px 6px; margin-left:8px; background:rgba(255,255,255,0.05); color:${prefColor}; border:1px solid rgba(255,255,255,0.08);">
+                        ${prefTitle}
+                    </span>
+                `;
+                document.getElementById('drawerExternalRef').textContent = data.external_po_number;
+                document.getElementById('drawerPromisedDate').textContent = data.promised_date;
+                document.getElementById('drawerStatusText').textContent = data.status;
+                document.getElementById('drawerOrderDate').textContent = data.order_date;
+
+                document.getElementById('drawerReadinessPct').textContent = `${data.readiness_percentage}%`;
+                document.getElementById('drawerReadinessProgress').style.width = `${data.readiness_percentage}%`;
+
+                document.getElementById('drawerDispatchForm').action = `/orders/${poId}/dispatch/`;
+
+                let listHtml = '';
+                data.items.forEach(item => {
+                    const isCompleted = item.remaining_qty <= 0;
+                    const sd = item.stock_details || { reg_cartons_count: 0, reg_cartons_pieces: 0, box_cartons_count: 0, box_cartons_pieces: 0, loose_pieces: 0 };
+
+                    listHtml += `
+                        <div style="background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); border-left: 3px solid #10b981; border-radius: 12px; padding: 12px; position: relative;">
+                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                 <div>
+                                     <div style="font-weight: 800; font-size: 13px; color: white;">${item.item_code}</div>
+                                     <div style="font-size: 11px; color: var(--text-secondary);">${item.item_name}</div>
+                                 </div>
+                                 <div>
+                                     ${isCompleted ?
+                            `<span class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; font-size: 9px;">Fulfilled</span>` :
+                            `<span class="badge" style="background: rgba(245,158,11,0.15); color: #f59e0b; font-size: 9px;">Pending ${item.remaining_qty}</span>`
+                        }
+                                 </div>
+                             </div>
+                             
+                             <!-- Core Metrics -->
+                             <div style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; font-size: 11px; margin-bottom: 10px; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 8px;">
+                                 <div><div style="color: var(--text-secondary); font-size: 9px; text-transform: uppercase;">Ordered</div><div style="font-weight: 800; color: white;">${item.ordered_qty} pcs</div></div>
+                                 <div><div style="color: var(--text-secondary); font-size: 9px; text-transform: uppercase;">Ready Warehouse</div><div style="font-weight: 800; color: #10b981;">${item.ready_stock} pcs</div></div>
+                                 <div><div style="color: var(--text-secondary); font-size: 9px; text-transform: uppercase;">Dispatched</div><div style="font-weight: 800; color: #60a5fa;">${item.dispatched_qty} pcs</div></div>
+                             </div>
+                             
+                             <!-- Advanced Carton Breakdown details -->
+                             <div style="background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.03); border-radius:6px; padding:6px 10px; font-size:10px; margin-bottom:10px; color:var(--text-secondary); display:flex; justify-content:space-between; gap:6px;">
+                                <span>📦 Reg: <b>${sd.reg_cartons_count} ctn</b> (${sd.reg_cartons_pieces} pcs)</span>
+                                <span>📦 Box Lot: <b>${sd.box_cartons_count} ctn</b> (${sd.box_cartons_pieces} pcs)</span>
+                                <span>Loose: <b>${sd.loose_pieces} pcs</b></span>
+                             </div>
+
+                             ${(!isCompleted && item.ready_stock > 0) ? `
+                                 <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 8px; margin-top: 8px;">
+                                     <span style="font-size: 11px; color: var(--text-secondary);">Qty to Dispatch:</span>
+                                     <div style="display: flex; align-items: center; gap: 6px;">
+                                         <input type="number" name="qty_${item.id}" class="dispatch-qty-input" min="0" max="${Math.min(item.remaining_qty, item.ready_stock)}" value="${Math.min(item.remaining_qty, item.ready_stock)}" style="width: 60px; padding: 4px; background: rgba(15,23,42,0.6); border: 1px solid var(--glass-border); border-radius: 6px; color: white; text-align: center; font-size: 12px; font-weight: 700;">
+                                         <span style="font-size: 10px; color: var(--text-secondary);">/ max ${Math.min(item.remaining_qty, item.ready_stock)}</span>
+                                     </div>
+                                 </div>
+                             ` : ''}
+                        </div>
+                    `;
+                });
+
+                document.getElementById('drawerItemsList').innerHTML = listHtml;
+
+                document.getElementById('drawerOverlay').classList.add('active');
+                document.getElementById('poDrawer').classList.add('active');
+            })
+            .catch(err => {
+                console.error("Failed to load PO details", err);
+                document.getElementById('drawerItemsList').innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Error loading order details.</div>';
+            });
+    }
+
+    function closePODrawer() {
+        document.getElementById('drawerOverlay').classList.remove('active');
+        document.getElementById('poDrawer').classList.remove('active');
+        activePOId = null;
+    }
+
+    // AJAX Form Submitter for sliding drawer partial dispatches
+    document.getElementById('drawerDispatchForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const form = this;
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`SUCCESS: ${data.message}`);
+                    window.location.reload();
+                } else {
+                    alert(`ERROR: ${data.error || 'Dispatch execution failed.'}`);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("An unexpected error occurred during dispatch processing.");
+            });
+    });
+
+    window.activeCompanyFilter = null;
+    function switchCompanyFilter(companyId, tabEl) {
+        window.activeCompanyFilter = companyId;
+        const tabs = document.querySelectorAll('.company-tab');
+        tabs.forEach(tab => {
+            tab.style.background = 'transparent';
+            tab.style.color = 'var(--text-secondary)';
+        });
+        tabEl.style.background = 'rgba(255,255,255,0.1)';
+        tabEl.style.color = 'white';
+        
+        const cards = document.querySelectorAll('.po-fulfillment-card');
+        cards.forEach(card => {
+            const cardCompanyId = card.getAttribute('data-company-id');
+            if (companyId === null || cardCompanyId === String(companyId)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+</script>
+
+{% endblock %}

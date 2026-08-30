@@ -1,0 +1,451 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --accent-blue: #3b82f6;
+        --card-dark: #111827;
+        --border-soft: rgba(255, 255, 255, 0.08);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --success-green: #10b981;
+        --error-red: #ef4444;
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .top-tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 30px;
+    }
+
+    .tab-btn {
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-soft);
+        padding: 12px 24px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 15px;
+        transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: white;
+    }
+
+    .tab-btn.active {
+        background: var(--accent-blue);
+        color: white;
+        border-color: var(--accent-blue);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+    }
+
+    .import-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 30px;
+    }
+
+    @media (max-width: 991px) {
+        .import-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .upload-zone {
+        border: 2px dashed rgba(255, 255, 255, 0.15);
+        border-radius: 18px;
+        padding: 40px 20px;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.01);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .upload-zone:hover {
+        border-color: var(--accent-blue);
+        background: rgba(59, 130, 246, 0.02);
+    }
+
+    .upload-icon {
+        font-size: 40px;
+        margin-bottom: 16px;
+        display: block;
+        opacity: 0.8;
+    }
+
+    .info-list {
+        margin-top: 15px;
+        padding-left: 20px;
+    }
+
+    .info-list li {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .badge {
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-success {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success-green);
+    }
+
+    .badge-error {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--error-red);
+    }
+
+    .preview-card {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .validation-row.invalid {
+        background: rgba(239, 68, 68, 0.03);
+    }
+
+    .validation-row.invalid td {
+        border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+    }
+</style>
+
+<div class="header-section">
+    <div>
+        <h1 style="font-size: 26px; margin-bottom: 6px; display: flex; align-items: center;">
+            ⚙️ Master Bulk Import & Export Hub
+            <span class="header-info-badge" tabindex="0" data-tooltip="Batch import master items, clients, employees, and customer POs via CSV templates, or export data backups." data-tooltip-pos="right" aria-label="Import Export Hub Info">ℹ️</span>
+        </h1>
+        <p style="font-size: 14px; color: var(--text-secondary);">Download templates, export registries, or upload completed CSV documents to bulk import data safely.</p>
+    </div>
+    <a href="{% url 'master_data' %}" style="text-decoration: none;">
+        <button style="background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--border-soft); padding: 10px 20px;">
+            ← Back to Masters
+        </button>
+    </a>
+</div>
+
+<div class="top-tabs">
+    <button class="tab-btn {% if active_tab == 'items' %}active{% endif %}" onclick="switchImportTab('items')">
+        📦 Items
+    </button>
+    <button class="tab-btn {% if active_tab == 'clients' %}active{% endif %}" onclick="switchImportTab('clients')">
+        👥 Clients
+    </button>
+    <button class="tab-btn {% if active_tab == 'employees' %}active{% endif %}" onclick="switchImportTab('employees')">
+        🛠️ In-House Staff
+    </button>
+    <button class="tab-btn {% if active_tab == 'job_workers' %}active{% endif %}" onclick="switchImportTab('job_workers')">
+        🏭 Job Workers
+    </button>
+    <button class="tab-btn {% if active_tab == 'bom' %}active{% endif %}" onclick="switchImportTab('bom')">
+        🧩 BOM/Sets
+    </button>
+    <button class="tab-btn {% if active_tab == 'po' %}active{% endif %}" onclick="switchImportTab('po')">
+        📋 Customer POs
+    </button>
+</div>
+
+<div class="import-grid">
+    <!-- LEFT PANEL: UPLOAD AND TEMPLATES -->
+    <div>
+        <div class="card" style="margin-bottom: 24px;">
+            <h3 style="font-size: 16px; margin-bottom: 14px; color: var(--text-primary);">1. Prepare CSV Template</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+                Get a blank template or export your current registry data to make modifications offline.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <a href="{% url 'download_template' template_type=active_tab %}" style="text-decoration: none; width: 100%;">
+                    <button type="button" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-soft); color: var(--text-primary); padding: 10px;">
+                        📥 Download Blank Template
+                    </button>
+                </a>
+                <a href="{% url 'export_current_data' template_type=active_tab %}" style="text-decoration: none; width: 100%;">
+                    <button type="button" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent-blue); color: #60a5fa; padding: 10px;">
+                        📤 Export Current Registry Data
+                    </button>
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size: 16px; margin-bottom: 14px; color: var(--text-primary);">2. Upload Completed CSV</h3>
+            
+            <form id="uploadForm" method="POST" enctype="multipart/form-data" onsubmit="onSubmitImportForm(this)">
+                {% csrf_token %}
+                <input type="hidden" name="import_type" id="importTypeVal" value="{{ active_tab }}">
+                <textarea name="csv_data_cache" style="display: none;">{{ csv_data_cache|default:"" }}</textarea>
+                
+                <div class="upload-zone" onclick="document.getElementById('csvFileInput').click()">
+                    <span class="upload-icon">📄</span>
+                    <span style="font-weight: 600; display: block; margin-bottom: 6px; font-size: 14px;">Select CSV file</span>
+                    <span style="font-size: 12px; color: var(--text-secondary);">Click to choose file or drag it here</span>
+                    <input type="file" name="csv_file" id="csvFileInput" accept=".csv" style="display: none;" onchange="onFileSelected()" onclick="event.stopPropagation()">
+                </div>
+                
+                <div id="fileSelectedInfo" style="margin-top: 15px; {% if csv_data_cache %}display: block;{% else %}display: none;{% endif %} font-size: 13px; color: var(--text-primary); text-align: center; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; border: 1px solid var(--border-soft);">
+                    Selected: <strong id="selectedFilename">{% if csv_data_cache %}Validated File (in memory){% else %}file.csv{% endif %}</strong>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="submit" name="preview" style="flex: 1; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--border-soft);">
+                        🔍 Preview Rows
+                    </button>
+                    {% if preview_rows and not has_errors %}
+                    <button type="submit" name="commit" style="flex: 1; background: var(--success-green); color: white;">
+                        🚀 Commit Import
+                    </button>
+                    {% else %}
+                    <button type="button" disabled style="flex: 1; background: rgba(255,255,255,0.02); color: var(--text-secondary); cursor: not-allowed; border: 1px solid var(--border-soft);">
+                        Commit Import
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: PREVIEW ROWS -->
+    <div>
+        <div class="card preview-card">
+            <h3 style="font-size: 16px; margin-bottom: 14px; color: var(--text-primary);">3. Validation Preview Grid</h3>
+            
+            {% if preview_rows %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">Row</th>
+                                {% if active_tab == 'items' %}
+                                    <th style="font-size: 12px; padding: 10px;">Item Code</th>
+                                    <th style="font-size: 12px; padding: 10px;">Item Name</th>
+                                    <th style="font-size: 12px; padding: 10px;">Company Scope</th>
+                                    <th style="font-size: 12px; padding: 10px;">Client Scope</th>
+                                    <th style="font-size: 12px; padding: 10px;">Category</th>
+                                    <th style="font-size: 12px; padding: 10px;">Worker Rates</th>
+                                {% elif active_tab == 'clients' %}
+                                    <th style="font-size: 12px; padding: 10px;">Client Code</th>
+                                    <th style="font-size: 12px; padding: 10px;">Client Name</th>
+                                    <th style="font-size: 12px; padding: 10px;">Company Scope</th>
+                                    <th style="font-size: 12px; padding: 10px;">GSTIN Number</th>
+                                    <th style="font-size: 12px; padding: 10px;">Phone</th>
+                                    <th style="font-size: 12px; padding: 10px;">City</th>
+                                {% elif active_tab == 'employees' %}
+                                    <th style="font-size: 12px; padding: 10px;">Employee Code</th>
+                                    <th style="font-size: 12px; padding: 10px;">Name</th>
+                                    <th style="font-size: 12px; padding: 10px;">Company Scope</th>
+                                    <th style="font-size: 12px; padding: 10px;">Department Process</th>
+                                    <th style="font-size: 12px; padding: 10px;">Daily Wage Rate</th>
+                                {% elif active_tab == 'job_workers' %}
+                                    <th style="font-size: 12px; padding: 10px;">JW Code</th>
+                                    <th style="font-size: 12px; padding: 10px;">Name</th>
+                                    <th style="font-size: 12px; padding: 10px;">Company Scope</th>
+                                    <th style="font-size: 12px; padding: 10px;">Department Process</th>
+                                    <th style="font-size: 12px; padding: 10px;">Casting Piece-Rate</th>
+                                {% elif active_tab == 'bom' %}
+                                    <th style="font-size: 12px; padding: 10px;">Parent Item Code</th>
+                                    <th style="font-size: 12px; padding: 10px;">Component Item Code</th>
+                                    <th style="font-size: 12px; padding: 10px;">Quantity</th>
+                                {% elif active_tab == 'po' %}
+                                    <th style="font-size: 12px; padding: 10px;">PO Number</th>
+                                    <th style="font-size: 12px; padding: 10px;">Client Name/Code</th>
+                                    <th style="font-size: 12px; padding: 10px;">Order/Promised Date</th>
+                                    <th style="font-size: 12px; padding: 10px;">Priority</th>
+                                    <th style="font-size: 12px; padding: 10px;">Item Code</th>
+                                    <th style="font-size: 12px; padding: 10px;">Ordered Qty</th>
+                                    <th style="font-size: 12px; padding: 10px;">Rate per Piece</th>
+                                    <th style="font-size: 12px; padding: 10px;">Remarks</th>
+                                {% endif %}
+                                <th style="font-size: 12px; padding: 10px; text-align: center; width: 100px;">Import Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preview_rows %}
+                                <tr class="validation-row {% if not row.is_valid %}invalid{% endif %}">
+                                    <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">#{{ row.row_num }}</td>
+                                    {% if active_tab == 'items' %}
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600;">{{ row.data.code }}</td>
+                                        <td style="padding: 10px; font-size: 13px;">{{ row.data.name }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--accent-blue); font-weight: 600;">{{ row.data.company_name|default:"GLOBAL" }}</td>
+                                        <td style="padding: 10px; font-size: 13px;">{{ row.data.client_name|default:"-" }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">{{ row.data.category }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">{{ row.data.worker_rates|default:"-" }}</td>
+                                    {% elif active_tab == 'clients' %}
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">{{ row.data.client_code|default:"[AUTO]" }}</td>
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600;">{{ row.data.name }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--accent-blue); font-weight: 600;">{{ row.data.company_name }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">{{ row.data.gst_number|default:"-" }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">{{ row.data.phone|default:"-" }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">{{ row.data.city|default:"-" }}</td>
+                                    {% elif active_tab == 'employees' %}
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">{{ row.data.worker_code|default:"[AUTO]" }}</td>
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600;">{{ row.data.name }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--accent-blue); font-weight: 600;">{{ row.data.company_name }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">{{ row.data.process_type }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">₹{{ row.data.daily_rate|default:"0" }}</td>
+                                    {% elif active_tab == 'job_workers' %}
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">{{ row.data.worker_code|default:"[AUTO]" }}</td>
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600;">{{ row.data.name }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--accent-blue); font-weight: 600;">{{ row.data.company_name }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">{{ row.data.process_type }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">₹{{ row.data.daily_rate|default:"0" }}</td>
+                                    {% elif active_tab == 'bom' %}
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600;">{{ row.data.parent_item_code }}</td>
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600;">{{ row.data.component_item_code }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--accent-blue); font-weight: 600;">{{ row.data.quantity }}</td>
+                                    {% elif active_tab == 'po' %}
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ row.data.po_number }}</td>
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600; color: var(--accent-blue);">{{ row.data.client }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">{{ row.data.order_date|default:"-" }} / {{ row.data.promised_date }}</td>
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 700; color: {% if row.data.priority == 'URGENT' %}var(--error-red){% else %}var(--text-secondary){% endif %};">{{ row.data.priority }}</td>
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600; color: #60a5fa;">{{ row.data.item_code }}</td>
+                                        <td style="padding: 10px; font-size: 13px; font-weight: 600; color: var(--success-green);">{{ row.data.quantity }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-primary);">₹{{ row.data.rate }}</td>
+                                        <td style="padding: 10px; font-size: 13px; color: var(--text-secondary);">{{ row.data.remarks|default:"-" }}</td>
+                                    {% endif %}
+                                    <td style="padding: 10px; text-align: center;">
+                                        {% if row.is_valid %}
+                                            {% if row.action == 'UPDATE' %}
+                                                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-weight: 700;">UPDATE</span>
+                                            {% else %}
+                                                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">NEW</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge badge-error" title="{{ row.errors|join:', ' }}">Error</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if not row.is_valid %}
+                                    <tr style="background: rgba(239, 68, 68, 0.02);">
+                                        <td colspan="10" style="padding: 6px 10px 12px 10px; font-size: 11px; color: var(--error-red); font-weight: 600; border-bottom: 1px solid var(--border-soft);">
+                                            ⚠️ Row {{ row.row_num }} Error: {{ row.errors|join:" | " }}
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: 60px 20px;">
+                    <span style="font-size: 44px; display: block; margin-bottom: 16px; opacity: 0.3;">📊</span>
+                    <p style="font-size: 14px; color: var(--text-secondary);">No file preview loaded yet. Choose a CSV on the left and click "Preview Rows".</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchImportTab(type) {
+        document.getElementById('importTypeVal').value = type;
+        
+        // Remove current URL get queries and navigate clean to change template views
+        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = cleanUrl;
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        form.appendChild(csrfInput);
+        
+        const typeInput = document.createElement('input');
+        typeInput.type = 'hidden';
+        typeInput.name = 'import_type';
+        typeInput.value = type;
+        form.appendChild(typeInput);
+        
+        // Custom simple GET redirect is better to clear active lists
+        window.location.href = window.location.pathname + "?tab=" + type;
+    }
+
+    // Capture tab switcher queries on loaded page
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab) {
+            document.getElementById('importTypeVal').value = tab;
+        }
+
+        // Drag and Drop support
+        const uploadZone = document.querySelector('.upload-zone');
+        if (uploadZone) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    uploadZone.style.borderColor = 'var(--accent-blue)';
+                    uploadZone.style.background = 'rgba(59, 130, 246, 0.04)';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    uploadZone.style.borderColor = 'var(--border-soft)';
+                    uploadZone.style.background = 'transparent';
+                }, false);
+            });
+
+            uploadZone.addEventListener('drop', e => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    const fileInput = document.getElementById('csvFileInput');
+                    fileInput.files = files;
+                    onFileSelected();
+                }
+            }, false);
+        }
+    });
+
+    function onFileSelected() {
+        const input = document.getElementById('csvFileInput');
+        const infoDiv = document.getElementById('fileSelectedInfo');
+        const filenameSpan = document.getElementById('selectedFilename');
+        
+        if (input.files && input.files[0]) {
+            filenameSpan.textContent = input.files[0].name;
+            infoDiv.style.display = 'block';
+        }
+    }
+
+    function onSubmitImportForm(form) {
+        // Use setTimeout to allow browser to package and submit clicked button name first
+        setTimeout(() => {
+            const buttons = form.querySelectorAll('button[type="submit"]');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.cursor = 'not-allowed';
+                if (btn.name === 'preview') {
+                    btn.innerHTML = '⏳ Processing...';
+                } else if (btn.name === 'commit') {
+                    btn.innerHTML = '⏳ Committing...';
+                }
+            });
+        }, 0);
+    }
+</script>
+{% endblock %}

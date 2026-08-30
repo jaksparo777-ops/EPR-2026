@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Statement - {{ jw.name }} - {{ month_name }}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        
+        :root {
+            --primary: #0f172a;
+            --accent: #3b82f6;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --rejection: #dc2626;
+            --earnings: #16a34a;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            line-height: 1.5;
+            margin: 0;
+            padding: 40px;
+            background: white;
+        }
+
+        .slip-container {
+            box-sizing: border-box;
+            background: white;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+
+            body {
+                padding: 0;
+                margin: 0;
+                background: white !important;
+                color: #0f172a !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .slip-container {
+                width: 100%;
+                padding: 4mm 6mm !important;
+                box-sizing: border-box;
+            }
+            .slip-container, .slip-container *, p, span, h1, h2, h3, div, td, th {
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .header {
+                padding-bottom: 4px !important;
+                margin-bottom: 6px !important;
+                border-bottom: 2px solid #000000 !important;
+            }
+            .header h1 {
+                font-size: 18px !important;
+                font-weight: 800 !important;
+                color: #000000 !important;
+            }
+            .header h2 {
+                font-size: 15px !important;
+                font-weight: 800 !important;
+                color: #000000 !important;
+            }
+            .section-title {
+                font-size: 11px !important;
+                margin-bottom: 8px !important;
+                border-left: 4px solid #000000 !important;
+                padding-left: 8px !important;
+                font-weight: 800 !important;
+                color: #000000 !important;
+            }
+            table {
+                margin-bottom: 12px !important;
+                border: 1.2px solid #000000 !important;
+            }
+            th {
+                background: #e2e8f0 !important;
+                color: #000000 !important;
+                border-bottom: 2px solid #000000 !important;
+                font-weight: 800 !important;
+            }
+            td {
+                padding: 6px 8px !important;
+                font-size: 10px !important;
+                border-bottom: 1px solid #000000 !important;
+                color: #000000 !important;
+            }
+            .qty-in {
+                color: #000000 !important;
+                font-weight: 700 !important;
+            }
+            .qty-out {
+                color: #000000 !important;
+                font-weight: 700 !important;
+            }
+            .earned-amount {
+                color: #000000 !important;
+                font-weight: 900 !important;
+            }
+            .paid, .paid span {
+                color: #000000 !important;
+                font-weight: 900 !important;
+            }
+            .summary-grid {
+                margin-bottom: 0 !important;
+                gap: 8px !important;
+            }
+            .summary-item {
+                padding: 8px !important;
+                border-radius: 6px !important;
+                border: 1.2px solid #000000 !important;
+                background: #f8fafc !important;
+            }
+            .summary-item[style*="border-color: var(--accent)"] {
+                border-color: #000000 !important;
+                background: #eff6ff !important;
+            }
+            .summary-label {
+                font-size: 8px !important;
+                margin-bottom: 2px !important;
+                color: #000000 !important;
+                font-weight: 800 !important;
+            }
+            .summary-value {
+                font-size: 13px !important;
+                color: #000000 !important;
+                font-weight: 800 !important;
+            }
+            .summary-value.highlight {
+                font-size: 16px !important;
+                color: #000000 !important;
+                font-weight: 900 !important;
+            }
+            .footer {
+                margin-top: 15px !important;
+                font-size: 10px !important;
+                color: #000000 !important;
+            }
+            .signature-box {
+                border-top: 1.5px solid #000000 !important;
+                width: 160px !important;
+                margin-top: 20px !important;
+                padding-top: 6px !important;
+                font-size: 10px !important;
+                font-weight: 800 !important;
+                color: #000000 !important;
+            }
+            td div[style*="border-top"] {
+                border-top: 1.5px solid #000000 !important;
+            }
+            #matrix-report-view table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                border: 1.5px solid #000000 !important;
+                margin-bottom: 6px !important;
+            }
+            #matrix-report-view th {
+                padding: 4px 3px !important;
+                font-size: 10.5px !important;
+                font-weight: 900 !important;
+                background: #e2e8f0 !important;
+                color: #000000 !important;
+                border: 1px solid #000000 !important;
+                line-height: 1.15 !important;
+            }
+            #matrix-report-view td {
+                padding: 3px 3px !important;
+                font-size: 10px !important;
+                font-weight: 800 !important;
+                border: 1px solid #000000 !important;
+                color: #000000 !important;
+                line-height: 1.15 !important;
+            }
+            #matrix-report-view td div {
+                font-size: 10px !important;
+                font-weight: 800 !important;
+                line-height: 1.15 !important;
+                margin: 0 !important;
+            }
+            #matrix-report-view td span {
+                font-size: 9px !important;
+                font-weight: 800 !important;
+            }
+            #matrix-report-view .summary-grid {
+                margin-top: 6px !important;
+                margin-bottom: 8px !important;
+                gap: 6px !important;
+            }
+            #matrix-report-view .summary-item {
+                padding: 5px 8px !important;
+            }
+            #matrix-report-view .summary-label {
+                font-size: 8.5px !important;
+                margin-bottom: 2px !important;
+                font-weight: 900 !important;
+            }
+            #matrix-report-view .summary-value {
+                font-size: 14px !important;
+                font-weight: 900 !important;
+            }
+            #matrix-report-view .summary-value.highlight {
+                font-size: 16px !important;
+                font-weight: 900 !important;
+            }
+            .tooltip-content, .tooltip-trigger .tooltip-content {
+                display: none !important;
+            }
+            }
+
+        /* High-Contrast B&W 1-Page Full-Page PDF Generation Mode */
+        body.pdf-print-mode {
+            --primary: #000000 !important;
+            --accent: #000000 !important;
+            --text-main: #000000 !important;
+            --text-muted: #000000 !important;
+            --border: #000000 !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+        }
+
+        body.pdf-print-mode *,
+        body.pdf-print-mode *::before,
+        body.pdf-print-mode *::after {
+            color: #000000 !important;
+            border-color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body.pdf-print-mode span[style*="color"],
+        body.pdf-print-mode div[style*="color"],
+        body.pdf-print-mode td[style*="color"],
+        body.pdf-print-mode p[style*="color"],
+        body.pdf-print-mode h1[style*="color"],
+        body.pdf-print-mode h2[style*="color"],
+        body.pdf-print-mode a[style*="color"] {
+            color: #000000 !important;
+        }
+
+        body.pdf-print-mode .no-print {
+            display: none !important;
+        }
+
+        body.pdf-print-mode .print-only {
+            display: block !important;
+        }
+
+        body.pdf-print-mode .slip-container {
+            width: 100% !important;
+            max-width: 100% !important;
+            max-height: 282mm !important;
+            padding: 4mm 6mm !important;
+            box-sizing: border-box !important;
+            background: #ffffff !important;
+            overflow: hidden !important;
+        }
+
+        body.pdf-print-mode .header {
+            padding-bottom: 6px !important;
+            margin-bottom: 8px !important;
+            border-bottom: 2px solid #000000 !important;
+        }
+
+        body.pdf-print-mode .header h1 {
+            font-size: 22px !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+        }
+
+        body.pdf-print-mode .header h2 {
+            font-size: 18px !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+        }
+
+        body.pdf-print-mode .section-title {
+            font-size: 11px !important;
+            margin-bottom: 6px !important;
+            border-left: 4px solid #000000 !important;
+            padding-left: 6px !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+        }
+
+        body.pdf-print-mode .summary-grid {
+            margin-top: 6px !important;
+            margin-bottom: 10px !important;
+            gap: 8px !important;
+        }
+
+        body.pdf-print-mode .summary-item {
+            padding: 6px 10px !important;
+            border-radius: 4px !important;
+            border: 1.2px solid #000000 !important;
+            background: #f8fafc !important;
+        }
+
+        body.pdf-print-mode .summary-label {
+            font-size: 8.5px !important;
+            margin-bottom: 2px !important;
+            font-weight: 900 !important;
+            text-transform: uppercase !important;
+            color: #000000 !important;
+        }
+
+        body.pdf-print-mode .summary-value {
+            font-size: 15px !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+        }
+
+        body.pdf-print-mode .summary-value.highlight {
+            font-size: 17px !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+        }
+
+        /* Matrix Table Full Page PDF Styling */
+        body.pdf-print-mode #matrix-report-view table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            border: 1.5px solid #000000 !important;
+            margin-bottom: 4px !important;
+        }
+
+        body.pdf-print-mode #matrix-report-view th {
+            padding: 4.5px 3px !important;
+            font-size: 12px !important;
+            font-weight: 900 !important;
+            background: #e2e8f0 !important;
+            color: #000000 !important;
+            border: 1px solid #000000 !important;
+            line-height: 1.1 !important;
+            text-align: center !important;
+        }
+
+        body.pdf-print-mode #matrix-report-view td {
+            padding: 3.8px 3px !important;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            border: 1px solid #000000 !important;
+            color: #000000 !important;
+            line-height: 1.15 !important;
+            text-align: center !important;
+        }
+
+        body.pdf-print-mode #matrix-report-view td div {
+            font-size: 11.5px !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+            line-height: 1.1 !important;
+            margin: 0 !important;
+        }
+
+        body.pdf-print-mode #matrix-report-view td span {
+            font-size: 10px !important;
+            color: #000000 !important;
+            font-weight: 800 !important;
+        }
+
+        body.pdf-print-mode #matrix-report-view tr[style*="background"] {
+            background: #f1f5f9 !important;
+        }
+
+        body.pdf-print-mode #matrix-report-view tr[style*="background: rgba(245, 158, 11, 0.12)"] {
+            background: #fef3c7 !important;
+        }
+        body.pdf-print-mode #matrix-report-view tr[style*="background: rgba(245, 158, 11, 0.12)"] td {
+            color: #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        body.pdf-print-mode .tooltip-content,
+        body.pdf-print-mode .tooltip-trigger .tooltip-content {
+            display: none !important;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .company-info h1 {
+            margin: 0;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .statement-title {
+            text-align: right;
+        }
+
+        .statement-title h2 {
+            margin: 0;
+            color: var(--accent);
+            font-size: 28px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .summary-item {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .summary-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .summary-value.highlight {
+            color: var(--accent);
+            font-size: 22px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        th {
+            background: #f1f5f9;
+            text-align: left;
+            padding: 12px;
+            font-size: 12px;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 12px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            color: var(--primary);
+            border-left: 4px solid var(--accent);
+            padding-left: 10px;
+        }
+
+        .earned { color: #10b981; font-weight: 600; }
+        .paid { color: #ef4444; font-weight: 600; }
+
+        .footer {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .signature-box {
+            border-top: 1px solid var(--text-main);
+            width: 200px;
+            text-align: center;
+            padding-top: 10px;
+            margin-top: 40px;
+        }
+
+        .btn-print {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .print-only {
+            display: none;
+        }
+
+        /* Utility Header Styling */
+        .utility-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111827;
+            padding: 15px 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 25px;
+        }
+        .btn-utility {
+            background: rgba(255,255,255,0.05);
+            color: #cbd5e1;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-decoration: none;
+            outline: none;
+            font-family: inherit;
+        }
+        .btn-utility:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .btn-utility.back-btn:hover {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        @media screen {
+            body.dark-theme {
+                --text-main: #f1f5f9;
+                --text-muted: #94a3b8;
+                --border: rgba(255,255,255,0.08);
+                --rejection: #f87171;
+                --earnings: #34d399;
+                background: #0b0f19;
+                color: var(--text-main);
+                padding: 30px 15px;
+            }
+            body.dark-theme .slip-container {
+                background: #111827;
+                border: 1px solid rgba(255,255,255,0.05);
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                color: #cbd5e1;
+                border-radius: 16px;
+                padding: 30px;
+            }
+            body.dark-theme .header {
+                border-bottom: 2px solid rgba(255,255,255,0.05);
+            }
+            body.dark-theme .statement-title h2, 
+            body.dark-theme .company-info h1, 
+            body.dark-theme .statement-title h2 a {
+                color: #ffffff;
+            }
+            body.dark-theme .section-title {
+                color: #ffffff;
+                border-left: 4px solid var(--accent);
+            }
+            body.dark-theme th {
+                background: rgba(255,255,255,0.02);
+                color: #94a3b8;
+                border-bottom: 2px solid rgba(255,255,255,0.05);
+            }
+            body.dark-theme td {
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+                color: #cbd5e1;
+            }
+            body.dark-theme .summary-item {
+                background: rgba(255,255,255,0.01);
+                border: 1px solid rgba(255,255,255,0.05);
+            }
+            body.dark-theme .summary-item[style*="border-color: var(--accent)"] {
+                border-color: var(--accent);
+                background: rgba(59, 130, 246, 0.08);
+            }
+            body.dark-theme .summary-item[style*="border-color: var(--accent)"] .summary-value {
+                color: #3b82f6;
+            }
+            body.dark-theme #jw-select-dropdown {
+                background: #111827;
+                border: 1px solid rgba(255,255,255,0.05);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            }
+            body.dark-theme #jw-search-input {
+                background: #0d1117;
+                border: 1px solid rgba(255,255,255,0.05);
+                color: #ffffff;
+            }
+            body.dark-theme #jw-options-list a {
+                color: #cbd5e1;
+            }
+            body.dark-theme #jw-options-list a:hover {
+                background: rgba(255,255,255,0.03);
+            }
+            body.dark-theme .nav-arrow {
+                color: #64748b;
+            }
+            body.dark-theme .nav-arrow:hover {
+                color: var(--accent);
+            }
+
+            /* Global Tooltip Styles */
+            .tooltip-trigger {
+                position: relative;
+                cursor: pointer;
+            }
+            .tooltip-content {
+                display: none;
+                position: absolute;
+                bottom: 125%;
+                right: 0;
+                background: #0f172a;
+                color: #f1f5f9;
+                padding: 6px 10px;
+                border-radius: 8px;
+                font-size: 11px;
+                white-space: nowrap;
+                z-index: 1000;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                pointer-events: none;
+            }
+            .tooltip-trigger:hover .tooltip-content {
+                display: block;
+            }
+            .tooltip-content::after {
+                content: "";
+                position: absolute;
+                top: 100%;
+                right: 15px;
+                border-width: 5px;
+                border-style: solid;
+                border-color: #0f172a transparent transparent transparent;
+            }
+        }
+    </style>
+</head>
+<body class="dark-theme">
+
+    <div class="utility-header no-print">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <button onclick="handleGoBack()" class="btn-utility back-btn">◀ Back</button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">View Format:</label>
+                <button type="button" class="btn-utility" id="btn-matrix-mode" onclick="setReportFormat('matrix')" style="background: var(--accent); color: white;">📊 1-Page Matrix Grid</button>
+                <button type="button" class="btn-utility" id="btn-detailed-mode" onclick="setReportFormat('detailed')">📜 Detailed Audit</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Statement Mode:</label>
+                <select id="statement-mode-selector" onchange="changeStatementMode(this.value)" style="font-size: 14px; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); background: #0d1117; color: white; font-family: inherit; font-weight: bold; cursor: pointer; outline: none;">
+                    <option value="monthly" {% if month_val != 'all' and month_val != 'last_payment' %}selected{% endif %}>Monthly</option>
+                    <option value="last_payment" {% if month_val == 'last_payment' %}selected{% endif %}>Since Last Payment</option>
+                    <option value="all" {% if month_val == 'all' %}selected{% endif %}>All Time</option>
+                </select>
+            </div>
+            <div class="datepicker-container" id="report-month-picker-container" onclick="if(document.getElementById('report-month-picker')._flatpickr) document.getElementById('report-month-picker')._flatpickr.open()" style="display: {% if month_val == 'all' or month_val == 'last_payment' %}none{% else %}flex{% endif %}; align-items: center; gap: 8px; cursor: pointer;">
+                <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; cursor: pointer;">Select Month:</label>
+                <input type="text" id="report-month-picker" value="{{ month_val }}" style="font-size: 14px; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); background: #0d1117; color: white; font-family: inherit; font-weight: bold; cursor: pointer; outline: none; width: 120px;">
+            </div>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            {% if balance and balance > 0 %}
+            <button onclick="triggerReportSettlementPayment()" class="btn-utility no-print" style="background: #3b82f6; color: white; border-color: #3b82f6; font-weight: bold; cursor: pointer;">💰 Pay Settlement (₹{{ balance|floatformat:0 }})</button>
+            {% endif %}
+            <button onclick="downloadPDF()" class="btn-utility" style="background: var(--accent); color: white; border-color: var(--accent);">💾 Download PDF</button>
+            <button onclick="window.print()" class="btn-utility">🖨 Print</button>
+        </div>
+    </div>
+
+    <div class="slip-container">
+        <div class="header">
+            <div class="company-info">
+                <h1>FOUNDRY ERP</h1>
+                <p style="margin:5px 0; font-size:12px; color:var(--text-muted);">Monthly Work Settlement Statement {% if jw.process %}({{ jw.process|title }}){% endif %}</p>
+            </div>
+            <div class="statement-title">
+                <div style="display: flex; align-items: center; gap: 12px; justify-content: flex-end; margin-top: 5px;" class="no-print">
+                    {% if prev_jw_id %}
+                    <a href="{% url 'job_worker_report' prev_jw_id %}?month={{ month_val }}" class="nav-arrow" style="text-decoration: none; font-size: 24px; color: var(--text-muted); line-height: 1; user-select: none;">◀</a>
+                    {% endif %}
+                    <div style="position: relative; display: inline-block; text-align: left;">
+                        <h2 id="jw-name-trigger" style="margin: 0; font-size: 24px; color: var(--accent); cursor: pointer; border-bottom: 2px dashed var(--accent); display: flex; align-items: center; gap: 6px; user-select: none;">
+                            {{ jw.name }} <span style="font-size: 14px; opacity: 0.7;">▼</span>
+                        </h2>
+                        <!-- Search Dropdown overlay -->
+                        <div id="jw-select-dropdown" style="display: none; position: absolute; top: 100%; right: 0; background: #111827; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 9999; min-width: 250px; max-height: 300px; overflow-y: auto; margin-top: 5px; padding: 5px 0;">
+                            <div style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; background: #111827; z-index: 1;">
+                                <input type="text" id="jw-search-input" placeholder="Search unit..." style="width: 100%; padding: 6px 10px; font-size: 13px; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; outline: none; box-sizing: border-box; background: #1e293b; color: white;">
+                            </div>
+                            <div id="jw-options-list">
+                                {% for j in all_jws %}
+                                <a href="{% url 'job_worker_report' j.id %}?month={{ month_val }}" style="display: block; padding: 10px 15px; font-size: 14px; color: {% if j.id == jw.id %}#ffffff{% else %}#cbd5e1{% endif %}; text-decoration: none; transition: background 0.2s; font-weight: {% if j.id == jw.id %}bold{% else %}normal{% endif %}; background: {% if j.id == jw.id %}#3b82f6{% else %}transparent{% endif %};" onmouseover="if('{{ j.id }}' !== '{{ jw.id }}') this.style.background='#1e293b'" onmouseout="if('{{ j.id }}' !== '{{ jw.id }}') this.style.background='transparent'" data-name="{{ j.name|lower }}">
+                                    {{ j.name }} {% if j.process %}({{ j.process }}){% endif %}
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% if next_jw_id %}
+                    <a href="{% url 'job_worker_report' next_jw_id %}?month={{ month_val }}" class="nav-arrow" style="text-decoration: none; font-size: 24px; color: var(--text-muted); line-height: 1; user-select: none;">▶</a>
+                    {% endif %}
+                </div>
+                <h2 class="print-only" style="display: none; margin: 0; font-size: 24px; color: var(--accent);">{{ jw.name }}</h2>
+                <p style="margin:5px 0; font-weight:600; text-align: right;">
+                    {{ month_name }}
+                    {% if is_fully_paid %}
+                    <span style="background: #10b981; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-left: 8px; text-transform: uppercase; display: inline-block;">✓ FULLY SETTLED & PAID</span>
+                    {% elif balance and balance > 0 %}
+                    <span style="background: #ef4444; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-left: 8px; text-transform: uppercase; display: inline-block;">⚠️ DUE: ₹{{ balance|floatformat:2 }}</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px;">
+            <div class="summary-item">
+                <div class="summary-label">Total Work Done</div>
+                <div class="summary-value">₹{{ total_earned|floatformat:2 }}</div>
+                {% if total_casting_wt > 0 %}
+                <div style="font-size: 9.5px; color: var(--text-muted); margin-top: 3px; font-weight: 700;">({{ total_casting_wt|floatformat:1 }} kg Casting)</div>
+                {% endif %}
+            </div>
+            {% if total_casting_wt > 0 or jw.casting_rate_per_kg > 0 %}
+            <div class="summary-item" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3);">
+                <div class="summary-label" style="color: #34d399;">⚖️ Total Casting Weight</div>
+                <div class="summary-value" style="color: #34d399;">{{ total_casting_wt|floatformat:1 }} kg</div>
+            </div>
+            {% endif %}
+            {% if total_paid and total_paid > 0 %}
+            <div class="summary-item">
+                <div class="summary-label">Total Advances/Paid</div>
+                <div class="summary-value">₹{{ total_paid|floatformat:2 }}</div>
+            </div>
+            {% endif %}
+            <div class="summary-item" style="border-color: var(--accent); background: #eff6ff;">
+                <div class="summary-label">Net Payable Balance</div>
+                <div class="summary-value highlight">₹{{ balance|floatformat:2 }}</div>
+                {% if financial_opening_bal and financial_opening_bal != 0 %}
+                <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; font-weight: 600;">(Incl. ₹{{ financial_opening_bal|floatformat:2 }} opening bal.)</div>
+                {% endif %}
+            </div>
+            {% if loan_balance and loan_balance > 0 %}
+            <div class="summary-item">
+                <div class="summary-label">Pending Loan</div>
+                <div class="summary-value">₹{{ loan_balance|floatformat:2 }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- COMPACT 1-PAGE MATRIX GRID REPORT (IDEA 1: WORK DONE GRID + STOCK BAR) -->
+        <div id="matrix-report-view">
+            <div style="overflow-x: auto; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 0;">
+                    <thead>
+                        <tr style="background: #1e293b; color: white;">
+                            <th style="padding: 6px 4px; text-align: center; border: 1px solid var(--border); width: 40px;">DATE</th>
+                            <th style="padding: 6px 4px; text-align: center; border: 1px solid var(--border); width: 45px;">DAY</th>
+                            {% for item in matrix_items %}
+                            <th style="padding: 6px 6px; text-align: center; border: 1px solid var(--border); font-weight: 800; font-size: 11px;">{{ item.code }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if has_opening_stock %}
+                        <!-- OPENING CARRY FORWARD STOCK ROW (BEFORE DATE 1) -->
+                        <tr style="background: rgba(245, 158, 11, 0.12); font-weight: 800; border-bottom: 2px solid var(--border);">
+                            <td colspan="2" style="padding: 4px 6px; text-align: center; border: 1px solid var(--border); font-size: 9.5px; font-weight: 900; color: #f59e0b; text-transform: uppercase;">OP. STOCK</td>
+                            {% for item in matrix_items %}
+                            <td style="padding: 4px 4px; border: 1px solid var(--border); text-align: center; font-size: 11px; font-weight: 900; color: #f59e0b;">
+                                {% if item.opening_bal > 0 %}
+                                {{ item.opening_bal }}
+                                {% else %}
+                                <span style="opacity: 0.25;">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endif %}
+                        {% for day_row in matrix_days %}
+                        <tr style="{% if day_row.is_sunday or day_row.is_wednesday %}background: rgba(239, 68, 68, 0.08);{% endif %}">
+                            <td style="padding: 4px; text-align: center; border: 1px solid var(--border); font-weight: 700; font-size: 10px;">{{ day_row.day }}</td>
+                            <td style="padding: 4px; text-align: center; border: 1px solid var(--border); font-size: 10px; color: var(--text-muted);">{{ day_row.day_name }}</td>
+                            {% for cell in day_row.item_qty_list %}
+                            <td style="padding: 4px; text-align: center; border: 1px solid var(--border); {% if user.is_superuser or user.is_staff %}cursor: pointer; transition: background 0.15s;{% endif %}"
+                                {% if user.is_superuser or user.is_staff %}
+                                onclick="openOwnerCellEditModal('{{ day_row.date_str }}', '{{ day_row.day }} {{ month_name }}', '{{ cell.item_id }}', '{{ cell.code }}', {{ cell.in_qty }}, '{{ jw.id }}', '{{ jw.name|escapejs }}')"
+                                title="Owner Click: Adjust Entry / Handle Stock"
+                                onmouseover="this.style.background='rgba(59, 130, 246, 0.2)'"
+                                onmouseout="this.style.background='transparent'"
+                                {% endif %}>
+                                {% if cell.in_qty > 0 %}
+                                    <div style="font-weight: 800; font-size: 11px; color: var(--text-main);">{{ cell.in_qty }}</div>
+                                    {% if cell.out_qty > 0 %}
+                                        <div style="font-size: 8.5px; color: #3b82f6; font-weight: 700;">Iss: {{ cell.out_qty }}</div>
+                                    {% endif %}
+                                {% elif cell.out_qty > 0 %}
+                                    <div style="font-size: 9.5px; color: #3b82f6; font-weight: 700;">Iss: {{ cell.out_qty }}</div>
+                                {% else %}
+                                    <span style="opacity: 0.15;">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <!-- TOTAL PCS DONE (RECEIVES) -->
+                        <tr style="background: rgba(16, 185, 129, 0.08); font-weight: 800; border-top: 2px solid var(--primary);">
+                            <td colspan="2" style="padding: 5px 6px; border: 1px solid var(--border); text-align: right; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #10b981;">TOTAL RECEIVED:</td>
+                            {% for item in matrix_items %}
+                            <td style="padding: 5px 4px; border: 1px solid var(--border); text-align: center; color: #10b981; font-size: 11.5px; font-weight: 800;">{{ item.total_pcs }}</td>
+                            {% endfor %}
+                        </tr>
+                        <!-- TOTAL ISSUED & CLOSING STOCK -->
+                        <tr style="background: rgba(59, 130, 246, 0.05); font-weight: 700;">
+                            <td colspan="2" style="padding: 5px 6px; border: 1px solid var(--border); text-align: right; font-size: 9.5px; color: var(--text-muted); text-transform: uppercase;">ISSUED / CL. STOCK:</td>
+                            {% for item in matrix_items %}
+                            <td style="padding: 5px 4px; border: 1px solid var(--border); text-align: center; font-size: 9.5px; color: var(--text-muted);">
+                                <div>Iss: <span style="font-weight:700; color:var(--text-main);">{{ item.total_issued }}</span></div>
+                                <div>Stk: <span style="font-weight:800; color:{% if item.stock_in_hand > 0 %}#f59e0b{% else %}var(--text-main){% endif %};">{{ item.stock_in_hand }}</span></div>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        <!-- TOTAL EARNINGS AMOUNT -->
+                        <tr style="background: rgba(16, 185, 129, 0.12); font-weight: 900; border-bottom: 2px solid var(--primary);">
+                            <td colspan="2" style="padding: 7px 6px; border: 1px solid var(--border); text-align: right; font-size: 10px; color: #10b981; text-transform: uppercase;">AMOUNT (₹):</td>
+                            {% for item in matrix_items %}
+                            <td class="tooltip-trigger" style="padding: 7px 4px; border: 1px solid var(--border); text-align: center; color: #10b981; font-size: 12px; font-weight: 900;">
+                                ₹{{ item.earned|floatformat:2 }}
+                                {% if item.rate > 0 %}
+                                <div class="tooltip-content no-print" style="font-weight: normal; font-size: 11px;">
+                                    <span style="color: #94a3b8;">Rate:</span> <strong style="color: #38bdf8;">₹{{ item.rate|floatformat:2 }}</strong> / pc
+                                </div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- DETAILED TRANSACTION AUDIT VIEW -->
+        <div id="detailed-report-view" style="display: none;">
+        {% if jw.process == 'casting' %}
+        <!-- Calendar Styling specifically for print & screen -->
+        <style>
+            .casting-calendar-grid {
+                display: grid;
+                grid-template-columns: repeat(7, 1fr);
+                gap: 8px;
+                background: rgba(255, 255, 255, 0.01);
+                border: 1px solid var(--border);
+                padding: 10px;
+                border-radius: 12px;
+                margin-bottom: 20px;
+            }
+            .calendar-day-header {
+                text-align: center;
+                font-weight: 800;
+                font-size: 11px;
+                text-transform: uppercase;
+                color: var(--text-muted);
+                padding-bottom: 8px;
+                border-bottom: 2px solid var(--border);
+            }
+            .calendar-day-cell {
+                aspect-ratio: 1.4;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.01);
+                padding: 8px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                position: relative;
+                transition: all 0.2s ease;
+                min-height: 55px;
+            }
+            .calendar-day-cell.active-work {
+                background: rgba(59, 130, 246, 0.08);
+                border-color: var(--accent);
+            }
+            .calendar-day-cell.active-payment {
+                background: rgba(239, 68, 68, 0.08);
+                border-color: #ef4444;
+            }
+            .calendar-day-cell.active-work.active-payment {
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(239, 68, 68, 0.08) 100%);
+                border-color: var(--accent);
+            }
+            .calendar-day-cell.holiday {
+                background: rgba(245, 158, 11, 0.06);
+                border-color: #f59e0b;
+            }
+            .calendar-day-cell.holiday.active-work {
+                background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(59, 130, 246, 0.08) 100%);
+                border-color: #f59e0b;
+            }
+            .holiday-badge {
+                position: absolute;
+                top: 6px;
+                right: 6px;
+                background: rgba(245, 158, 11, 0.15);
+                color: #f59e0b;
+                padding: 1px 4px;
+                border-radius: 4px;
+                font-size: 9px;
+                font-weight: 800;
+                line-height: 1;
+            }
+            .day-number {
+                font-size: 12px;
+                font-weight: 800;
+                color: var(--text-main);
+            }
+            .day-weight {
+                font-size: 13px;
+                font-weight: 700;
+                color: var(--text-main);
+                text-align: center;
+                margin: auto 0;
+            }
+            .day-payment {
+                font-size: 11px;
+                font-weight: 800;
+                color: #ef4444;
+                text-align: center;
+                background: rgba(239, 68, 68, 0.1);
+                padding: 2px 4px;
+                border-radius: 4px;
+                margin-top: auto;
+            }
+            
+            /* Tooltip container */
+            .tooltip-trigger {
+                position: relative;
+                cursor: pointer;
+            }
+            .tooltip-content {
+                display: none;
+                position: absolute;
+                bottom: 110%;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #1e293b;
+                color: #f1f5f9;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-size: 11px;
+                white-space: nowrap;
+                z-index: 1000;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(255,255,255,0.08);
+            }
+            .tooltip-trigger:hover .tooltip-content {
+                display: block;
+            }
+            .tooltip-content::after {
+                content: "";
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                margin-left: -5px;
+                border-width: 5px;
+                border-style: solid;
+                border-color: #1e293b transparent transparent transparent;
+            }
+            
+            @media print {
+                .casting-calendar-grid {
+                    gap: 4px !important;
+                    padding: 6px !important;
+                    border: 1.5px solid #000000 !important;
+                    border-radius: 6px !important;
+                    background: white !important;
+                }
+                .calendar-day-header {
+                    border-bottom: 1.5px solid #000000 !important;
+                    color: #000000 !important;
+                    font-size: 9px !important;
+                }
+                .calendar-day-cell {
+                    aspect-ratio: 1.5 !important;
+                    border: 1px solid #000000 !important;
+                    background: white !important;
+                    padding: 4px !important;
+                    min-height: 40px !important;
+                }
+                .day-number {
+                    font-size: 10px !important;
+                    color: #000000 !important;
+                }
+                .day-weight {
+                    font-size: 11px !important;
+                    color: #000000 !important;
+                }
+                .day-payment {
+                    font-size: 9px !important;
+                    color: #000000 !important;
+                    background: #f1f5f9 !important;
+                    border: 1px solid #000000 !important;
+                    padding: 1px 2px !important;
+                }
+                .calendar-day-cell.holiday {
+                    background: #fffbeb !important;
+                    border: 1px solid #f59e0b !important;
+                }
+                .holiday-badge {
+                    color: #d97706 !important;
+                    background: #fef3c7 !important;
+                    border: 1px solid #d97706 !important;
+                    padding: 1px 3px !important;
+                }
+                .tooltip-content {
+                    display: none !important;
+                }
+                body.dark-theme .slip-container, .slip-container {
+                    padding: 4mm 6mm !important;
+                }
+                .summary-grid {
+                    margin-bottom: 15px !important;
+                }
+                .section-title {
+                    margin-top: 15px !important;
+                    margin-bottom: 10px !important;
+                }
+            }
+        </style>
+
+        {% if calendar_weeks %}
+        <div class="section-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <span>Casting Work & Earning Calendar</span>
+            {% if total_casting_wt > 0 %}
+            <span style="font-size:12px; font-weight:800; color:#34d399; text-transform:none;">⚖️ Total Scale Weight: {{ total_casting_wt|floatformat:1 }} kg</span>
+            {% endif %}
+        </div>
+        <div class="casting-calendar-grid">
+            <!-- Headers -->
+            <div class="calendar-day-header">Sun</div>
+            <div class="calendar-day-header">Mon</div>
+            <div class="calendar-day-header">Tue</div>
+            <div class="calendar-day-header">Wed</div>
+            <div class="calendar-day-header">Thu</div>
+            <div class="calendar-day-header">Fri</div>
+            <div class="calendar-day-header">Sat</div>
+
+            <!-- Weeks -->
+            {% for week in calendar_weeks %}
+                {% for day in week %}
+                    {% if day %}
+                        <div class="calendar-day-cell {% if day.casting_weight > 0 %}active-work{% endif %} {% if day.advance_paid > 0 %}active-payment{% endif %} {% if day.is_holiday %}holiday{% endif %} {% if day.casting_weight > 0 and day.details %}tooltip-trigger{% endif %}">
+                            <div class="day-number">{{ day.day }}</div>
+                            
+                            {% if day.is_holiday %}
+                                <span class="holiday-badge" title="Holiday: {{ day.holiday_name }}">★</span>
+                            {% endif %}
+
+                            {% if day.casting_weight > 0 %}
+                                <div class="day-weight">{{ day.casting_weight|floatformat:1 }} kg</div>
+                            {% endif %}
+                            
+                            {% if day.advance_paid > 0 %}
+                                <div class="day-payment">-₹{{ day.advance_paid|floatformat:0 }}</div>
+                            {% endif %}
+
+                            {% if day.casting_weight > 0 and day.details %}
+                                <div class="tooltip-content">
+                                    <div style="font-weight: 700; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px;">Casting Breakdown:</div>
+                                    {% for item in day.details %}
+                                        <div style="display: flex; justify-content: space-between; gap: 15px;">
+                                            <span>{{ item.item_key }}</span>
+                                            <span style="font-weight: 700; color: var(--accent);">{{ item.weight|floatformat:1 }} kg</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="calendar-day-cell" style="opacity: 0.15; border-style: dashed;"></div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="section-title">Daily Stock & Earnings Ledger</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th style="width: 180px;">Date Issue (OUT)</th>
+                    <th style="width: 180px;">Date Received (IN)</th>
+                    <th style="text-align:right; width: 80px;">Rejections</th>
+                    <th style="text-align:right; width: 120px;">Balance (Stock)</th>
+                    <th style="text-align:right; width: 100px;">Total Pcs Done</th>
+                    <th style="text-align:right; width: 120px;">Total Earnings</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in item_ledger %}
+                <tr>
+                    <td style="vertical-align: top; padding-top: 8px;">
+                        <div style="font-weight: 700; color: var(--text-main);">{{ entry.item.name }}</div>
+                    </td>
+                    <!-- Date Issue (OUT) -->
+                    <td style="vertical-align: top; padding-top: 8px; padding-bottom: 8px;">
+                        {% for issue in entry.issues %}
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                            <span>{{ issue.date|date:"d M" }}</span>
+                            <span style="font-weight: 600; color: var(--text-main);">{{ issue.qty }}</span>
+                        </div>
+                        {% endfor %}
+                        <div style="border-top: 1.5px solid var(--border); margin-top: 6px; padding-top: 4px; display: flex; justify-content: space-between; font-weight: 800; font-size: 11px;">
+                            <span>Total:</span>
+                            <span>{{ entry.total_issued }}</span>
+                        </div>
+                    </td>
+                    <!-- Date Received (IN) -->
+                    <td style="vertical-align: top; padding-top: 8px; padding-bottom: 8px;">
+                        {% for rec in entry.receipts %}
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                            <span>{{ rec.date|date:"d M" }}</span>
+                            <span style="font-weight: 600; color: var(--text-main);">{{ rec.qty }}{% if rec.raw_info %} <small style="color: var(--text-muted); font-size: 9px; font-weight: normal;">{{ rec.raw_info }}</small>{% endif %}</span>
+                        </div>
+                        {% endfor %}
+                        <div style="border-top: 1.5px solid var(--border); margin-top: 6px; padding-top: 4px; display: flex; justify-content: space-between; font-weight: 800; font-size: 11px;">
+                            <span>Total:</span>
+                            <span>{{ entry.total_received }}{% if entry.total_raw_weight > 0 %} <small style="color: var(--text-muted); font-size: 9px; font-weight: normal;">({{ entry.total_raw_weight|floatformat:1 }} {{ entry.raw_uom }})</small>{% endif %}</span>
+                        </div>
+                    </td>
+                    <!-- Rejections -->
+                    <td style="vertical-align: top; text-align: right; padding-top: 8px; padding-bottom: 8px;">
+                        {% for rec in entry.receipts %}
+                        <div style="font-size: 11px; font-weight: 600; color: var(--rejection); margin-bottom: 2px;">
+                            {{ rec.rejections }}
+                        </div>
+                        {% endfor %}
+                        <div style="border-top: 1.5px solid var(--border); margin-top: 6px; padding-top: 4px; font-weight: 800; font-size: 11px; color: var(--rejection);">
+                            {{ entry.total_rejected }}
+                        </div>
+                    </td>
+                    <!-- Balance -->
+                    <td style="text-align: right; font-size: 12px; vertical-align: top; padding-top: 8px;">
+                        <div style="font-size: 11px; color: var(--text-muted);">Opening: <span style="font-weight: 600; color: var(--text-main);">{{ entry.opening_bal }}</span></div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Current: <span style="font-weight: 800; color: var(--text-main);">{{ entry.balance }}</span></div>
+                    </td>
+                    <!-- Total Pcs Done -->
+                    <td style="text-align: right; font-weight: 800; font-size: 13px; vertical-align: top; padding-top: 8px; color: var(--text-main);">
+                        {{ entry.total_received }}
+                    </td>
+                    <!-- Total Earnings -->
+                    <td class="tooltip-trigger" style="text-align: right; font-weight: 800; font-size: 13px; vertical-align: top; padding-top: 8px; color: var(--earnings);">
+                        ₹{{ entry.earned|floatformat:2 }}
+                        {% if entry.rate > 0 %}
+                        <div class="tooltip-content no-print" style="font-weight: normal; font-size: 11px;">
+                            <span style="color: #94a3b8;">Rate:</span> <strong style="color: #38bdf8;">₹{{ entry.rate|floatformat:2 }}</strong> / pc
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">No activity recorded for this month.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if casting_txs_detailed %}
+        <div class="section-title" style="margin-top: 40px;">Casting Work & Earnings Ledger</div>
+        <table style="margin-bottom: 30px;">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Casting Item Allocation</th>
+                    <th style="text-align:right;">Actual Scale Weight</th>
+                    <th style="text-align:right; width: 120px;">Earnings</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in casting_txs_detailed %}
+                <tr>
+                    <td>{{ tx.date|date:"d M, Y" }}</td>
+                    <td style="font-weight: 700; color: var(--text-main);">{{ tx.item_name }} ({{ tx.item_code }})</td>
+                    <td style="text-align:right; font-weight: 700;">{{ tx.weight }} kg</td>
+                    <td class="tooltip-trigger" style="text-align:right; font-weight: 800; color: var(--earnings);">
+                        ₹{{ tx.earnings|floatformat:2 }}
+                        {% if tx.rate > 0 %}
+                        <div class="tooltip-content no-print" style="font-weight: normal; font-size: 11px;">
+                            <span style="color: #94a3b8;">Rate:</span> <strong style="color: #38bdf8;">₹{{ tx.rate|floatformat:2 }}</strong> / kg
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr style="font-weight: 800; border-top: 2px solid var(--border); background: rgba(255,255,255,0.01);">
+                    <td colspan="2">Casting Total:</td>
+                    <td style="text-align:right; color: var(--text-main);">{{ total_casting_wt|floatformat:2 }} kg</td>
+                    <td style="text-align:right; color: var(--earnings);">₹{{ casting_pay|floatformat:2 }}</td>
+                </tr>
+            </tbody>
+        </table>
+        {% endif %}
+        {% endif %}
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 40px; margin-top: 40px;">
+            <div>
+                <div class="section-title">Payment History</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Transaction Type & Mode</th>
+                            <th>Notes</th>
+                            <th style="text-align:right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payments %}
+                        <tr>
+                            <td style="font-weight: 600;">{{ p.date|date:"d M, Y" }}</td>
+                            <td>
+                                {% if p.payment_type == 'NEW_LOAN' %}
+                                    <span style="color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid rgba(239, 68, 68, 0.2);">LOAN GIVEN</span>
+                                {% elif p.payment_type == 'ADVANCE' %}
+                                    <span style="color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid rgba(245, 158, 11, 0.2);">ADVANCE PAID</span>
+                                {% elif p.payment_type == 'LOAN_REPAYMENT' %}
+                                    <span style="color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid rgba(16, 185, 129, 0.2);">LOAN REPAID</span>
+                                {% else %}
+                                    <span style="color: #3b82f6; background: rgba(59, 130, 246, 0.1); padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid rgba(59, 130, 246, 0.2);">{{ p.get_payment_type_display|upper }}</span>
+                                {% endif %}
+                                <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px; font-weight: 600;">({{ p.payment_mode }})</span>
+                            </td>
+                            <td style="font-size: 11px; color: var(--text-muted);">{{ p.notes|default:"-" }}</td>
+                            <td class="paid" style="text-align:right; font-weight: 800;">₹{{ p.amount|floatformat:0 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-muted);">No payments recorded.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div> <!-- end #detailed-report-view -->
+    </div>
+
+    <!-- OWNER DIRECT CELL ADJUSTMENT MODAL -->
+    <div id="ownerCellEditModal" class="modal-backdrop" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:99999; justify-content:center; align-items:center;">
+        <div style="background:#111827; border:1px solid rgba(255,255,255,0.15); width:460px; max-width:92%; border-radius:16px; padding:24px; box-shadow:0 20px 50px rgba(0,0,0,0.8); font-family:inherit; color:white;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:12px; margin-bottom:16px;">
+                <h3 style="margin:0; font-size:16px; font-weight:800; color:#3b82f6; display:flex; align-items:center; gap:8px;">
+                    ✏️ Owner Stock & Entry Adjustment
+                </h3>
+                <button type="button" onclick="closeOwnerCellModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; padding:0;">✕</button>
+            </div>
+
+            <!-- Summary Meta -->
+            <div style="background:rgba(255,255,255,0.03); padding:12px 14px; border-radius:10px; margin-bottom:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:12px; border:1px solid rgba(255,255,255,0.05);">
+                <div><span style="color:#94a3b8;">Worker:</span> <strong id="modal-owner-worker-name" style="color:white;">-</strong></div>
+                <div><span style="color:#94a3b8;">Item:</span> <strong id="modal-owner-item-code" style="color:#60a5fa;">-</strong></div>
+                <div><span style="color:#94a3b8;">Date:</span> <strong id="modal-owner-date-fmt" style="color:white;">-</strong></div>
+                <div><span style="color:#94a3b8;">Current Qty:</span> <strong id="modal-owner-current-qty" style="color:#10b981;">0 pcs</strong></div>
+            </div>
+
+            <!-- Qty Input -->
+            <div style="margin-bottom:16px;">
+                <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:6px;">New Received Quantity (Pcs):</label>
+                <input type="number" id="owner-modal-new-qty" min="0" step="1" style="width:100%; padding:10px 14px; background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.15); border-radius:8px; font-size:16px; font-weight:bold; box-sizing:border-box; outline:none;">
+            </div>
+
+            <!-- Stock Reason Selector -->
+            <div id="owner-stock-reason-box" style="margin-bottom:20px;">
+                <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:8px;">What to do with the quantity difference?</label>
+                <div style="display:flex; flex-direction:column; gap:8px; background:rgba(0,0,0,0.3); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:#f8fafc;">
+                        <input type="radio" name="owner_reason" value="typo" checked style="accent-color:#3b82f6;">
+                        <span><strong>1. Entry Correction (Typo)</strong> — Simply fix operator entry error</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:#f8fafc;">
+                        <input type="radio" name="owner_reason" value="rejection" style="accent-color:#ef4444;">
+                        <span><strong>2. Quality Rejection (Scrap)</strong> — Deduct pay & log as scrap metal</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:#f8fafc;">
+                        <input type="radio" name="owner_reason" value="return_wip" style="accent-color:#10b981;">
+                        <span><strong>3. Return to WIP / Casting</strong> — Credit worker & return stock to pool</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" onclick="closeOwnerCellModal()" style="background:rgba(255,255,255,0.05); color:#94a3b8; border:1px solid rgba(255,255,255,0.1); padding:9px 18px; border-radius:8px; cursor:pointer; font-weight:bold;">Cancel</button>
+                <button type="button" onclick="submitOwnerCellAdjustment()" style="background:#3b82f6; color:white; border:none; padding:9px 22px; border-radius:8px; cursor:pointer; font-weight:bold; box-shadow:0 4px 12px rgba(59,130,246,0.3);">💾 Save Adjustment</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentOwnerCellContext = {};
+
+        function openOwnerCellEditModal(dateStr, dateFmt, itemId, itemCode, currentQty, jwId, jwName) {
+            currentOwnerCellContext = { dateStr, itemId, currentQty, jwId };
+            document.getElementById('modal-owner-worker-name').innerText = jwName;
+            document.getElementById('modal-owner-item-code').innerText = itemCode;
+            document.getElementById('modal-owner-date-fmt').innerText = dateFmt;
+            document.getElementById('modal-owner-current-qty').innerText = currentQty + ' pcs';
+            
+            document.getElementById('owner-modal-new-qty').value = currentQty;
+            
+            const radios = document.getElementsByName('owner_reason');
+            if (radios.length > 0) radios[0].checked = true;
+            
+            document.getElementById('ownerCellEditModal').style.display = 'flex';
+        }
+
+        function closeOwnerCellModal() {
+            document.getElementById('ownerCellEditModal').style.display = 'none';
+        }
+
+        async function submitOwnerCellAdjustment() {
+            const newQtyInput = document.getElementById('owner-modal-new-qty');
+            const newQty = newQtyInput ? newQtyInput.value : '';
+            if (newQty === '' || isNaN(newQty) || parseFloat(newQty) < 0) {
+                return alert('⚠️ Please enter a valid non-negative quantity!');
+            }
+
+            let reasonCode = 'typo';
+            const radios = document.getElementsByName('owner_reason');
+            for (let r of radios) {
+                if (r.checked) reasonCode = r.value;
+            }
+
+            const fd = new FormData();
+            fd.append('job_worker_id', currentOwnerCellContext.jwId);
+            fd.append('date', currentOwnerCellContext.dateStr);
+            fd.append('item_id', currentOwnerCellContext.itemId);
+            fd.append('new_qty', newQty);
+            fd.append('reason_code', reasonCode);
+
+            try {
+                const res = await fetch('{% url "edit_matrix_cell" %}', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {'X-CSRFToken': '{{ csrf_token }}'}
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    closeOwnerCellModal();
+                    window.location.reload();
+                } else {
+                    alert('⚠️ ' + (data.error || 'Failed to update entry'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('⚠️ Network error updating entry');
+            }
+        }
+
+        function setReportFormat(mode) {
+            const matrixView = document.getElementById('matrix-report-view');
+            const detailedView = document.getElementById('detailed-report-view');
+            const btnMatrix = document.getElementById('btn-matrix-mode');
+            const btnDetailed = document.getElementById('btn-detailed-mode');
+
+            if (mode === 'matrix') {
+                if (matrixView) matrixView.style.display = 'block';
+                if (detailedView) detailedView.style.display = 'none';
+                if (btnMatrix) {
+                    btnMatrix.style.background = 'var(--accent)';
+                    btnMatrix.style.color = 'white';
+                }
+                if (btnDetailed) {
+                    btnDetailed.style.background = 'rgba(255,255,255,0.05)';
+                    btnDetailed.style.color = '#cbd5e1';
+                }
+            } else {
+                if (matrixView) matrixView.style.display = 'none';
+                if (detailedView) detailedView.style.display = 'block';
+                if (btnDetailed) {
+                    btnDetailed.style.background = 'var(--accent)';
+                    btnDetailed.style.color = 'white';
+                }
+                if (btnMatrix) {
+                    btnMatrix.style.background = 'rgba(255,255,255,0.05)';
+                    btnMatrix.style.color = '#cbd5e1';
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const trigger = document.getElementById('jw-name-trigger');
+            const dropdown = document.getElementById('jw-select-dropdown');
+            const searchInput = document.getElementById('jw-search-input');
+            const options = document.querySelectorAll('#jw-options-list a');
+
+            if (trigger && dropdown) {
+                trigger.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isVisible = dropdown.style.display === 'block';
+                    dropdown.style.display = isVisible ? 'none' : 'block';
+                    if (!isVisible && searchInput) {
+                        searchInput.value = '';
+                        options.forEach(opt => opt.style.display = 'block');
+                        searchInput.focus();
+                    }
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (!dropdown.contains(e.target) && e.target !== trigger) {
+                        dropdown.style.display = 'none';
+                    }
+                });
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const filter = this.value.toLowerCase().trim();
+                    options.forEach(opt => {
+                        const name = opt.getAttribute('data-name');
+                        if (name.includes(filter)) {
+                            opt.style.display = 'block';
+                        } else {
+                            opt.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        });
+
+        function downloadPDF() {
+            const element = document.querySelector('.slip-container');
+            const jwName = "{{ jw.name }}".replace(/\s+/g, '_');
+            const month = "{{ month_val }}";
+            const opt = {
+                margin:       [3, 3, 3, 3],
+                filename:     `JobWorker_Statement_${jwName}_${month}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: 'avoid-all' }
+            };
+            
+            // Enable high contrast B&W 1-page PDF mode
+            document.body.classList.remove('dark-theme');
+            document.body.classList.add('pdf-print-mode');
+            
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.body.classList.remove('pdf-print-mode');
+                document.body.classList.add('dark-theme');
+            }).catch(err => {
+                console.error("PDF generation failed:", err);
+                document.body.classList.remove('pdf-print-mode');
+                document.body.classList.add('dark-theme');
+            });
+        }
+
+        function handleGoBack() {
+            window.location.href = "{% url 'labor_ledger' %}?month={{ month_val }}";
+        }
+
+        function changeStatementMode(val) {
+            if (val === 'all') {
+                window.location.href = `?month=all`;
+            } else if (val === 'last_payment') {
+                window.location.href = `?month=last_payment`;
+            } else {
+                const picker = document.getElementById('report-month-picker');
+                const monthVal = picker.value;
+                if (monthVal && monthVal !== 'all' && monthVal !== 'last_payment') {
+                    window.location.href = `?month=${monthVal}`;
+                } else {
+                    const todayStr = new Date().toISOString().substring(0, 7);
+                    window.location.href = `?month=${todayStr}`;
+                }
+            }
+        }
+
+        let defaultMonthVal = "{{ month_val }}";
+        if (defaultMonthVal === 'all' || defaultMonthVal === 'last_payment') {
+            defaultMonthVal = new Date().toISOString().substring(0, 7);
+        }
+
+        // Initialize Flatpickr for Month Picker
+        flatpickr("#report-month-picker", {
+            plugins: [
+                new monthSelectPlugin({
+                    shorthand: true,
+                    dateFormat: "Y-m",
+                    altFormat: "F Y",
+                    theme: "dark"
+                })
+            ],
+            defaultDate: defaultMonthVal,
+            onChange: function(selectedDates, dateStr, instance) {
+                window.location.href = `?month=${dateStr}`;
+            }
+        });
+
+        function triggerReportSettlementPayment() {
+            if (window.parent && typeof window.parent.openQuickSettlementModal === 'function') {
+                window.parent.openQuickSettlementModal('jw_{{ jw.id }}', '{{ jw.name|escapejs }}', {{ balance|default:0 }}, true, '{{ month_name }}');
+            } else {
+                window.location.href = `/ledger/?action=payment&target_id=jw_{{ jw.id }}&amount={{ balance|default:0|floatformat:0 }}&payment_type=JOB_WORK&notes={{ month_name|urlencode }}%20Job%20Work%20Settlement&tab=jw`;
+            }
+        }
+    </script>
+</body>
+</html>

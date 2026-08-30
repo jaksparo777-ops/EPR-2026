@@ -1,0 +1,22 @@
+{
+  "typeCheckingMode": "off",
+  "venvPath": "..",
+  "venv": "venv",
+  "extraPaths": [
+    ".",
+    "./apps"
+  ],
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "../venv"
+  ],
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": false,
+  "reportGeneralTypeIssues": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportAttributeAccessIssue": "none"
+}

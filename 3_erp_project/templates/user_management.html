@@ -1,0 +1,1730 @@
+{% extends "layout/base.html" %}
+{% load perms %}
+
+{% block content %}
+
+<style>
+    :root {
+        --glass-bg: rgba(17, 24, 39, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.12);
+        --card-dark: #111827;
+        --border-soft: rgba(255, 255, 255, 0.1);
+        --accent-blue: #4f46e5;
+        --accent-emerald: #10b981;
+        --accent-amber: #f59e0b;
+        --accent-purple: #8b5cf6;
+        --accent-rose: #f43f5e;
+    }
+
+    .user-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        margin-bottom: 24px;
+    }
+
+    /* Role Badges */
+    .role-badge-ADMIN { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .role-badge-CASTING_MGR { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .role-badge-MACHINING_MGR { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .role-badge-PACKAGING_MGR { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .role-badge-SALES_ADMIN { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+    .role-badge-ACCOUNTANT { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .role-badge-AUDITOR { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+    .role-badge-CUSTOM { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+
+    /* Users Data Table */
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 13px;
+    }
+
+    .users-table th {
+        background: rgba(15, 23, 42, 0.95);
+        color: #94a3b8;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 10.5px;
+        letter-spacing: 0.8px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .users-table td {
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        color: #f1f5f9;
+    }
+
+    .users-table tr:hover td {
+        background: rgba(255, 255, 255, 0.025);
+    }
+
+    /* Permission Accordion Tree Selector */
+    .tree-module-block {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        margin-bottom: 12px;
+        overflow: hidden;
+    }
+
+    .tree-module-header {
+        background: rgba(15, 23, 42, 0.8);
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .tree-module-header:hover {
+        background: rgba(30, 41, 59, 0.8);
+    }
+
+    .tree-module-content {
+        padding: 16px;
+        border-top: 1px solid var(--glass-border);
+        display: block;
+    }
+
+    .tree-sub-group {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .tree-checkbox-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        color: #cbd5e1;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .tree-checkbox-label input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #6366f1;
+        cursor: pointer;
+    }
+
+    /* Mobile Compact Layout Overrides */
+    @media (max-width: 768px) {
+        .user-card {
+            border-radius: 12px !important;
+            padding: 12px !important;
+            margin-bottom: 12px !important;
+        }
+
+        .polishing-header {
+            margin-bottom: 12px !important;
+            gap: 10px !important;
+        }
+
+        .polishing-header h1 {
+            font-size: 20px !important;
+            margin-bottom: 4px !important;
+        }
+
+        .polishing-header p {
+            font-size: 12px !important;
+            display: none;
+        }
+
+        .btn-sql-execute {
+            padding: 8px 14px !important;
+            font-size: 12px !important;
+            width: 100% !important;
+            justify-content: center !important;
+        }
+
+        /* Stats Grid 2x2 on Mobile */
+        .user-stats-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+            margin-bottom: 14px !important;
+        }
+
+        .stat-card-compact {
+            padding: 10px 12px !important;
+            gap: 10px !important;
+            border-radius: 12px !important;
+        }
+
+        .stat-icon-box {
+            width: 34px !important;
+            height: 34px !important;
+            font-size: 16px !important;
+            border-radius: 10px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .stat-label-text {
+            font-size: 9.5px !important;
+            letter-spacing: 0.2px !important;
+        }
+
+        .stat-value-text {
+            font-size: 17px !important;
+            margin-top: 1px !important;
+        }
+
+        /* Single-Line Horizontal Scrollable Tab Bar */
+        .user-tab-nav {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            gap: 6px !important;
+            padding-bottom: 6px !important;
+            margin-bottom: 14px !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: none !important;
+        }
+
+        .user-tab-nav::-webkit-scrollbar {
+            display: none !important;
+        }
+
+        .user-tab-nav button {
+            padding: 8px 12px !important;
+            font-size: 12px !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            border-radius: 10px !important;
+        }
+
+        /* Device Filter Pills Horizontal Scroll */
+        .dev-filter-pills-row {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            gap: 6px !important;
+            padding: 8px 12px !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: none !important;
+        }
+
+        .dev-filter-pills-row::-webkit-scrollbar {
+            display: none !important;
+        }
+
+        .dev-filter-pill {
+            padding: 5px 10px !important;
+            font-size: 11px !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* Filter Bars & Card Header Stack */
+        .card-header-compact {
+            padding: 12px 14px !important;
+            gap: 10px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+
+        .filter-controls-group {
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+        }
+
+        .filter-controls-group input,
+        .filter-controls-group select,
+        .filter-controls-group button {
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Data Tables Compact Padding */
+        .users-table th {
+            padding: 8px 10px !important;
+            font-size: 9.5px !important;
+            white-space: nowrap !important;
+        }
+
+        .users-table td {
+            padding: 10px 10px !important;
+            font-size: 12px !important;
+        }
+
+        /* Drawers and Modals Mobile Full Width */
+        #userDrawer {
+            width: 100vw !important;
+            max-width: 100vw !important;
+            right: -100vw !important;
+            padding: 16px !important;
+        }
+
+        .modal-card-mobile {
+            width: 95vw !important;
+            max-width: 95vw !important;
+            padding: 16px !important;
+            margin: 10px !important;
+        }
+    }
+</style>
+
+<!-- HEADER SECTION -->
+<div class="polishing-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:28px;">
+    <div>
+        <h1 style="font-size:36px; font-weight:800; line-height:1.1; margin-bottom:10px; margin-top:0; display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+            <span>👥 User Control & Access Permission Hub</span>
+            <span class="header-info-badge" tabindex="0" data-tooltip="Manage system accounts, role presets, granular module sub-tab permissions, and financial data masking." data-tooltip-pos="right" aria-label="User Control Info">ℹ️</span>
+        </h1>
+        <p style="color:var(--text-secondary); font-size:15px; margin:0;">
+            Configure staff accounts, role presets, unit company scopes, and deep sub-tab action permissions
+        </p>
+    </div>
+    
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <button type="button" class="btn-sql-execute" onclick="openCreateUserDrawer()" style="background:linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important; border-color:rgba(99,102,241,0.5) !important; box-shadow:0 4px 15px rgba(79,70,229,0.4) !important;">
+            ➕ CREATE NEW USER
+        </button>
+    </div>
+</div>
+
+<!-- STATS CARDS GRID -->
+<div class="user-stats-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;">
+    <div class="user-card stat-card-compact" style="padding:18px; margin-bottom:0; display:flex; align-items:center; gap:14px;">
+        <div class="stat-icon-box" style="width:48px; height:48px; background:rgba(99,102,241,0.15); color:#818cf8; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800;">👥</div>
+        <div>
+            <div class="stat-label-text" style="font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">TOTAL SYSTEM USERS</div>
+            <div class="stat-value-text" style="font-size:22px; font-weight:800; color:white; margin-top:2px;">{{ total_users }}</div>
+        </div>
+    </div>
+    
+    <div class="user-card stat-card-compact" style="padding:18px; margin-bottom:0; display:flex; align-items:center; gap:14px;">
+        <div class="stat-icon-box" style="width:48px; height:48px; background:rgba(16,185,129,0.15); color:#34d399; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800;">✓</div>
+        <div>
+            <div class="stat-label-text" style="font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">ACTIVE ACCOUNTS</div>
+            <div class="stat-value-text" style="font-size:22px; font-weight:800; color:#34d399; margin-top:2px;">{{ active_users }}</div>
+        </div>
+    </div>
+
+    <div class="user-card stat-card-compact" style="padding:18px; margin-bottom:0; display:flex; align-items:center; gap:14px;">
+        <div class="stat-icon-box" style="width:48px; height:48px; background:rgba(59,130,246,0.15); color:#60a5fa; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800;">📱</div>
+        <div>
+            <div class="stat-label-text" style="font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">APPROVED DEVICES</div>
+            <div class="stat-value-text" style="font-size:22px; font-weight:800; color:#60a5fa; margin-top:2px;">{{ approved_devices_count }}</div>
+        </div>
+    </div>
+
+    <div class="user-card stat-card-compact" style="padding:18px; margin-bottom:0; display:flex; align-items:center; gap:14px;">
+        <div class="stat-icon-box" style="width:48px; height:48px; background:rgba(245,158,11,0.15); color:#fbbf24; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800;">⏳</div>
+        <div>
+            <div class="stat-label-text" style="font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">PENDING APPROVAL</div>
+            <div class="stat-value-text" style="font-size:22px; font-weight:800; color:#fbbf24; margin-top:2px;">{{ pending_devices_count }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- SECTION TAB NAVIGATION SWITCHER -->
+<div class="user-tab-nav" style="display:flex; gap:12px; margin-bottom:20px; border-bottom:1px solid var(--glass-border); padding-bottom:12px; flex-wrap:wrap;">
+    <button type="button" id="tab-btn-users" onclick="switchUserTab('users')" style="padding:10px 20px; font-size:14px; font-weight:800; border-radius:12px; border:none; cursor:pointer; background:#4f46e5; color:white; display:flex; align-items:center; gap:8px;">
+        📋 User Accounts Directory ({{ total_users }})
+    </button>
+    <button type="button" id="tab-btn-devices" onclick="switchUserTab('devices')" style="padding:10px 20px; font-size:14px; font-weight:800; border-radius:12px; border:1px solid var(--glass-border); cursor:pointer; background:rgba(255,255,255,0.05); color:var(--text-secondary); display:flex; align-items:center; gap:8px;">
+        📱 Authorized Devices Manager {% if pending_devices_count > 0 %}<span style="background:#f59e0b; color:black; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:800;">{{ pending_devices_count }} PENDING</span>{% endif %}
+    </button>
+    <button type="button" id="tab-btn-audit" onclick="switchUserTab('audit')" style="padding:10px 20px; font-size:14px; font-weight:800; border-radius:12px; border:1px solid var(--glass-border); cursor:pointer; background:rgba(255,255,255,0.05); color:var(--text-secondary); display:flex; align-items:center; gap:8px;">
+        🛡 System Audit & Activity Logs {% if security_blocked_count > 0 %}<span style="background:#ef4444; color:white; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:800;">{{ security_blocked_count }} BLOCKED</span>{% endif %}
+    </button>
+</div>
+
+<!-- TAB 1: USER LIST TABLE CONTAINER -->
+<div id="users-tab-content" class="user-card" style="padding:0; overflow:hidden;">
+    <div class="card-header-compact" style="padding:18px 24px; background:#0f172a; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+        <div style="font-weight:800; font-size:16px; color:white; display:flex; align-items:center; gap:8px;">
+            <span>📋 System User Directory</span>
+        </div>
+
+        <div class="filter-controls-group" style="display:flex; gap:12px; align-items:center;">
+            <input type="text" id="userSearchInput" placeholder="🔍 Search username or email..." onkeyup="filterUserRows()" style="padding:8px 14px; font-size:13px; width:220px; background:#090d16; border:1px solid var(--glass-border); border-radius:10px; color:white;">
+            <select id="roleFilterSelect" onchange="filterUserRows()" style="padding:8px 12px; font-size:13px; background:#090d16; border:1px solid var(--glass-border); border-radius:10px; color:white;">
+                <option value="">All Roles</option>
+                {% for r_code, r_label in roles %}
+                <option value="{{ r_code }}">{{ r_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+        <table class="users-table" id="usersTable">
+            <thead>
+                <tr>
+                    <th>User / Full Name</th>
+                    <th>Role Preset</th>
+                    <th>Company Scope</th>
+                    <th>Financial Data</th>
+                    <th>Status</th>
+                    <th>Last Login</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users_list %}
+                <tr class="user-row-item" data-username="{{ u.username|lower }}" data-email="{{ u.email|lower }}" data-role="{{ u.role }}">
+                    <td>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:36px; height:36px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#818cf8;">
+                                {{ u.username|slice:":2"|upper }}
+                            </div>
+                            <div>
+                                <div style="font-weight:800; color:white; font-size:14px;">{{ u.username }}</div>
+                                <div style="font-size:11.5px; color:var(--text-secondary);">
+                                    {% if u.first_name %}{{ u.first_name }} {{ u.last_name }}{% else %}{{ u.email|default:"No email" }}{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge role-badge-{{ u.role }}" style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:8px;">
+                            {{ u.get_role_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if u.is_superuser or u.role == 'ADMIN' or u.is_global_access %}
+                        <span style="font-size:12px; color:#10b981; font-weight:700;">👑 Global (All Access)</span>
+                        {% elif u.allowed_companies.all %}
+                        <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                            {% for ac in u.allowed_companies.all %}
+                            <span style="font-size:11px; color:#cbd5e1; font-weight:600; background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px; border:1px solid var(--glass-border);">🏢 {{ ac.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% elif u.company %}
+                        <span style="font-size:12px; color:#cbd5e1; font-weight:600;">🏢 {{ u.company.name }}</span>
+                        {% else %}
+                        <span style="font-size:12px; color:#10b981; font-weight:700;">👑 Global (All Access)</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.can_view_financials %}
+                        <span style="font-size:11px; color:#34d399; font-weight:700; background:rgba(16,185,129,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.25);">
+                            💰 Rates Visible
+                        </span>
+                        {% else %}
+                        <span style="font-size:11px; color:#fbbf24; font-weight:700; background:rgba(245,158,11,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(245,158,11,0.25);">
+                            🙈 Rates Masked
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                        <span style="font-size:11px; color:#34d399; font-weight:800;">● Active</span>
+                        {% else %}
+                        <span style="font-size:11px; color:#f87171; font-weight:800;">● Suspended</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:11.5px; color:var(--text-secondary);">
+                        {% if u.last_login %}{{ u.last_login|date:"d M, H:i" }}{% else %}Never{% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <div style="display:flex; justify-content:flex-end; gap:8px;">
+                            <button type="button" onclick="openEditUserDrawer({{ u.id }}, '{{ u.username|escapejs }}', '{{ u.first_name|escapejs }}', '{{ u.last_name|escapejs }}', '{{ u.email|escapejs }}', '{{ u.role }}', {{ u.is_global_access|yesno:'true,false' }}, [{% for ac in u.allowed_companies.all %}{{ ac.id }}{% if not forloop.last %},{% endif %}{% endfor %}], {{ u.can_view_financials|yesno:'true,false' }}, '{{ u.permissions_json|escapejs }}')" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); font-weight:700; padding:6px 12px; font-size:11.5px; border-radius:8px; cursor:pointer;">
+                                ✏️ Edit
+                            </button>
+                            <button type="button" onclick="openPasswordResetModal({{ u.id }}, '{{ u.username|escapejs }}')" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); font-weight:700; padding:6px 10px; font-size:11.5px; border-radius:8px; cursor:pointer;" title="Reset Password">
+                                🔑 Pass
+                            </button>
+                            {% if u != request.user %}
+                            <button type="button" onclick="toggleUserActive({{ u.id }}, '{{ u.username|escapejs }}')" style="background:{% if u.is_active %}rgba(239,68,68,0.15){% else %}rgba(16,185,129,0.15){% endif %}; color:{% if u.is_active %}#f87171{% else %}#34d399{% endif %}; border:1px solid {% if u.is_active %}rgba(239,68,68,0.3){% else %}rgba(16,185,129,0.3){% endif %}; font-weight:700; padding:6px 10px; font-size:11.5px; border-radius:8px; cursor:pointer;">
+                                {% if u.is_active %}🚫 Disable{% else %}✓ Enable{% endif %}
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB 2: AUTHORIZED DEVICES MANAGER CONTAINER -->
+<div id="devices-tab-content" class="user-card" style="padding:0; overflow:hidden; display:none;">
+    <div class="card-header-compact" style="padding:18px 24px; background:#0f172a; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+        <div>
+            <div style="font-weight:800; font-size:16px; color:white; display:flex; align-items:center; gap:8px;">
+                <span>📱 Authorized Factory Devices Manager</span>
+            </div>
+            <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                Approve or decline phones, tablets, and shop floor PCs.
+            </div>
+        </div>
+
+        <div class="filter-controls-group" style="display:flex; gap:10px; align-items:center;">
+            <button type="button" onclick="purgeStaleDevices()" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); padding:8px 14px; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;" title="Delete unapproved requests older than 30 days">
+                🧹 Purge Stale
+            </button>
+            <button type="button" onclick="location.reload()" style="background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">
+                🔄 Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- DEVICE SECURITY MODE SELECTOR WIDGET -->
+    <div style="padding:16px 24px; background:rgba(99,102,241,0.08); border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+        <div>
+            <div style="font-weight:800; font-size:14px; color:#818cf8; display:flex; align-items:center; gap:8px;">
+                <span>🛡 Device Security Authorization Mode</span>
+            </div>
+            <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                Controls how new devices are authorized when accessing non-admin staff accounts.
+            </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+            <select id="deviceSecurityModeSelect" onchange="changeDeviceSecurityMode(this.value)" style="padding:8px 14px; font-size:13px; font-weight:700; background:#090d16; border:1px solid rgba(99,102,241,0.4); border-radius:10px; color:white; cursor:pointer;">
+                {% for code, label in security_mode_choices %}
+                <option value="{{ code }}" {% if device_security_mode == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- SUB-FILTER TAB PILLS FOR DEVICES -->
+    <div class="dev-filter-pills-row" style="padding:12px 24px; background:rgba(0,0,0,0.2); border-bottom:1px solid var(--glass-border); display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <span style="font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-right:6px;">Filter Devices:</span>
+        <button type="button" class="dev-filter-pill" id="dev-pill-ALL" onclick="filterDeviceStatus('ALL')" style="padding:6px 14px; font-size:12px; font-weight:800; border-radius:10px; border:none; cursor:pointer; background:#4f46e5; color:white;">
+            🔵 All ({{ total_devices_count }})
+        </button>
+        <button type="button" class="dev-filter-pill" id="dev-pill-APPROVED" onclick="filterDeviceStatus('APPROVED')" style="padding:6px 14px; font-size:12px; font-weight:800; border-radius:10px; border:1px solid var(--glass-border); cursor:pointer; background:rgba(255,255,255,0.05); color:var(--text-secondary);">
+            🟢 Approved ({{ approved_devices_count }})
+        </button>
+        <button type="button" class="dev-filter-pill" id="dev-pill-PENDING" onclick="filterDeviceStatus('PENDING')" style="padding:6px 14px; font-size:12px; font-weight:800; border-radius:10px; border:1px solid var(--glass-border); cursor:pointer; background:rgba(255,255,255,0.05); color:var(--text-secondary);">
+            ⏳ Pending ({{ pending_devices_count }})
+        </button>
+        <button type="button" class="dev-filter-pill" id="dev-pill-REJECTED" onclick="filterDeviceStatus('REJECTED')" style="padding:6px 14px; font-size:12px; font-weight:800; border-radius:10px; border:1px solid var(--glass-border); cursor:pointer; background:rgba(255,255,255,0.05); color:var(--text-secondary);">
+            🔴 Rejected ({{ rejected_devices_count }})
+        </button>
+    </div>
+
+    <div style="overflow-x:auto;">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>Device Name & Fingerprint ID</th>
+                    <th>Metadata & Hardware</th>
+                    <th>Assigned User</th>
+                    <th>Last Connection IP</th>
+                    <th>Last Active</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in devices_list %}
+                <tr class="device-row-item" data-status="{{ d.status }}" style="{% if d.status == 'PENDING' %}background:rgba(245,158,11,0.05);{% elif d.status == 'REJECTED' %}background:rgba(239,68,68,0.05);{% endif %}">
+                    <td>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:38px; height:38px; background:{% if d.status == 'APPROVED' %}rgba(16,185,129,0.15){% elif d.status == 'REJECTED' %}rgba(239,68,68,0.15){% else %}rgba(245,158,11,0.15){% endif %}; color:{% if d.status == 'APPROVED' %}#34d399{% elif d.status == 'REJECTED' %}#f87171{% else %}#fbbf24{% endif %}; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800;">
+                                {{ d.get_device_icon }}
+                            </div>
+                            <div>
+                                <div style="font-weight:800; color:white; font-size:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <span>{{ d.name|default:"Unnamed Device" }}</span>
+                                    {% if d.device_id == current_device_id %}
+                                    <span style="background:linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(79,70,229,0.35) 100%); color:#818cf8; border:1px solid rgba(99,102,241,0.5); font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; letter-spacing:0.5px; box-shadow:0 0 10px rgba(99,102,241,0.3);">
+                                        👑 THIS DEVICE (YOU)
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div style="font-family:monospace; font-size:11.5px; color:#818cf8; margin-top:2px; font-weight:700;">
+                                    {{ d.device_id }}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size:12px; color:#cbd5e1; font-weight:700;">
+                            {{ d.brand_model|default:"Factory Device" }}
+                        </div>
+                        <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">
+                            {% if d.os_info %}{{ d.os_info }}{% endif %}{% if d.browser_info %} • {{ d.browser_info }}{% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if d.assigned_user %}
+                        <span style="font-size:12.5px; color:#60a5fa; font-weight:700;">👤 {{ d.assigned_user.username }}</span>
+                        {% else %}
+                        <span style="font-size:12px; color:var(--text-secondary);">Shared / Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span style="font-family:monospace; font-size:12px; color:#cbd5e1; font-weight:600;">
+                            {{ d.last_ip|default:"127.0.0.1" }}
+                        </span>
+                    </td>
+                    <td style="font-size:11.5px; color:var(--text-secondary);">
+                        {% if d.is_online %}
+                        <span style="color:#34d399; font-weight:800; font-size:11.5px; display:inline-flex; align-items:center; gap:6px; background:rgba(16,185,129,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.25);">
+                            <span style="width:7px; height:7px; background:#10b981; border-radius:50%; display:inline-block; box-shadow:0 0 8px #10b981; animation:pulse 1.5s infinite;"></span>
+                            🟢 LIVE NOW
+                        </span>
+                        {% else %}
+                        {{ d.last_used_at|date:"d M, H:i" }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if d.status == 'APPROVED' %}
+                        <span style="font-size:11px; color:#34d399; font-weight:800; background:rgba(16,185,129,0.12); padding:4px 10px; border-radius:8px; border:1px solid rgba(16,185,129,0.25);">
+                            ✓ Approved
+                        </span>
+                        {% elif d.status == 'REJECTED' %}
+                        <span style="font-size:11px; color:#f87171; font-weight:800; background:rgba(239,68,68,0.15); padding:4px 10px; border-radius:8px; border:1px solid rgba(239,68,68,0.3);" title="{{ d.rejection_reason|default:'Declined by Admin' }}">
+                            🚫 Rejected / Blocked
+                        </span>
+                        {% else %}
+                        <span style="font-size:11px; color:#fbbf24; font-weight:800; background:rgba(245,158,11,0.15); padding:4px 10px; border-radius:8px; border:1px solid rgba(245,158,11,0.3); animation:pulse 2s infinite;">
+                            ⏳ Pending Approval
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        <div style="display:flex; justify-content:flex-end; gap:8px;">
+                            {% if d.status != 'APPROVED' %}
+                            <button type="button" onclick="approveDevice({{ d.id }}, '{{ d.name|escapejs }}')" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:white; border:none; font-weight:800; padding:7px 12px; font-size:11.5px; border-radius:8px; cursor:pointer; box-shadow:0 4px 12px rgba(16,185,129,0.3);">
+                                ✓ APPROVE
+                            </button>
+                            {% endif %}
+                            {% if d.status != 'REJECTED' %}
+                            <button type="button" onclick="openRejectDeviceModal({{ d.id }}, '{{ d.name|escapejs }}')" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-weight:800; padding:6px 12px; font-size:11.5px; border-radius:8px; cursor:pointer;">
+                                ✖ REJECT
+                            </button>
+                            {% endif %}
+                            <button type="button" onclick="renameDeviceModal({{ d.id }}, '{{ d.name|escapejs }}')" style="background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); font-weight:700; padding:6px 10px; font-size:11.5px; border-radius:8px; cursor:pointer;" title="Set device name & assign user">
+                                ✏️ Label
+                            </button>
+                            <button type="button" onclick="deleteDevice({{ d.id }}, '{{ d.name|escapejs }}')" style="background:rgba(239,68,68,0.1); color:#f87171; border:1px solid rgba(239,68,68,0.25); font-weight:700; padding:6px 10px; font-size:11.5px; border-radius:8px; cursor:pointer;" title="Delete device permanently">
+                                🗑 Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center; padding:48px; color:var(--text-secondary);">No devices registered yet. Open the ERP on a tablet or phone to register its device ID.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TAB 3: SYSTEM AUDIT LOGS & LIVE ACTIVITY STREAM CONTAINER -->
+<div id="audit-tab-content" style="display:none; flex-direction:column; gap:24px;">
+
+    <!-- SECTION 1: LIVE ACTIVE USERS & SHOP FLOOR STREAM -->
+    <div class="user-card" style="padding:0; overflow:hidden;">
+        <div class="card-header-compact" style="padding:18px 24px; background:#0f172a; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+            <div>
+                <div style="font-weight:800; font-size:16px; color:white; display:flex; align-items:center; gap:8px;">
+                    <span style="width:10px; height:10px; background:#10b981; border-radius:50%; display:inline-block; box-shadow:0 0 10px #10b981; animation:pulse 1.5s infinite;"></span>
+                    <span>🟢 Live Active Users & Shop Floor Activity Stream</span>
+                </div>
+                <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                    Real-time monitoring of active employees, current pages, and devices.
+                </div>
+            </div>
+            <button type="button" id="btnRefreshStream" onclick="refreshLiveStreamUI()" style="background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">
+                🔄 Refresh Stream
+            </button>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Role Preset</th>
+                        <th>Device & Hardware</th>
+                        <th>Current Page / Module</th>
+                        <th>IP Address</th>
+                        <th>Network Scope</th>
+                        <th>Last Activity</th>
+                    </tr>
+                </thead>
+                <tbody id="liveActivityTableBody">
+                    {% for act in live_activities_list %}
+                    <tr>
+                        <td>
+                            <div style="font-weight:800; color:white; font-size:14px;">👤 {{ act.user.username }}</div>
+                        </td>
+                        <td>
+                            <span class="badge role-badge-{{ act.user.role }}" style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:8px;">
+                                {{ act.user.get_role_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="font-size:12.5px; color:#60a5fa; font-weight:700;">
+                                {{ act.device.name|default:"Desktop Browser" }}
+                            </div>
+                        </td>
+                        <td>
+                            <span style="background:rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.3); font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:8px;">
+                                📍 {{ act.current_page }}
+                            </span>
+                        </td>
+                        <td style="font-family:monospace; font-size:12px; color:#cbd5e1; font-weight:600;">
+                            {{ act.ip_address|default:"127.0.0.1" }}
+                        </td>
+                        <td>
+                            {% if act.network_scope == 'FACTORY_LOCAL' %}
+                            <span style="font-size:11px; color:#34d399; font-weight:800; background:rgba(16,185,129,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.25);">
+                                🏢 Factory Local Wi-Fi
+                            </span>
+                            {% else %}
+                            <span style="font-size:11px; color:#fbbf24; font-weight:800; background:rgba(245,158,11,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(245,158,11,0.25);">
+                                🌐 External Remote Network
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:11.5px; color:var(--text-secondary);">
+                            {% if act.is_active_now %}
+                            <span style="color:#34d399; font-weight:800;">🟢 Active Now ({{ act.last_heartbeat|date:"H:i:s" }})</span>
+                            {% else %}
+                            <span>Idle ({{ act.last_heartbeat|date:"H:i:s" }})</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:36px; color:var(--text-secondary);">No live user activity recorded yet. Navigate pages to start streaming.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SECTION 2: SYSTEM AUDIT LOG HISTORY -->
+    <div class="user-card" style="padding:0; overflow:hidden;">
+        <div class="card-header-compact" style="padding:18px 24px; background:#0f172a; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+            <div style="font-weight:800; font-size:16px; color:white; display:flex; align-items:center; gap:8px;">
+                <span>📜 System Audit Log History</span>
+            </div>
+
+            <div class="filter-controls-group" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <input type="text" id="auditSearchInput" placeholder="🔍 Search user, record, path, IP..." onkeyup="filterAuditLogsUI()" style="padding:8px 14px; font-size:13px; width:220px; background:#090d16; border:1px solid var(--glass-border); border-radius:10px; color:white;">
+                <select id="auditEventTypeSelect" onchange="filterAuditLogsUI()" style="padding:8px 12px; font-size:13px; background:#090d16; border:1px solid var(--glass-border); border-radius:10px; color:white;">
+                    <option value="">All Event Types</option>
+                    <option value="CREATE">➕ Data Created</option>
+                    <option value="UPDATE">✏️ Data Updated</option>
+                    <option value="DELETE">🗑 Data Deleted</option>
+                    <option value="SECURITY_BLOCKED">🚫 Permission Blocked</option>
+                    <option value="SECURITY_REJECTED">🛑 Device Access Rejected</option>
+                    <option value="AUTH_LOGIN">🔑 User Login</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Event Type</th>
+                        <th>Module / Department</th>
+                        <th>Target Record / Action Details</th>
+                        <th>IP Address & Scope</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="auditLogsTableBody">
+                    {% for log in audit_logs_list %}
+                    <tr class="audit-row-item" data-user="{{ log.user.username|default:'anonymous'|lower }}" data-event="{{ log.event_type }}" data-repr="{{ log.object_repr|default:''|lower }}" data-path="{{ log.request_path|default:''|lower }}">
+                        <td style="font-size:12px; color:#cbd5e1; font-weight:600; white-space:nowrap;">
+                            {{ log.timestamp|date:"d M Y, H:i:s" }}
+                        </td>
+                        <td>
+                            <div style="font-weight:800; color:white; font-size:13.5px;">
+                                {% if log.user %}👤 {{ log.user.username }}{% else %}<span style="color:var(--text-secondary);">Anonymous / System</span>{% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if log.event_type == 'CREATE' %}
+                            <span style="font-size:11px; color:#34d399; font-weight:800; background:rgba(16,185,129,0.15); padding:4px 10px; border-radius:8px; border:1px solid rgba(16,185,129,0.3);">
+                                ➕ Created
+                            </span>
+                            {% elif log.event_type == 'UPDATE' %}
+                            <span style="font-size:11px; color:#60a5fa; font-weight:800; background:rgba(59,130,246,0.15); padding:4px 10px; border-radius:8px; border:1px solid rgba(59,130,246,0.3);">
+                                ✏️ Updated
+                            </span>
+                            {% elif log.event_type == 'DELETE' %}
+                            <span style="font-size:11px; color:#f87171; font-weight:800; background:rgba(239,68,68,0.15); padding:4px 10px; border-radius:8px; border:1px solid rgba(239,68,68,0.3);">
+                                🗑 Deleted
+                            </span>
+                            {% elif log.event_type == 'SECURITY_BLOCKED' or log.event_type == 'SECURITY_REJECTED' %}
+                            <span style="font-size:11px; color:#f87171; font-weight:800; background:rgba(239,68,68,0.2); padding:4px 10px; border-radius:8px; border:1px solid rgba(239,68,68,0.4); animation:pulse 2s infinite;">
+                                🛑 Security Blocked
+                            </span>
+                            {% else %}
+                            <span style="font-size:11px; color:#a78bfa; font-weight:800; background:rgba(167,139,250,0.15); padding:4px 10px; border-radius:8px; border:1px solid rgba(167,139,250,0.3);">
+                                {{ log.get_event_type_display }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="font-size:12px; font-weight:700; color:#e2e8f0;">{{ log.module_name }}</span>
+                        </td>
+                        <td>
+                            <div style="font-size:13px; color:white; font-weight:700;">{{ log.object_repr|default:"N/A" }}</div>
+                            {% if log.request_path %}
+                            <div style="font-family:monospace; font-size:11px; color:#818cf8; margin-top:2px;">{{ log.request_path }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-family:monospace; font-size:12px; color:#cbd5e1; font-weight:600;">
+                                {{ log.ip_address|default:"127.0.0.1" }}
+                            </div>
+                            <div style="font-size:10.5px; color:var(--text-secondary); margin-top:2px;">
+                                {{ log.get_network_scope_display }}
+                            </div>
+                        </td>
+                        <td style="text-align:right;">
+                            {% if log.changes_json %}
+                            <button type="button" onclick="openAuditDiffModal({{ log.id }})" style="background:rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.3); font-weight:700; padding:6px 12px; font-size:11.5px; border-radius:8px; cursor:pointer;">
+                                🔍 Inspect Data
+                            </button>
+                            <script id="audit-json-{{ log.id }}" type="application/json">{{ log.changes_json|json_script:""|safe }}</script>
+                            {% else %}
+                            <span style="font-size:11px; color:var(--text-secondary);">No Data Diff</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:48px; color:var(--text-secondary);">No system audit logs recorded yet. Perform a data entry or update to generate an audit log.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- AUDIT CHANGE INSPECTOR MODAL -->
+<div id="auditDiffModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:99999; align-items:center; justify-content:center;">
+    <div class="user-card modal-card-mobile" style="width:650px; max-width:90vw; max-height:85vh; padding:28px; margin:0; display:flex; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--glass-border); padding-bottom:14px; margin-bottom:16px;">
+            <h3 style="margin:0; color:#818cf8; font-size:18px; display:flex; align-items:center; gap:8px;">
+                <span>🔍 Audit Data Change Inspector</span>
+            </h3>
+            <button type="button" onclick="closeAuditDiffModal()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">✕</button>
+        </div>
+
+        <div style="flex:1; overflow-y:auto; background:#090d16; border:1px solid var(--glass-border); border-radius:12px; padding:16px;">
+            <pre id="auditDiffJsonContainer" style="font-family:monospace; font-size:12.5px; color:#34d399; margin:0; white-space:pre-wrap; word-break:break-all;"></pre>
+        </div>
+
+        <div style="margin-top:18px; text-align:right;">
+            <button type="button" onclick="closeAuditDiffModal()" style="background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); padding:10px 20px; border-radius:10px; font-weight:700; cursor:pointer;">Close Inspector</button>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- SLIDE-OVER DRAWER: USER CREATE & PERMISSION TREE EDIT    -->
+<!-- ======================================================== -->
+<div id="userDrawerBackdrop" onclick="closeUserDrawer()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:9999;"></div>
+<div id="userDrawer" style="position:fixed; top:0; right:-750px; width:700px; max-width:95vw; height:100%; background:#0f172a; border-left:1px solid var(--glass-border); z-index:10000; transition:0.3s ease; padding:30px; overflow-y:auto; box-sizing:border-box;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--glass-border); padding-bottom:18px; margin-bottom:20px;">
+        <h2 id="drawerTitle" style="margin:0; font-size:22px; font-weight:800; color:white;">➕ Create System User</h2>
+        <button onclick="closeUserDrawer()" style="background:none; border:none; color:var(--text-secondary); font-size:28px; cursor:pointer;">✕</button>
+    </div>
+
+    <form id="userForm">
+        <input type="hidden" id="formUserId" value="">
+        
+        <!-- BASIC ACCOUNT INFO -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+            <div>
+                <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:4px;">Username *</label>
+                <input type="text" id="formUsername" required placeholder="e.g. operator_vijay" style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%;">
+            </div>
+            <div>
+                <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:4px;">Email Address</label>
+                <input type="email" id="formEmail" placeholder="vijay@foundry.com" style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%;">
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+            <div>
+                <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:4px;">First Name</label>
+                <input type="text" id="formFirstName" placeholder="Vijay" style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%;">
+            </div>
+            <div>
+                <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:4px;">Last Name</label>
+                <input type="text" id="formLastName" placeholder="Kumar" style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%;">
+            </div>
+        </div>
+
+        <div id="passwordRow" style="margin-bottom:14px;">
+            <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:4px;">Password *</label>
+            <input type="password" id="formPassword" placeholder="Enter secure password" style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%;">
+        </div>
+
+        <div style="margin-bottom:20px;">
+            <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:4px;">Role Preset Template</label>
+            <select id="formRolePreset" onchange="applyRolePresetTemplate(this.value)" style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%;">
+                {% for r_code, r_label in roles %}
+                <option value="{{ r_code }}">{{ r_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- AUTHORIZED LEGAL COMPANY SCOPE MULTI-SELECT -->
+        <div style="background:#090d16; border:1px solid var(--glass-border); padding:16px; border-radius:12px; margin-bottom:16px;">
+            <label style="font-size:11px; font-weight:800; color:#818cf8; text-transform:uppercase; display:block; margin-bottom:10px;">
+                🏢 Authorized Legal Company Scopes (Check All Allowed)
+            </label>
+
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; color:white; font-weight:700; background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.06);">
+                    <input type="checkbox" id="chkGlobalAccess" onchange="toggleGlobalAccessCheck(this.checked)" style="width:18px; height:18px; accent-color:#4f46e5; cursor:pointer;">
+                    <span>👑 Global / All Access (Owner Portal - Full Access Across All Entities)</span>
+                </label>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px;">
+                    {% for c in companies %}
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:#cbd5e1; font-weight:600; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px; border:1px solid var(--glass-border);">
+                        <input type="checkbox" class="chk-company-item" value="{{ c.id }}" data-name="{{ c.name }}" style="width:16px; height:16px; accent-color:#4f46e5; cursor:pointer;">
+                        <span>📁 {{ c.name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- FINANCIAL DATA MASKING SWITCH -->
+        <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); padding:14px 18px; border-radius:14px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-weight:800; font-size:13.5px; color:#fbbf24;">🙈 Financial Data & Rate Masking</div>
+                <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">When disabled, rates, worker wages, unit costs, and total ₹ values are masked as ***</div>
+            </div>
+            <label class="switch-label">
+                <input type="checkbox" id="formCanViewFinancials" class="switch-input" checked>
+                <span class="switch-slider"></span>
+            </label>
+        </div>
+
+        <!-- HIERARCHICAL ACCORDION TREE PERMISSION MATRIX -->
+        <div style="margin-bottom:24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0; font-size:15px; font-weight:800; color:white; display:flex; align-items:center; gap:6px;">
+                    <span>🌳 Granular Permission Tree Matrix</span>
+                    <span class="header-info-badge" tabindex="0" data-tooltip="Check or uncheck individual sub-tabs, drawer action buttons, or purge tools." data-tooltip-pos="right">ℹ️</span>
+                </h3>
+                <button type="button" onclick="toggleAllTreeNodes(true)" style="background:none; border:none; color:#818cf8; font-size:12px; font-weight:700; cursor:pointer;">Select All</button>
+            </div>
+
+            <!-- DYNAMIC PERMISSION ACCORDION CONTAINER -->
+            <div id="permissionTreeAccordion">
+                <!-- Injected via JavaScript -->
+            </div>
+        </div>
+
+        <button type="button" onclick="submitUserForm()" class="btn-sql-execute" style="width:100%; justify-content:center; padding:14px !important; font-size:15px !important;">
+            💾 SAVE USER PERMISSIONS & ACCOUNT
+        </button>
+    </form>
+</div>
+
+<!-- PASSWORD RESET MODAL -->
+<div id="passwordModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:99999; align-items:center; justify-content:center;">
+    <div class="user-card modal-card-mobile" style="width:400px; padding:28px; margin:0;">
+        <h3 style="margin:0 0 16px 0; color:white; font-size:18px;">🔑 Reset User Password</h3>
+        <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:16px;">Target user: <strong id="resetTargetUsername" style="color:#60a5fa;"></strong></p>
+        
+        <input type="password" id="newPasswordInput" placeholder="Enter new password (min 4 chars)" style="background:#090d16; border:1px solid var(--glass-border); padding:12px; border-radius:10px; color:white; font-size:14px; width:100%; margin-bottom:20px; box-sizing:border-box;">
+        
+        <div style="display:flex; gap:10px;">
+            <button type="button" onclick="closePasswordResetModal()" style="flex:1; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); padding:10px; border-radius:10px; font-weight:700; cursor:pointer;">Cancel</button>
+            <button type="button" onclick="submitPasswordReset()" class="btn-sql-execute" style="flex:1; justify-content:center;">Save Password</button>
+        </div>
+    </div>
+</div>
+
+<!-- REJECT DEVICE MODAL -->
+<div id="rejectDeviceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:99999; align-items:center; justify-content:center;">
+    <div class="user-card modal-card-mobile" style="width:420px; padding:28px; margin:0;">
+        <h3 style="margin:0 0 12px 0; color:#f87171; font-size:18px;">✖ Reject / Block Device Access</h3>
+        <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:16px;">
+            Target device: <strong id="rejectTargetDeviceName" style="color:white;"></strong>
+        </p>
+        
+        <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:6px;">Rejection Reason (Shown on employee screen)</label>
+        <select id="rejectReasonPreset" onchange="if(this.value !== 'CUSTOM'){ document.getElementById('rejectReasonInput').value = this.value; }" style="background:#090d16; border:1px solid var(--glass-border); padding:10px; border-radius:10px; color:white; font-size:13px; width:100%; margin-bottom:10px; box-sizing:border-box;">
+            <option value="Unrecognized Device">Unrecognized / Unknown Device</option>
+            <option value="Former Employee Phone">Former Employee Phone</option>
+            <option value="Unauthorized Access Attempt">Unauthorized Access Attempt</option>
+            <option value="Personal Phone Not Allowed">Personal Phone Not Allowed</option>
+            <option value="CUSTOM">-- Type Custom Reason --</option>
+        </select>
+        <input type="text" id="rejectReasonInput" value="Unrecognized Device" placeholder="Enter reason for rejection..." style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13px; width:100%; margin-bottom:20px; box-sizing:border-box;">
+        
+        <div style="display:flex; gap:10px;">
+            <button type="button" onclick="closeRejectDeviceModal()" style="flex:1; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); padding:10px; border-radius:10px; font-weight:700; cursor:pointer;">Cancel</button>
+            <button type="button" onclick="submitDeviceRejection()" style="flex:1; background:#ef4444; color:white; border:none; padding:10px; border-radius:10px; font-weight:800; cursor:pointer;">✖ Confirm Reject</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPermissionTree = JSON.parse('{{ default_permissions_json|escapejs }}');
+let activeResetUserId = null;
+
+function filterUserRows() {
+    const searchVal = (document.getElementById('userSearchInput').value || '').toLowerCase().trim();
+    const roleVal = document.getElementById('roleFilterSelect').value;
+    const rows = document.querySelectorAll('.user-row-item');
+
+    rows.forEach(row => {
+        const username = row.getAttribute('data-username');
+        const email = row.getAttribute('data-email');
+        const role = row.getAttribute('data-role');
+
+        const matchesSearch = !searchVal || username.includes(searchVal) || email.includes(searchVal);
+        const matchesRole = !roleVal || role === roleVal;
+
+        if (matchesSearch && matchesRole) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function renderPermissionTreeUI(treeData) {
+    const container = document.getElementById('permissionTreeAccordion');
+    container.innerHTML = '';
+
+    const moduleLabels = {
+        "casting": { name: "🔥 Foundry Casting", desc: "Heat pours, furnace melts & raw stock" },
+        "machining": { name: "🛠 Machining Operations", desc: "In-house CNC/lathe, outsource & WIP stock" },
+        "polishing": { name: "✨ Polishing & Finishing", desc: "In-house buffing, plating & rejection scrap" },
+        "packaging": { name: "📦 Packaging & Ready Stock", desc: "Carton kitting, master boxes & ready warehouse" },
+        "purchases": { name: "🛒 Raw Material Purchases", desc: "Metal ingot purchases & vendor bills" },
+        "orders": { name: "📋 Customer POs", desc: "Sales orders board & PO creation" },
+        "dispatch": { name: "🚚 Sales Dispatch", desc: "Gate passes & delivery challans" },
+        "master_data": { name: "⚙ Master Data & Maintenance", desc: "Items, clients, workers, BOM & purge hub" },
+        "labor_ledger": { name: "💹 Labor Ledger & Payroll", desc: "Worker payouts, advances & monthly slips" },
+        "attendance": { name: "📅 Daily Attendance", desc: "Staff attendance register" },
+        "sql_explorer": { name: "⚡ SQL Explorer & Data Flow", desc: "SQL queries & schema inspector" },
+        "user_management": { name: "👥 User Control System", desc: "Manage accounts & permission matrix" }
+    };
+
+    for (const [modKey, modVal] of Object.entries(treeData)) {
+        const meta = moduleLabels[modKey] || { name: modKey.toUpperCase(), desc: "" };
+        const isEnabled = modVal.enabled !== false;
+
+        const block = document.createElement('div');
+        block.className = 'tree-module-block';
+
+        let subNodesHTML = '';
+        
+        // Render sub-objects (tabs and actions)
+        for (const [subKey, subVal] of Object.entries(modVal)) {
+            if (subKey === 'enabled') continue;
+
+            if (typeof subVal === 'boolean') {
+                subNodesHTML += `
+                    <label class="tree-checkbox-label" style="margin-right:15px; margin-bottom:8px;">
+                        <input type="checkbox" data-path="${modKey}.${subKey}" ${subVal ? 'checked' : ''} onchange="updateTreeDataFromUI()">
+                        <span>${subKey.toUpperCase()}</span>
+                    </label>
+                `;
+            } else if (typeof subVal === 'object') {
+                subNodesHTML += `<div class="tree-sub-group">
+                    <div style="font-size:11.5px; font-weight:800; color:#818cf8; text-transform:uppercase; margin-bottom:8px;">🗂 ${subKey.toUpperCase()}</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:12px;">`;
+                
+                for (const [actKey, actVal] of Object.entries(subVal)) {
+                    subNodesHTML += `
+                        <label class="tree-checkbox-label">
+                            <input type="checkbox" data-path="${modKey}.${subKey}.${actKey}" ${actVal ? 'checked' : ''} onchange="updateTreeDataFromUI()">
+                            <span>${actKey.toUpperCase()}</span>
+                        </label>
+                    `;
+                }
+                subNodesHTML += `</div></div>`;
+            }
+        }
+
+        block.innerHTML = `
+            <div class="tree-module-header" onclick="toggleAccordionContent('${modKey}')">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" data-mod-toggle="${modKey}" ${isEnabled ? 'checked' : ''} onclick="event.stopPropagation(); toggleModuleBranch('${modKey}', this.checked)">
+                    <div>
+                        <strong style="color:white; font-size:14px;">${meta.name}</strong>
+                        <div style="font-size:11px; color:var(--text-secondary);">${meta.desc}</div>
+                    </div>
+                </div>
+                <span id="acc-icon-${modKey}" style="font-size:12px; color:var(--text-secondary);">▼</span>
+            </div>
+            <div class="tree-module-content" id="acc-content-${modKey}">
+                ${subNodesHTML}
+            </div>
+        `;
+
+        container.appendChild(block);
+    }
+    updateTreeDataFromUI();
+}
+
+function toggleAccordionContent(modKey) {
+    const content = document.getElementById(`acc-content-${modKey}`);
+    const icon = document.getElementById(`acc-icon-${modKey}`);
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+    }
+}
+
+function toggleModuleBranch(modKey, isChecked) {
+    if (currentPermissionTree[modKey]) {
+        currentPermissionTree[modKey].enabled = isChecked;
+    }
+    const checkboxes = document.querySelectorAll(`[data-path^="${modKey}."]`);
+    checkboxes.forEach(cb => cb.checked = isChecked);
+    updateTreeDataFromUI();
+}
+
+function updateTreeDataFromUI() {
+    const checkboxes = document.querySelectorAll('#permissionTreeAccordion input[type="checkbox"][data-path]');
+    checkboxes.forEach(cb => {
+        const path = cb.getAttribute('data-path').split('.');
+        if (path.length === 2) {
+            currentPermissionTree[path[0]][path[1]] = cb.checked;
+        } else if (path.length === 3) {
+            if (!currentPermissionTree[path[0]][path[1]]) currentPermissionTree[path[0]][path[1]] = {};
+            currentPermissionTree[path[0]][path[1]][path[2]] = cb.checked;
+        }
+    });
+
+    const modToggles = document.querySelectorAll('#permissionTreeAccordion input[type="checkbox"][data-mod-toggle]');
+    modToggles.forEach(cb => {
+        const modKey = cb.getAttribute('data-mod-toggle');
+        if (currentPermissionTree[modKey]) {
+            currentPermissionTree[modKey].enabled = cb.checked;
+            const block = cb.closest('.tree-module-block');
+            if (block) {
+                block.style.opacity = cb.checked ? '1' : '0.45';
+                block.style.filter = cb.checked ? 'none' : 'grayscale(60%)';
+            }
+        }
+    });
+}
+
+function toggleAllTreeNodes(state) {
+    const checkboxes = document.querySelectorAll('#permissionTreeAccordion input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = state);
+    updateTreeDataFromUI();
+}
+
+function applyRolePresetTemplate(role) {
+    let tree = JSON.parse('{{ default_permissions_json|escapejs }}');
+    const financialsSwitch = document.getElementById('formCanViewFinancials');
+
+    if (role === 'ADMIN') {
+        financialsSwitch.checked = true;
+    } else if (role === 'CASTING_MGR') {
+        financialsSwitch.checked = false;
+        tree.machining.enabled = false;
+        tree.polishing.enabled = false;
+        tree.packaging.enabled = false;
+        tree.orders.enabled = false;
+        tree.dispatch.enabled = false;
+        tree.master_data.enabled = false;
+        tree.labor_ledger.enabled = false;
+        tree.sql_explorer.enabled = false;
+        tree.user_management.enabled = false;
+    } else if (role === 'MACHINING_MGR') {
+        financialsSwitch.checked = false;
+        tree.casting.enabled = false;
+        tree.packaging.enabled = false;
+        tree.purchases.enabled = false;
+        tree.orders.enabled = false;
+        tree.master_data.enabled = false;
+        tree.labor_ledger.enabled = false;
+        tree.sql_explorer.enabled = false;
+        tree.user_management.enabled = false;
+    } else if (role === 'PACKAGING_MGR') {
+        financialsSwitch.checked = false;
+        tree.casting.enabled = false;
+        tree.machining.enabled = false;
+        tree.polishing.enabled = false;
+        tree.purchases.enabled = false;
+        tree.master_data.enabled = false;
+        tree.labor_ledger.enabled = false;
+        tree.sql_explorer.enabled = false;
+        tree.user_management.enabled = false;
+    } else if (role === 'SALES_ADMIN') {
+        financialsSwitch.checked = true;
+        tree.casting.enabled = false;
+        tree.machining.enabled = false;
+        tree.polishing.enabled = false;
+        tree.purchases.enabled = false;
+        tree.master_data.enabled = false;
+        tree.labor_ledger.enabled = false;
+        tree.sql_explorer.enabled = false;
+        tree.user_management.enabled = false;
+    } else if (role === 'AUDITOR') {
+        financialsSwitch.checked = true;
+        // View only across all modules
+        for (let mod in tree) {
+            for (let sub in tree[mod]) {
+                if (typeof tree[mod][sub] === 'object') {
+                    for (let act in tree[mod][sub]) {
+                        if (act !== 'view') tree[mod][sub][act] = false;
+                    }
+                }
+            }
+        }
+    }
+
+    currentPermissionTree = tree;
+    renderPermissionTreeUI(currentPermissionTree);
+}
+
+function toggleGlobalAccessCheck(isChecked) {
+    const companyCheckboxes = document.querySelectorAll('.chk-company-item');
+    companyCheckboxes.forEach(cb => cb.checked = isChecked);
+}
+
+function openCreateUserDrawer() {
+    document.getElementById('drawerTitle').textContent = '➕ Create System User';
+    document.getElementById('formUserId').value = '';
+    document.getElementById('formUsername').value = '';
+    document.getElementById('formUsername').readOnly = false;
+    document.getElementById('formEmail').value = '';
+    document.getElementById('formFirstName').value = '';
+    document.getElementById('formLastName').value = '';
+    document.getElementById('formPassword').value = '';
+    document.getElementById('passwordRow').style.display = 'block';
+    document.getElementById('formRolePreset').value = 'CUSTOM';
+    document.getElementById('chkGlobalAccess').checked = false;
+    
+    document.querySelectorAll('.chk-company-item').forEach(cb => cb.checked = true);
+    document.getElementById('formCanViewFinancials').checked = true;
+
+    currentPermissionTree = JSON.parse('{{ default_permissions_json|escapejs }}');
+    renderPermissionTreeUI(currentPermissionTree);
+
+    document.getElementById('userDrawerBackdrop').style.display = 'block';
+    document.getElementById('userDrawer').style.right = '0';
+}
+
+function openEditUserDrawer(id, username, firstName, lastName, email, role, isGlobalAccess, allowedCompIds, canViewFinancials, permsJsonStr) {
+    document.getElementById('drawerTitle').textContent = `✏️ Edit User Permissions: ${username}`;
+    document.getElementById('formUserId').value = id;
+    document.getElementById('formUsername').value = username;
+    document.getElementById('formUsername').readOnly = true;
+    document.getElementById('formEmail').value = email;
+    document.getElementById('formFirstName').value = firstName;
+    document.getElementById('formLastName').value = lastName;
+    document.getElementById('formPassword').value = '';
+    document.getElementById('passwordRow').style.display = 'none';
+    document.getElementById('formRolePreset').value = role;
+    document.getElementById('chkGlobalAccess').checked = !!isGlobalAccess;
+    document.getElementById('formCanViewFinancials').checked = canViewFinancials;
+
+    const allowedSet = new Set(Array.isArray(allowedCompIds) ? allowedCompIds : []);
+    document.querySelectorAll('.chk-company-item').forEach(cb => {
+        const val = parseInt(cb.value);
+        cb.checked = isGlobalAccess || allowedSet.has(val);
+    });
+
+    try {
+        currentPermissionTree = permsJsonStr ? JSON.parse(permsJsonStr) : JSON.parse('{{ default_permissions_json|escapejs }}');
+    } catch (e) {
+        currentPermissionTree = JSON.parse('{{ default_permissions_json|escapejs }}');
+    }
+    renderPermissionTreeUI(currentPermissionTree);
+
+    document.getElementById('userDrawerBackdrop').style.display = 'block';
+    document.getElementById('userDrawer').style.right = '0';
+}
+
+function closeUserDrawer() {
+    document.getElementById('userDrawerBackdrop').style.display = 'none';
+    document.getElementById('userDrawer').style.right = '-750px';
+}
+
+async function submitUserForm() {
+    const userId = document.getElementById('formUserId').value;
+    const isEdit = !!userId;
+
+    updateTreeDataFromUI();
+
+    const allowedCompanyIds = Array.from(document.querySelectorAll('.chk-company-item:checked')).map(cb => parseInt(cb.value));
+
+    const payload = {
+        username: document.getElementById('formUsername').value.trim(),
+        email: document.getElementById('formEmail').value.trim(),
+        first_name: document.getElementById('formFirstName').value.trim(),
+        last_name: document.getElementById('formLastName').value.trim(),
+        password: document.getElementById('formPassword').value.trim(),
+        role: document.getElementById('formRolePreset').value,
+        is_global_access: document.getElementById('chkGlobalAccess').checked,
+        allowed_company_ids: allowedCompanyIds,
+        can_view_financials: document.getElementById('formCanViewFinancials').checked,
+        permissions: currentPermissionTree
+    };
+
+    if (!isEdit && (!payload.username || !payload.password)) {
+        alert('Please fill in required Username and Password fields.');
+        return;
+    }
+
+    const endpoint = isEdit ? `/api/users/${userId}/edit/` : '/api/users/create/';
+
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            closeUserDrawer();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to save user account.');
+    }
+}
+
+async function toggleUserActive(userId, username) {
+    if (!confirm(`Are you sure you want to toggle active status for "${username}"?`)) return;
+    try {
+        const res = await fetch(`/api/users/${userId}/toggle-active/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function openPasswordResetModal(id, username) {
+    activeResetUserId = id;
+    document.getElementById('resetTargetUsername').textContent = username;
+    document.getElementById('newPasswordInput').value = '';
+    document.getElementById('passwordModal').style.display = 'flex';
+}
+
+function closePasswordResetModal() {
+    activeResetUserId = null;
+    document.getElementById('passwordModal').style.display = 'none';
+}
+
+async function submitPasswordReset() {
+    if (!activeResetUserId) return;
+    const newPassword = document.getElementById('newPasswordInput').value.trim();
+    if (!newPassword || newPassword.length < 4) {
+        alert('Password must be at least 4 characters long.');
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/users/${activeResetUserId}/reset-password/`, {
+            method: 'POST',
+            body: JSON.stringify({ new_password: newPassword }),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            alert(data.message);
+            closePasswordResetModal();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to reset password.');
+    }
+}
+
+function switchUserTab(tabName) {
+    const usersContent = document.getElementById('users-tab-content');
+    const devicesContent = document.getElementById('devices-tab-content');
+    const auditContent = document.getElementById('audit-tab-content');
+    const usersBtn = document.getElementById('tab-btn-users');
+    const devicesBtn = document.getElementById('tab-btn-devices');
+    const auditBtn = document.getElementById('tab-btn-audit');
+
+    sessionStorage.setItem('activeUserTab', tabName);
+    try { history.replaceState(null, '', `?tab=${tabName}`); } catch(e) {}
+
+    [usersContent, devicesContent, auditContent].forEach(c => { if(c) c.style.display = 'none'; });
+    [usersBtn, devicesBtn, auditBtn].forEach(b => {
+        if(b) {
+            b.style.background = 'rgba(255,255,255,0.05)';
+            b.style.color = 'var(--text-secondary)';
+            b.style.border = '1px solid var(--glass-border)';
+        }
+    });
+
+    if (tabName === 'devices') {
+        if(devicesContent) devicesContent.style.display = 'block';
+        if(devicesBtn) { devicesBtn.style.background = '#4f46e5'; devicesBtn.style.color = 'white'; devicesBtn.style.border = 'none'; }
+    } else if (tabName === 'audit') {
+        if(auditContent) auditContent.style.display = 'flex';
+        if(auditBtn) { auditBtn.style.background = '#4f46e5'; auditBtn.style.color = 'white'; auditBtn.style.border = 'none'; }
+        refreshLiveStreamUI();
+    } else {
+        if(usersContent) usersContent.style.display = 'block';
+        if(usersBtn) { usersBtn.style.background = '#4f46e5'; usersBtn.style.color = 'white'; usersBtn.style.border = 'none'; }
+    }
+}
+
+function filterAuditLogsUI() {
+    const search = document.getElementById('auditSearchInput').value.trim().toLowerCase();
+    const eventType = document.getElementById('auditEventTypeSelect').value;
+
+    const rows = document.querySelectorAll('.audit-row-item');
+    rows.forEach(row => {
+        const u = row.getAttribute('data-user') || '';
+        const ev = row.getAttribute('data-event') || '';
+        const r = row.getAttribute('data-repr') || '';
+        const p = row.getAttribute('data-path') || '';
+
+        const matchesSearch = !search || u.includes(search) || r.includes(search) || p.includes(search);
+        const matchesEvent = !eventType || ev === eventType;
+
+        if (matchesSearch && matchesEvent) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+async function refreshLiveStreamUI() {
+    const btn = document.getElementById('btnRefreshStream');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Refreshing...';
+    }
+    try {
+        const res = await fetch('/api/live-activity/');
+        const data = await res.json();
+        if (data.status === 'success') {
+            const tbody = document.getElementById('liveActivityTableBody');
+            if (!tbody) return;
+            if (!data.activities || data.activities.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:36px; color:var(--text-secondary);">No live user activity recorded yet. Navigate pages to start streaming.</td></tr>';
+                return;
+            }
+            let html = '';
+            data.activities.forEach(act => {
+                const statusBadge = act.is_active_now 
+                    ? `<span style="color:#34d399; font-weight:800;">🟢 Active Now (${act.last_heartbeat})</span>`
+                    : `<span>Idle (${act.last_heartbeat})</span>`;
+                
+                const netBadge = (act.network_scope && act.network_scope.includes('Factory'))
+                    ? `<span style="font-size:11px; color:#34d399; font-weight:800; background:rgba(16,185,129,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.25);">${act.network_scope}</span>`
+                    : `<span style="font-size:11px; color:#fbbf24; font-weight:800; background:rgba(245,158,11,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(245,158,11,0.25);">${act.network_scope}</span>`;
+
+                const devIcon = act.device_icon || '💻';
+
+                html += `<tr>
+                    <td><div style="font-weight:800; color:white; font-size:14px;">👤 ${act.username}</div></td>
+                    <td><span class="badge" style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:8px; background:rgba(99,102,241,0.2); color:#818cf8; border:1px solid rgba(99,102,241,0.3);">${act.role_display}</span></td>
+                    <td><div style="font-size:12.5px; color:#60a5fa; font-weight:700;">${devIcon} ${act.device_name}</div></td>
+                    <td><span style="background:rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.3); font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:8px;">📍 ${act.current_page}</span></td>
+                    <td style="font-family:monospace; font-size:12px; color:#cbd5e1; font-weight:600;">${act.ip_address}</td>
+                    <td>${netBadge}</td>
+                    <td style="font-size:11.5px; color:var(--text-secondary);">${statusBadge}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+    } catch (e) {
+        console.error('Error refreshing live stream:', e);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '🔄 Refresh Stream';
+        }
+    }
+}
+
+// Auto-refresh live stream every 8 seconds
+setInterval(() => {
+    const auditTab = document.getElementById('audit-tab-content');
+    if (auditTab && auditTab.style.display !== 'none') {
+        refreshLiveStreamUI();
+    }
+}, 8000);
+
+function openAuditDiffModal(logId) {
+    let jsonText = '';
+    const elem = document.getElementById(`audit-json-${logId}`);
+    if (elem) {
+        try {
+            const raw = elem.textContent.trim();
+            const parsed = JSON.parse(raw);
+            jsonText = JSON.stringify(parsed, null, 2);
+        } catch (e) {
+            jsonText = elem.textContent;
+        }
+    }
+    document.getElementById('auditDiffJsonContainer').textContent = jsonText || 'No data diff available.';
+    document.getElementById('auditDiffModal').style.display = 'flex';
+}
+
+function inspectAuditDiff(jsonObj) {
+    let jsonText = '';
+    try {
+        jsonText = JSON.stringify(jsonObj, null, 2);
+    } catch(e) {
+        jsonText = String(jsonObj);
+    }
+    document.getElementById('auditDiffJsonContainer').textContent = jsonText || 'No data diff available.';
+    document.getElementById('auditDiffModal').style.display = 'flex';
+}
+
+function closeAuditDiffModal() {
+    document.getElementById('auditDiffModal').style.display = 'none';
+}
+
+function reloadDeviceTab() {
+    sessionStorage.setItem('activeUserTab', 'devices');
+    window.location.href = '/users/?tab=devices';
+}
+
+function filterDeviceStatus(statusKey) {
+    const pills = document.querySelectorAll('.dev-filter-pill');
+    pills.forEach(p => {
+        p.style.background = 'rgba(255,255,255,0.05)';
+        p.style.color = 'var(--text-secondary)';
+        p.style.border = '1px solid var(--glass-border)';
+    });
+    const activePill = document.getElementById(`dev-pill-${statusKey}`);
+    if (activePill) {
+        activePill.style.background = '#4f46e5';
+        activePill.style.color = 'white';
+        activePill.style.border = 'none';
+    }
+
+    const rows = document.querySelectorAll('.device-row-item');
+    rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status');
+        if (statusKey === 'ALL' || rowStatus === statusKey) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+async function approveDevice(id, name) {
+    if (!confirm(`Approve access for device "${name || 'Unnamed Device'}"?`)) return;
+    try {
+        const res = await fetch(`/api/devices/${id}/approve/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            reloadDeviceTab();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to approve device.');
+    }
+}
+
+async function revokeDevice(id, name) {
+    if (!confirm(`Revoke access for device "${name || 'Unnamed Device'}"?`)) return;
+    try {
+        const res = await fetch(`/api/devices/${id}/revoke/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            reloadDeviceTab();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to revoke device.');
+    }
+}
+
+async function deleteDevice(id, name) {
+    if (!confirm(`Are you sure you want to permanently delete device "${name || 'Unnamed Device'}"?`)) return;
+    try {
+        const res = await fetch(`/api/devices/${id}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            reloadDeviceTab();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to delete device.');
+    }
+}
+
+let activeRejectDeviceId = null;
+
+function openRejectDeviceModal(id, name) {
+    activeRejectDeviceId = id;
+    document.getElementById('rejectTargetDeviceName').textContent = name || 'Unnamed Device';
+    document.getElementById('rejectReasonInput').value = 'Unrecognized Device';
+    document.getElementById('rejectReasonPreset').value = 'Unrecognized Device';
+    document.getElementById('rejectDeviceModal').style.display = 'flex';
+}
+
+function closeRejectDeviceModal() {
+    activeRejectDeviceId = null;
+    document.getElementById('rejectDeviceModal').style.display = 'none';
+}
+
+async function submitDeviceRejection() {
+    if (!activeRejectDeviceId) return;
+    const reason = document.getElementById('rejectReasonInput').value.trim() || 'Declined by Administrator';
+
+    try {
+        const res = await fetch(`/api/devices/${activeRejectDeviceId}/reject/`, {
+            method: 'POST',
+            body: JSON.stringify({ reason: reason }),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            closeRejectDeviceModal();
+            reloadDeviceTab();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to reject device.');
+    }
+}
+
+async function changeDeviceSecurityMode(newMode) {
+    try {
+        const res = await fetch('/api/devices/set-security-mode/', {
+            method: 'POST',
+            body: JSON.stringify({ mode: newMode }),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            alert(data.message || 'Security Mode updated successfully.');
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to update security mode.');
+    }
+}
+
+async function purgeStaleDevices() {
+    if (!confirm('Are you sure you want to purge all unapproved/rejected device requests older than 30 days?')) return;
+    try {
+        const res = await fetch('/api/devices/purge-stale/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            alert(data.message);
+            reloadDeviceTab();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to purge stale devices.');
+    }
+}
+
+async function renameDeviceModal(id, currentName) {
+    const newName = prompt('Enter a label for this device (e.g., Casting Floor Tablet #1):', currentName || '');
+    if (newName === null) return;
+
+    try {
+        const res = await fetch(`/api/devices/${id}/rename/`, {
+            method: 'POST',
+            body: JSON.stringify({ name: newName }),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            reloadDeviceTab();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to rename device.');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    renderPermissionTreeUI(currentPermissionTree);
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab') || sessionStorage.getItem('activeUserTab') || 'users';
+    switchUserTab(activeTab);
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,942 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --accent-blue: #3b82f6;
+        --accent-green: #10b981;
+        --accent-red: #ef4444;
+        --accent-amber: #f59e0b;
+        --card-dark: #111827;
+        --border-soft: rgba(255, 255, 255, 0.08);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+    }
+
+    .attendance-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .controls-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .datepicker-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--card-dark);
+        border: 1px solid var(--border-soft);
+        padding: 6px 12px;
+        border-radius: 12px;
+        height: 38px;
+    }
+
+    .datepicker-container label {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    #attendance-date {
+        background: transparent;
+        border: none;
+        color: var(--text-primary);
+        font-size: 14px;
+        font-weight: 700;
+        width: 115px;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    #attendance-date:focus {
+        outline: none;
+    }
+
+    .attendance-card {
+        background: var(--card-dark);
+        border: 1px solid var(--border-soft);
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .worker-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+
+    .worker-table th {
+        background: transparent;
+        border-bottom: 1px solid var(--border-soft);
+        padding: 12px 16px;
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        letter-spacing: 1px;
+        font-weight: 700;
+    }
+
+    .worker-row.unsaved {
+        background: rgba(245, 158, 11, 0.04) !important;
+    }
+    .worker-row.unsaved td:first-child {
+        border-left: 3px solid var(--accent-amber) !important;
+    }
+    .mobile-worker-row.unsaved {
+        background: rgba(245, 158, 11, 0.04) !important;
+        border-left: 3px solid var(--accent-amber) !important;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+    .status-pill.saved {
+        background: rgba(16, 185, 129, 0.12);
+        color: var(--accent-green);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .status-pill.unsaved {
+        background: rgba(245, 158, 11, 0.12);
+        color: var(--accent-amber);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .worker-row {
+        background: rgba(255, 255, 255, 0.01);
+        transition: transform 0.2s, background-color 0.2s, border-color 0.2s;
+    }
+
+    .worker-row:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .worker-row td {
+        padding: 14px 16px;
+        vertical-align: middle;
+        border-top: 1px solid var(--border-soft);
+        border-bottom: 1px solid var(--border-soft);
+    }
+
+    .worker-row td:first-child {
+        border-left: 1px solid var(--border-soft);
+        border-top-left-radius: 12px;
+        border-bottom-left-radius: 12px;
+    }
+
+    .worker-row td:last-child {
+        border-right: 1px solid var(--border-soft);
+        border-top-right-radius: 12px;
+        border-bottom-right-radius: 12px;
+    }
+
+    .avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent-blue), #6366f1);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-process {
+        background: rgba(79, 70, 229, 0.15);
+        color: #818cf8;
+        border: 1px solid rgba(79, 70, 229, 0.2);
+    }
+
+    .toggle-group {
+        display: flex;
+        background: var(--bg-dark);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 4px;
+        gap: 4px;
+        width: max-content;
+    }
+
+    .toggle-option {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: var(--text-secondary);
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .toggle-option:hover {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .toggle-option.present.active {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--accent-green);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .toggle-option.half.active {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--accent-amber);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .toggle-option.absent.active {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--accent-red);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .ot-input-container {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ot-input {
+        width: 70px;
+        padding: 8px;
+        background: var(--input-dark) !important;
+        border: 1px solid var(--border-soft) !important;
+        border-radius: 8px;
+        color: white !important;
+        font-weight: 700;
+        text-align: center;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .save-indicator {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--accent-green);
+        opacity: 0;
+        transition: opacity 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .save-indicator.active {
+        opacity: 1;
+    }
+
+    .save-indicator.saving {
+        color: var(--accent-blue);
+    }
+
+    .save-indicator.error {
+        color: var(--accent-red);
+    }
+
+    .team-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: none;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+        transition: 0.2s;
+    }
+
+    .team-btn.active {
+        background: var(--accent-blue);
+        color: white;
+    }
+
+    .mark-all-btn {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--accent-green);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 0 14px;
+        height: 38px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+    .mark-all-btn:hover {
+        background: rgba(16, 185, 129, 0.25);
+    }
+
+    /* ULTRA-COMPACT MOBILE SINGLE-ROW STYLES */
+    .mobile-attendance-grid {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .mobile-worker-row {
+        background: var(--card-dark);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .m-worker-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .m-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 12px;
+        flex-shrink: 0;
+    }
+
+    .m-worker-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .m-name {
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 95px;
+    }
+
+    .m-id {
+        font-size: 10px;
+        color: var(--text-secondary);
+        font-family: monospace;
+    }
+
+    .m-toggle-group {
+        display: flex;
+        background: var(--bg-dark);
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        padding: 2px;
+        gap: 2px;
+        flex-shrink: 0;
+    }
+
+    .m-toggle-group .toggle-option {
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 800;
+        border-radius: 6px;
+        min-width: 28px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .m-ot-box {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    .m-ot-input {
+        width: 44px;
+        height: 32px;
+        padding: 4px;
+        background: var(--input-dark) !important;
+        border: 1px solid var(--border-soft) !important;
+        border-radius: 6px;
+        color: white !important;
+        font-weight: 700;
+        font-size: 12px;
+        text-align: center;
+        outline: none;
+    }
+
+    .m-save-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: transparent;
+        flex-shrink: 0;
+        transition: background 0.2s;
+    }
+
+    .m-save-dot.active { background: var(--accent-green); }
+    .m-save-dot.saving { background: var(--accent-blue); }
+    .m-save-dot.error { background: var(--accent-red); }
+
+    @media (max-width: 768px) {
+        .attendance-card {
+            padding: 8px !important;
+            border-radius: 12px !important;
+        }
+
+        .desktop-table-view {
+            display: none !important;
+        }
+
+        .mobile-attendance-grid {
+            display: flex !important;
+        }
+
+        .header-section {
+            margin-bottom: 8px !important;
+            gap: 6px !important;
+        }
+
+        .header-section h1 {
+            font-size: 18px !important;
+            margin-bottom: 0 !important;
+        }
+        .header-section p {
+            display: none !important;
+        }
+        .controls-row {
+            gap: 6px !important;
+        }
+        .datepicker-container {
+            height: 32px !important;
+            padding: 4px 8px !important;
+        }
+        #attendance-date {
+            font-size: 12px !important;
+            width: 90px !important;
+        }
+        .mark-all-btn {
+            height: 32px !important;
+            padding: 0 10px !important;
+            font-size: 11px !important;
+        }
+    }
+</style>
+
+<div class="attendance-container">
+    
+    <!-- HEADER -->
+    <div class="header-section">
+        <div style="width: 100%;">
+            <h1 style="font-size:26px; margin:0; display:flex; align-items:center;">
+                Daily Attendance
+                <span class="header-info-badge" tabindex="0" data-tooltip="Mark daily worker presence (Present, Half Day, Absent), log overtime hours, and view company team rosters." data-tooltip-pos="right" aria-label="Daily Attendance Info">ℹ️</span>
+            </h1>
+            <p style="margin:2px 0 0 0; color:var(--text-secondary); font-size:12px;">Shift presence & overtime tracking</p>
+        </div>
+        
+        <!-- SAME ROW FOR DATE & MARK ALL PRESENT BUTTON -->
+        <div class="controls-row">
+            <div class="datepicker-container" style="flex: 1;">
+                <label for="attendance-date">DATE:</label>
+                <input type="text" id="attendance-date" placeholder="Select Date">
+            </div>
+
+            <div id="attendance-status-badge" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 12px; font-size: 12px; font-weight: 700; background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); height: 38px; white-space: nowrap;">
+                <span>🟡 Pending / Not Saved Yet</span>
+            </div>
+
+            <button class="mark-all-btn" onclick="markAllPresent()">
+                ✓ Mark All Present
+            </button>
+        </div>
+    </div>
+
+    <!-- COMPANY SELECTOR TABS -->
+    {% if not request.company %}
+    <div class="small-tabs" style="margin-bottom:12px; display:inline-flex; align-items:center; flex-wrap:wrap; gap:6px;">
+        <button id="team-btn-c1" class="team-btn {% if active_team == 'c1' %}active{% endif %}" onclick="switchTeam('c1')">
+            🛠 {{ company1.name|default:"Finishing Team" }}
+        </button>
+        <button id="team-btn-c2" class="team-btn {% if active_team == 'c2' %}active{% endif %}" onclick="switchTeam('c2')">
+            🔥 {{ company2.name|default:"Casting Team" }}
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- HOLIDAY BANNER -->
+    <div id="holiday-banner" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 10px 14px; border-radius: 12px; margin-bottom: 12px; align-items: center; gap: 10px;">
+        <span style="font-size: 18px;">🎉</span>
+        <div>
+            <div id="holiday-title" style="font-weight: 800; color: white; font-size: 13px;">Today is a Holiday</div>
+            <div id="holiday-subtitle" style="font-size: 11px; color: var(--text-secondary);">Paid Holiday for daily-wage workers.</div>
+        </div>
+    </div>
+
+    <!-- WORKERS CONTENT -->
+    <div class="attendance-card">
+        
+        <!-- DESKTOP TABLE VIEW -->
+        <div class="table-responsive desktop-table-view">
+            <table class="worker-table">
+                <thead>
+                    <tr>
+                        <th style="width: 70px;">Worker</th>
+                        <th>Name</th>
+                        <th>ID</th>
+                        <th>Department</th>
+                        <th style="width: 300px;">Shift Status</th>
+                        <th style="width: 140px;">Overtime</th>
+                        <th style="width: 130px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for worker in workers %}
+                    <tr class="worker-row unsaved" id="row-{{ worker.id }}">
+                        <td>
+                            <div class="avatar" style="background: linear-gradient(135deg, {% cycle '#4f46e5' '#059669' '#d97706' '#dc2626' %}, #7c3aed);">
+                                {{ worker.name|slice:":2"|upper }}
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 700; color: var(--text-primary);">{{ worker.name }}</div>
+                        </td>
+                        <td>
+                            <code style="color: var(--text-secondary); font-size: 13px;">{{ worker.employee_id }}</code>
+                        </td>
+                        <td>
+                            <span class="badge badge-process">{{ worker.get_process_display }}</span>
+                        </td>
+                        <td>
+                            <div class="toggle-group" data-worker-id="{{ worker.id }}">
+                                <div class="toggle-option present active" data-status="PRESENT" onclick="changeStatus({{ worker.id }}, 'PRESENT')">
+                                    ✓ Present
+                                </div>
+                                <div class="toggle-option half" data-status="HALF_DAY" onclick="changeStatus({{ worker.id }}, 'HALF_DAY')">
+                                    = Half Day
+                                </div>
+                                <div class="toggle-option absent" data-status="ABSENT" onclick="changeStatus({{ worker.id }}, 'ABSENT')">
+                                    ✕ Absent
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="ot-input-container">
+                                <input type="number" 
+                                       class="ot-input" 
+                                       id="ot-{{ worker.id }}" 
+                                       min="0" 
+                                       max="24" 
+                                       step="0.5" 
+                                       value="0.0" 
+                                       onchange="changeOt({{ worker.id }})">
+                                <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">hrs</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="status-pill unsaved" id="pill-{{ worker.id }}">🟡 Unsaved</span>
+                                <div class="save-indicator" id="indicator-{{ worker.id }}">
+                                    <span>Saved</span>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                            No active workers registered.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ULTRA-COMPACT MOBILE SINGLE-ROW VIEW -->
+        <div class="mobile-attendance-grid">
+            {% for worker in workers %}
+            <div class="mobile-worker-row unsaved" id="m-card-{{ worker.id }}">
+                
+                <!-- 1. WORKER NAME & AVATAR -->
+                <div class="m-worker-info">
+                    <div class="m-avatar" style="background: linear-gradient(135deg, {% cycle '#4f46e5' '#059669' '#d97706' '#dc2626' %}, #7c3aed);">
+                        {{ worker.name|slice:":2"|upper }}
+                    </div>
+                    <div class="m-worker-text">
+                        <span class="m-name">{{ worker.name }}</span>
+                        <span class="m-id">{{ worker.employee_id }}</span>
+                    </div>
+                </div>
+
+                <!-- 2. P - H - A BUTTONS (BESIDE NAME, SAME ROW!) -->
+                <div class="m-toggle-group" data-worker-id="{{ worker.id }}">
+                    <div class="toggle-option present active" data-status="PRESENT" onclick="changeStatus({{ worker.id }}, 'PRESENT')" title="Present">P</div>
+                    <div class="toggle-option half" data-status="HALF_DAY" onclick="changeStatus({{ worker.id }}, 'HALF_DAY')" title="Half Day">H</div>
+                    <div class="toggle-option absent" data-status="ABSENT" onclick="changeStatus({{ worker.id }}, 'ABSENT')" title="Absent">A</div>
+                </div>
+
+                <!-- 3. OVERTIME BOX & SAVE INDICATOR (SAME ROW!) -->
+                <div class="m-ot-box">
+                    <input type="number" 
+                           class="m-ot-input" 
+                           id="ot-m-{{ worker.id }}" 
+                           min="0" 
+                           max="24" 
+                           step="0.5" 
+                           value="0.0" 
+                           placeholder="OT"
+                           onchange="changeOt({{ worker.id }}, true)">
+                    <div class="m-save-dot" id="indicator-m-{{ worker.id }}"></div>
+                    <span class="status-pill unsaved" id="pill-m-{{ worker.id }}" style="font-size: 10px; padding: 2px 6px;">🟡 Unsaved</span>
+                </div>
+
+            </div>
+            {% empty %}
+            <div style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                No active workers registered.
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let currentDate = '{{ today }}';
+
+    document.addEventListener("DOMContentLoaded", function() {
+        flatpickr("#attendance-date", {
+            altInput: true,
+            altFormat: "j/n/Y",
+            dateFormat: "Y-m-d",
+            defaultDate: currentDate,
+            theme: "dark",
+            onChange: function(selectedDates, dateStr, instance) {
+                currentDate = dateStr;
+                loadAttendanceForDate();
+            }
+        });
+
+        loadAttendanceForDate();
+    });
+
+    function switchTeam(team) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('team', team);
+        window.location.search = params.toString();
+    }
+
+    async function loadAttendanceForDate() {
+        try {
+            const res = await fetch(`/api/attendance/fetch/?date=${currentDate}`);
+            const data = await res.json();
+            const records = data.attendance || {};
+            const holidayBanner = document.getElementById('holiday-banner');
+            const holidayTitle = document.getElementById('holiday-title');
+            const holidaySubtitle = document.getElementById('holiday-subtitle');
+            const statusBadge = document.getElementById('attendance-status-badge');
+            
+            if (statusBadge) {
+                if (data.is_saved) {
+                    statusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+                    statusBadge.style.color = 'var(--accent-green)';
+                    statusBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                    statusBadge.innerHTML = `<span>🟢 Attendance Saved (${data.marked_count}/${data.total_workers} Marked)</span>`;
+                } else {
+                    statusBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+                    statusBadge.style.color = 'var(--accent-amber)';
+                    statusBadge.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                    statusBadge.innerHTML = `<span>🟡 Pending / Not Saved Yet</span>`;
+                }
+            }
+
+            if (data.holiday) {
+                holidayTitle.textContent = `Today is a Holiday: ${data.holiday.name}`;
+                holidaySubtitle.textContent = data.holiday.is_paid 
+                    ? "Paid Holiday. Unmarked daily-wage workers receive daily wage."
+                    : "Unpaid Holiday.";
+                holidayBanner.style.display = 'flex';
+            } else {
+                holidayBanner.style.display = 'none';
+            }
+
+            // Sync Desktop & Mobile views
+            document.querySelectorAll('.worker-row, .mobile-worker-row').forEach(elem => {
+                const isMobile = elem.classList.contains('mobile-worker-row');
+                const workerId = isMobile ? elem.id.replace('m-card-', '') : elem.id.replace('row-', '');
+                const record = records[workerId];
+                const isSaved = !!record;
+
+                // Sync Row Unsaved Amber Highlight
+                if (isSaved) {
+                    elem.classList.remove('unsaved');
+                } else {
+                    elem.classList.add('unsaved');
+                }
+
+                // Sync Per-Row Status Pill
+                const pillElem = isMobile ? document.getElementById(`pill-m-${workerId}`) : document.getElementById(`pill-${workerId}`);
+                if (pillElem) {
+                    if (isSaved) {
+                        pillElem.className = 'status-pill saved';
+                        pillElem.innerHTML = '✓ Saved';
+                    } else {
+                        pillElem.className = 'status-pill unsaved';
+                        pillElem.innerHTML = '🟡 Unsaved';
+                    }
+                }
+
+                const group = elem.querySelector('.toggle-group, .m-toggle-group');
+                const otInput = isMobile ? document.getElementById(`ot-m-${workerId}`) : document.getElementById(`ot-${workerId}`);
+
+                if (group) {
+                    group.querySelectorAll('.toggle-option').forEach(opt => opt.classList.remove('active'));
+                    const statusToActivate = record ? record.status : 'PRESENT';
+                    const activeOpt = group.querySelector(`.toggle-option[data-status="${statusToActivate}"]`);
+                    if (activeOpt) activeOpt.classList.add('active');
+                }
+
+                if (otInput) {
+                    if (document.activeElement !== otInput) {
+                        otInput.value = record ? (record.ot !== undefined ? record.ot : "0.0") : "0.0";
+                    }
+                }
+            });
+        } catch (err) {
+            console.error("Error loading attendance records:", err);
+        }
+    }
+
+    // Auto-sync attendance data every 10 seconds across devices
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            loadAttendanceForDate();
+        }
+    }, 10000);
+
+    async function saveState(workerId, status, ot) {
+        const dIndicator = document.getElementById(`indicator-${workerId}`);
+        const mDot = document.getElementById(`indicator-m-${workerId}`);
+
+        if (dIndicator) {
+            dIndicator.className = 'save-indicator active saving';
+            dIndicator.innerHTML = '<span>Saving...</span>';
+        }
+        if (mDot) {
+            mDot.className = 'm-save-dot active saving';
+        }
+
+        const fd = new FormData();
+        fd.append('worker_id', workerId);
+        fd.append('status', status);
+        fd.append('ot_hours', ot);
+        fd.append('date', currentDate);
+
+        try {
+            const response = await fetch('{% url "mark_attendance" %}', {
+                method: 'POST',
+                body: fd,
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                if (dIndicator) {
+                    dIndicator.className = 'save-indicator active';
+                    dIndicator.innerHTML = '<span>✓ Saved</span>';
+                }
+                if (mDot) {
+                    mDot.className = 'm-save-dot active';
+                }
+
+                setTimeout(() => {
+                    if (dIndicator) dIndicator.classList.remove('active');
+                    if (mDot) mDot.classList.remove('active');
+                }, 1500);
+
+                loadAttendanceForDate();
+            } else {
+                throw new Error(data.error || "Save failed");
+            }
+        } catch (err) {
+            console.error(err);
+            if (dIndicator) {
+                dIndicator.className = 'save-indicator active error';
+                dIndicator.innerHTML = '<span>✕ Failed</span>';
+            }
+            if (mDot) {
+                mDot.className = 'm-save-dot error';
+            }
+        }
+    }
+
+    function changeStatus(workerId, newStatus) {
+        const dGroup = document.querySelector(`.worker-row#row-${workerId} .toggle-group`);
+        const mGroup = document.querySelector(`.mobile-worker-row#m-card-${workerId} .m-toggle-group`);
+
+        [dGroup, mGroup].forEach(group => {
+            if (group) {
+                group.querySelectorAll('.toggle-option').forEach(opt => opt.classList.remove('active'));
+                const activeOpt = group.querySelector(`.toggle-option[data-status="${newStatus}"]`);
+                if (activeOpt) activeOpt.classList.add('active');
+            }
+        });
+
+        const otElem = document.getElementById(`ot-m-${workerId}`) || document.getElementById(`ot-${workerId}`);
+        const ot = parseFloat(otElem ? otElem.value : 0);
+        saveState(workerId, newStatus, ot);
+    }
+
+    function changeOt(workerId, isMobile = false) {
+        const inputId = isMobile ? `ot-m-${workerId}` : `ot-${workerId}`;
+        const targetVal = document.getElementById(inputId).value;
+
+        const dInput = document.getElementById(`ot-${workerId}`);
+        const mInput = document.getElementById(`ot-m-${workerId}`);
+        if (dInput) dInput.value = targetVal;
+        if (mInput) mInput.value = targetVal;
+
+        const mGroup = document.querySelector(`.mobile-worker-row#m-card-${workerId} .m-toggle-group`);
+        const activeOpt = mGroup ? mGroup.querySelector('.toggle-option.active') : null;
+        
+        let status = 'PRESENT';
+        if (activeOpt) {
+            status = activeOpt.getAttribute('data-status');
+        } else {
+            changeStatus(workerId, 'PRESENT');
+        }
+
+        saveState(workerId, status, parseFloat(targetVal || 0));
+    }
+
+    async function markAllPresent() {
+        const btn = document.querySelector('.mark-all-btn');
+        const originalText = btn ? btn.innerHTML : '✓ Mark All Present';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '⌛ Saving...';
+        }
+
+        // Set all visual toggles to Present immediately
+        document.querySelectorAll('.toggle-group, .m-toggle-group').forEach(group => {
+            group.querySelectorAll('.toggle-option').forEach(opt => opt.classList.remove('active'));
+            const activeOpt = group.querySelector('.toggle-option[data-status="PRESENT"]');
+            if (activeOpt) activeOpt.classList.add('active');
+        });
+
+        // Show saving indicators
+        document.querySelectorAll('.save-indicator').forEach(ind => {
+            ind.className = 'save-indicator active saving';
+            ind.innerHTML = '<span>Saving...</span>';
+        });
+        document.querySelectorAll('.m-save-dot').forEach(dot => {
+            dot.className = 'm-save-dot active saving';
+        });
+
+        const fd = new FormData();
+        fd.append('date', currentDate);
+        fd.append('status', 'PRESENT');
+
+        try {
+            const response = await fetch('{% url "mark_all_attendance" %}', {
+                method: 'POST',
+                body: fd,
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                document.querySelectorAll('.save-indicator').forEach(ind => {
+                    ind.className = 'save-indicator active';
+                    ind.innerHTML = '<span>✓ Saved</span>';
+                });
+                document.querySelectorAll('.m-save-dot').forEach(dot => {
+                    dot.className = 'm-save-dot active';
+                });
+
+                setTimeout(() => {
+                    document.querySelectorAll('.save-indicator').forEach(ind => ind.classList.remove('active'));
+                    document.querySelectorAll('.m-save-dot').forEach(dot => dot.classList.remove('active'));
+                }, 1500);
+
+                await loadAttendanceForDate();
+            } else {
+                throw new Error(data.error || "Bulk save failed");
+            }
+        } catch (err) {
+            console.error(err);
+            document.querySelectorAll('.save-indicator').forEach(ind => {
+                ind.className = 'save-indicator active error';
+                ind.innerHTML = '<span>✕ Failed</span>';
+            });
+            document.querySelectorAll('.m-save-dot').forEach(dot => {
+                dot.className = 'm-save-dot error';
+            });
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+    }
+</script>
+{% endblock %}

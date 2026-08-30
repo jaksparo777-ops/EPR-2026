@@ -1,0 +1,2126 @@
+{% extends "layout/base.html" %}
+{% load i18n %}
+
+{% block content %}
+
+<style>
+    /* Premium Theme Variables matching global look */
+    :root {
+        --indigo-primary: #6366f1;
+        --indigo-glow: rgba(99, 102, 241, 0.15);
+        --glass-bg: rgba(17, 24, 39, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.08);
+
+        --card-bg: rgba(15, 23, 42, 0.45);
+        --accent-blue-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        --accent-green-gradient: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        --border-soft: rgba(255, 255, 255, 0.05);
+        --glow-green: 0 0 15px rgba(16, 185, 129, 0.25);
+        --glow-orange: 0 0 15px rgba(245, 158, 11, 0.25);
+        --glow-gray: 0 0 15px rgba(156, 163, 175, 0.1);
+        --glow-indigo: 0 0 15px rgba(99, 102, 241, 0.25);
+        --glow-yellow: 0 0 15px rgba(234, 179, 8, 0.2);
+    }
+
+    .polishing-header {
+        margin-bottom: 30px;
+    }
+
+    .polishing-header h1 {
+        font-size: 64px;
+        background: linear-gradient(135deg, #fff 0%, #6366f1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -2px;
+        margin-bottom: 8px;
+    }
+
+    .polishing-header p {
+        font-size: 20px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    /* Tabs Bar matching Polishing */
+    .nav-tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 30px;
+        border-bottom: 1px solid var(--glass-border);
+        padding-bottom: 12px;
+    }
+
+    .nav-tab {
+        padding: 12px 24px;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--glass-border);
+        color: var(--text-secondary);
+        transition: all 0.2s;
+    }
+
+    .nav-tab:hover {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-tab.active {
+        background: var(--indigo-primary);
+        color: white;
+        border-color: var(--indigo-primary);
+        box-shadow: 0 10px 20px var(--indigo-glow);
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Telemetry KPI Cards */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    @media (max-width: 768px) {
+        .kpi-row {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    .kpi-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 16px 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+    .kpi-card:hover {
+        border-color: rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.03);
+        transform: translateY(-2px);
+    }
+    .kpi-val {
+        font-size: 28px;
+        font-weight: 800;
+        color: white;
+        margin-top: 4px;
+        font-family: 'Outfit', sans-serif;
+    }
+    .kpi-lbl {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Search & Filter Controls */
+    .controls-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    @media (max-width: 768px) {
+        .controls-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+    .search-input-wrapper {
+        position: relative;
+        flex: 1;
+    }
+    .search-input-wrapper input {
+        width: 100%;
+        padding: 12px 16px 12px 40px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        color: var(--text-primary);
+        outline: none;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+    .search-input-wrapper input:focus {
+        border-color: var(--indigo-primary);
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+    }
+    .search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+        font-size: 16px;
+    }
+    .filter-pills {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .filter-pill {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        color: var(--text-secondary);
+        transition: all 0.2s;
+    }
+    .filter-pill:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+    }
+    .filter-pill.active {
+        background: var(--indigo-glow);
+        color: #818cf8;
+        border-color: #818cf8;
+    }
+
+    /* Deadline countdown badges */
+    .deadline-badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .deadline-overdue {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+    .deadline-soon {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .deadline-normal {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-secondary);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Board Card Grid */
+    .po-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+
+    .po-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--border-soft);
+        border-radius: 18px;
+        padding: 24px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+    }
+
+    .po-card.glow-indigo {
+        border-color: rgba(99, 102, 241, 0.3);
+        box-shadow: var(--glow-indigo), 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+    .po-card.glow-indigo:hover {
+        border-color: rgba(99, 102, 241, 0.6);
+        box-shadow: 0 0 25px rgba(99, 102, 241, 0.45), 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    .po-card.glow-green {
+        border-color: rgba(16, 185, 129, 0.3);
+        box-shadow: var(--glow-green), 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+    .po-card.glow-green:hover {
+        border-color: rgba(16, 185, 129, 0.6);
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.45), 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    .po-card.glow-orange {
+        border-color: rgba(245, 158, 11, 0.3);
+        box-shadow: var(--glow-orange), 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+    .po-card.glow-orange:hover {
+        border-color: rgba(245, 158, 11, 0.6);
+        box-shadow: 0 0 25px rgba(245, 158, 11, 0.45), 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    .po-card.glow-yellow {
+        border-color: rgba(234, 179, 8, 0.3);
+        box-shadow: var(--glow-yellow), 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+    .po-card.glow-yellow:hover {
+        border-color: rgba(234, 179, 8, 0.6);
+        box-shadow: 0 0 25px rgba(234, 179, 8, 0.45), 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    .po-card.glow-gray {
+        border-color: rgba(156, 163, 175, 0.15);
+        box-shadow: var(--glow-gray), 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+    .po-card.glow-gray:hover {
+        border-color: rgba(156, 163, 175, 0.35);
+        box-shadow: 0 0 25px rgba(156, 163, 175, 0.25), 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    .po-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .po-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .po-badge {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .po-badge-indigo {
+        background: rgba(99, 102, 241, 0.15);
+        color: #818cf8;
+    }
+
+    .po-badge-green {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+    }
+
+    .po-badge-orange {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+    }
+
+    .po-badge-yellow {
+        background: rgba(234, 179, 8, 0.15);
+        color: #fde047;
+    }
+
+    .po-badge-gray {
+        background: rgba(156, 163, 175, 0.15);
+        color: #cbd5e1;
+    }
+
+    .po-priority {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        font-size: 10px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 8px;
+    }
+
+    .po-client {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .po-number-title {
+        font-size: 13px;
+        color: var(--text-secondary);
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .po-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin: 18px 0;
+        padding: 12px;
+        background: rgba(255,255,255,0.02);
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.02);
+    }
+
+    .po-stat-lbl {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .po-stat-val {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .po-progress-wrapper {
+        margin-top: auto;
+    }
+
+    .po-progress-bar {
+        height: 6px;
+        width: 100%;
+        background: rgba(255,255,255,0.05);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 6px;
+    }
+
+    .po-progress-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.5s ease-out;
+    }
+
+    /* Unified Side-by-Side creation layout */
+    .main-grid {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+        .main-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .item-row {
+        background: rgba(255, 255, 255, 0.01);
+        border: 1px solid var(--glass-border);
+        border-left: 2px solid var(--accent-blue);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .item-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: var(--indigo-primary);
+        border-left-color: #818cf8;
+        transform: translateX(4px);
+    }
+
+    .row-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 12px;
+    }
+
+    .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+
+    .input-group label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-secondary);
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        color: var(--text-primary);
+        outline: none;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        border-color: var(--indigo-primary);
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+    }
+
+    .remove-row-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        font-size: 16px;
+        transition: all 0.2s;
+    }
+
+    .remove-row-btn:hover {
+        background: #ef4444;
+        color: white;
+    }
+
+    .tally-display-box {
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 16px;
+        margin: 20px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tally-lbl {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .tally-val {
+        font-size: 20px;
+        font-weight: 800;
+        color: #fbbf24;
+    }
+
+    /* Buttons */
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        box-shadow: 0 10px 30px var(--indigo-glow);
+        width: 100%;
+        margin-top: 12px;
+        padding: 14px;
+        border: none;
+        color: white;
+        font-size: 14px;
+        font-weight: 700;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--glass-border);
+        color: var(--text-primary);
+        width: 100%;
+        padding: 12px;
+        font-size: 13px;
+        font-weight: 700;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Dispatch Log styles */
+    .recent-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .recent-table th {
+        background: rgba(0, 0, 0, 0.2);
+        color: var(--text-secondary);
+        font-weight: 700;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .recent-table td {
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        font-size: 13px;
+        color: var(--text-primary);
+        vertical-align: middle;
+    }
+
+    .recent-table tr:hover td {
+        background: rgba(255, 255, 255, 0.01);
+    }
+
+    /* Drawer Overlay */
+    .drawer-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        z-index: 2000;
+    }
+
+    .drawer-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 600px;
+        max-width: 100%;
+        height: 100%;
+        background: #0d1117;
+        border-left: 1px solid var(--border-soft);
+        box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+        z-index: 2001;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .drawer.active {
+        transform: translateX(0);
+    }
+
+    .drawer-header {
+        padding: 24px;
+        border-bottom: 1px solid var(--border-soft);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(15, 23, 42, 0.25);
+    }
+
+    .drawer-body {
+        padding: 24px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .drawer-close {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 24px;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .drawer-close:hover {
+        color: var(--text-primary);
+    }
+
+    .drawer-section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 24px 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .drawer-item-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .drawer-item-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+    .drawer-grid-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        text-align: center;
+        margin-bottom: 12px;
+        background: rgba(0,0,0,0.2);
+        padding: 8px;
+        border-radius: 8px;
+    }
+
+    .drawer-metric-val {
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .dispatch-qty-input {
+        width: 80px;
+        padding: 6px 10px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        color: var(--text-primary);
+        text-align: center;
+        font-weight: 700;
+    }
+
+    .dispatch-qty-input:focus {
+        border-color: rgba(59, 130, 246, 0.5);
+        outline: none;
+    }
+
+    .btn-action-primary {
+        background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        border: none;
+        color: white;
+        padding: 14px 20px;
+        font-size: 14px;
+        font-weight: 800;
+        border-radius: 10px;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-action-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-action-secondary {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        border: none;
+        color: white;
+        padding: 12px 18px;
+        font-size: 13px;
+        font-weight: 700;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-action-secondary:hover {
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    /* Modern Toggle Switches */
+    .toggle-switch-wrapper {
+        display: flex;
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--border-soft);
+        border-radius: 20px;
+        padding: 2px;
+        height: 32px;
+        align-items: center;
+        width: 100%;
+    }
+
+    .toggle-switch-btn {
+        flex: 1;
+        height: 26px;
+        border-radius: 18px;
+        font-size: 10px;
+        font-weight: 800;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        line-height: 26px;
+        padding: 0;
+    }
+
+    .toggle-switch-btn.active {
+        background: #3b82f6 !important;
+        color: white !important;
+        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+    }
+
+    .toggle-switch-btn.active.style-active {
+        background: #fbbf24 !important;
+        color: black !important;
+        box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
+    }
+</style>
+
+<!-- HEADER SECTION -->
+<div class="polishing-header">
+    <h1 style="display: flex; align-items: center;">
+        {% translate "Customer POs" %}
+        <span class="header-info-badge" tabindex="0" data-tooltip="Kanban board tracking customer Purchase Orders, fulfillment readiness, stock allocation, and dispatch status." data-tooltip-pos="right" aria-label="Customer POs Info">ℹ️</span>
+    </h1>
+    <p>Fulfillment readiness engine calculating free warehouse stock & dynamic WIP coverage</p>
+</div>
+
+<!-- TABS NAVIGATION BAR -->
+<div class="nav-tabs">
+    <div class="nav-tab active" id="tab-board-btn" onclick="switchPOTab('board')">📋 {% translate "PO BOARD" %}</div>
+    {% if user.is_staff %}
+        <div class="nav-tab" id="tab-create-btn" onclick="switchPOTab('create')">➕ {% translate "RECORD CUSTOMER PO" %}</div>
+    {% endif %}
+    <div class="nav-tab" id="tab-dispatch-btn" onclick="switchPOTab('dispatch')">🚚 {% translate "DISPATCH LOGS" %}</div>
+</div>
+
+<!-- ============================================ -->
+<!-- TAB 1: PO BOARD (CARDS) -->
+<!-- ============================================ -->
+<div id="section-board" class="tab-content active">
+    
+    <!-- Telemetry KPI Dashboard Row -->
+    <div class="kpi-row">
+        <div class="kpi-card" style="border-left: 4px solid var(--indigo-primary);" onclick="filterByStatus('active')">
+            <span class="kpi-lbl">{% translate "Active POs" %}</span>
+            <span class="kpi-val">{{ kpi.active|default:"0" }}</span>
+        </div>
+        <div class="kpi-card" style="border-left: 4px solid #10b981;" onclick="filterByStatus('ready')">
+            <span class="kpi-lbl">{% translate "Ready to Ship" %}</span>
+            <span class="kpi-val">{{ kpi.ready|default:"0" }}</span>
+        </div>
+        <div class="kpi-card" style="border-left: 4px solid #fbbf24;" onclick="filterByStatus('wip')">
+            <span class="kpi-lbl">{% translate "WIP Active" %}</span>
+            <span class="kpi-val">{{ kpi.wip|default:"0" }}</span>
+        </div>
+        <div class="kpi-card" style="border-left: 4px solid #818cf8;" onclick="filterByStatus('completed')">
+            <span class="kpi-lbl">{% translate "Completed (All)" %}</span>
+            <span class="kpi-val">{{ kpi.completed|default:"0" }}</span>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="controls-row">
+        <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="poSearchInput" placeholder="{% translate "Search POs by Client name, SO Reference, or PO Reference..." %}" onkeyup="filterCards()">
+        </div>
+        <div class="filter-pills">
+            <div class="filter-pill active" id="pill-all" onclick="filterPill('all')">{% translate "ALL ACTIVE" %}</div>
+            <div class="filter-pill" id="pill-urgent" onclick="filterPill('urgent')">🔥 {% translate "URGENT" %}</div>
+            <div class="filter-pill" id="pill-ready" onclick="filterPill('ready')">🟢 {% translate "READY TO SHIP" %}</div>
+            <div class="filter-pill" id="pill-partial" onclick="filterPill('partial')">🚚 {% translate "PARTIAL" %}</div>
+            <div class="filter-pill" id="pill-completed" onclick="filterPill('completed')">✅ {% translate "COMPLETED" %}</div>
+        </div>
+    </div>
+
+    {% if not request.company %}
+    <!-- Company Selection Tabs (Owner's Portal) -->
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 24px; background: rgba(255,255,255,0.015); border: 1px solid var(--glass-border); padding: 4px; border-radius: 10px; width: fit-content; backdrop-filter: blur(10px); box-shadow: 0 4px 30px rgba(0,0,0,0.15);">
+        <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); padding: 0 10px;">🏢 {% translate "Owner View:" %}</div>
+        <div class="company-tab" onclick="switchCompanyFilter(null, this)" style="padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; color: white; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 6px;">
+            <span>🌐</span> {% translate "All Companies" %}
+        </div>
+        <div class="company-tab" onclick="switchCompanyFilter(1, this)" style="padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; color: var(--text-secondary); cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 6px;">
+            <span>🏭</span> NC ({% translate "Casting" %})
+        </div>
+        <div class="company-tab" onclick="switchCompanyFilter(2, this)" style="padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; color: var(--text-secondary); cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 6px;">
+            <span>🛠</span> OM ({% translate "Finishing" %})
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="po-grid" id="poGridContainer">
+        {% for order in orders %}
+            {% with ready_pct=order.readiness_percentage cov_pct=order.coverage_percentage %}
+            <div class="po-card po-card-item {% if order.status == 'COMPLETED' %}glow-indigo{% elif order.status == 'PARTIAL' %}glow-orange{% elif ready_pct >= 100 %}glow-green{% elif cov_pct > 0 %}glow-yellow{% else %}glow-gray{% endif %}" 
+                 data-so="{{ order.order_number|lower }}"
+                 data-client="{{ order.client.name|lower }}"
+                 data-po-ref="{{ order.external_po_number|default:""|lower }}"
+                 data-status="{% if order.status == 'COMPLETED' %}completed{% elif order.status == 'PARTIAL' %}partial{% elif ready_pct >= 100 %}ready{% elif cov_pct > 0 %}wip{% else %}awaiting{% endif %}"
+                 data-urgent="{% if order.priority == 'URGENT' %}true{% else %}false{% endif %}"
+                 data-company-id="{{ order.client.company_id }}"
+                 onclick="openPODrawer('{{ order.id }}')">
+                
+                <div class="po-card-header">
+                    <div>
+                        <div class="po-number-title">{{ order.order_number }}</div>
+                        <div class="po-client">{{ order.client.name }}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span class="po-badge 
+                            {% if order.status == 'COMPLETED' %}po-badge-indigo
+                            {% elif order.status == 'PARTIAL' %}po-badge-orange
+                            {% elif ready_pct >= 100 %}po-badge-green
+                            {% elif cov_pct > 0 %}po-badge-yellow
+                            {% else %}po-badge-gray{% endif %}">
+                            {% if order.status == 'COMPLETED' %}✅ {% translate "Dispatched" %}
+                            {% elif order.status == 'PARTIAL' %}🚚 {% translate "Partial" %} ({{ order.total_dispatched_pieces }} / {{ order.total_ordered_pieces }})
+                            {% elif ready_pct >= 100 %}🟢 {% translate "Ready to Ship" %}
+                            {% elif cov_pct > 0 %}🟡 {% translate "WIP Active" %}
+                            {% else %}⚪ {% translate "Awaiting Heats" %}{% endif %}
+                        </span>
+                        {% if order.priority == 'URGENT' %}
+                            <span class="po-priority">🔥 {% translate "URGENT" %}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span>PO Ref: <b>{{ order.external_po_number }}</b></span><br>
+                        <span>{% translate "Deadline:" %} <b {% if order.priority == 'URGENT' %}style="color:#f87171;"{% endif %}>{{ order.promised_date|date:"d M Y" }}</b></span>
+                    </div>
+                    
+                    <!-- Deadline warning tag -->
+                    <div>
+                        {% if order.status != 'COMPLETED' %}
+                            {% if order.days_left < 0 %}
+                                <span class="deadline-badge deadline-overdue">⚠️ {{ order.abs_days_left|default:"--" }} {% translate "days overdue" %}</span>
+                            {% elif order.days_left == 0 %}
+                                <span class="deadline-badge deadline-soon">⏰ {% translate "Due Today" %}</span>
+                            {% elif order.days_left == 1 %}
+                                <span class="deadline-badge deadline-soon">⏰ {% translate "Due Tomorrow" %}</span>
+                            {% elif order.days_left <= 3 %}
+                                <span class="deadline-badge deadline-soon">⏰ {{ order.days_left }} {% translate "days left" %}</span>
+                            {% else %}
+                                <span class="deadline-badge deadline-normal">📅 {{ order.days_left }} {% translate "days left" %}</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Item Fulfillment Rows (Compact & Scrollable) -->
+                <div
+                    style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02); max-height: 110px; overflow-y: auto; padding-right: 4px;">
+                    {% for item in order.items.all %}
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 11px; align-items: center; gap: 8px;">
+                        <span style="font-weight: 700; color: var(--text-primary);">{{ item.item.code }}</span>
+                        <span style="font-weight: 700; text-align: right;
+                            {% if item.ready_stock >= item.remaining_quantity %}color:#10b981;
+                            {% else %}color:var(--text-secondary);{% endif %}">
+                            {{ item.remaining_qty_breakdown_text }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Stats grid -->
+                <div class="po-stats">
+                    <div>
+                        <div class="po-stat-lbl">{% translate "Readiness" %}</div>
+                        <div class="po-stat-val" style="color:#34d399;">{{ ready_pct }}%</div>
+                    </div>
+                    <div>
+                        <div class="po-stat-lbl">{% translate "WIP Coverage" %}</div>
+                        <div class="po-stat-val" style="color:#60a5fa;">{{ cov_pct }}%</div>
+                    </div>
+                </div>
+
+                <!-- Progress bar -->
+                <div class="po-progress-wrapper">
+                    <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px; color:var(--text-secondary);">
+                        <span>{% translate "Pieces ready & dispatched" %}</span>
+                        <span style="font-weight:700;">{{ order.total_ready_pieces|add:order.total_dispatched_pieces }} / {{ order.total_ordered_pieces }}</span>
+                    </div>
+                    <div class="po-progress-bar">
+                        <div class="po-progress-fill" 
+                             style="width: {% if order.status == 'COMPLETED' %}100{% else %}{{ ready_pct }}{% endif %}%; background: {% if order.status == 'COMPLETED' %}#6366f1{% elif ready_pct >= 100 %}#10b981{% else %}#f59e0b{% endif %};"></div>
+                    </div>
+                </div>
+
+            </div>
+            {% endwith %}
+        {% empty %}
+            <div style="grid-column: 1/-1; text-align:center; padding:80px; background:var(--card-bg); border-radius:18px; border:1px dashed var(--border-soft);">
+                <div style="font-size:32px; margin-bottom:12px;">📋</div>
+                <h3 style="font-weight:700; color:var(--text-primary);">{% translate "No Customer POs Found" %}</h3>
+                <p style="color:var(--text-secondary); font-size:14px; margin-top:6px;">{% translate "Create a new customer PO using the + RECORD CUSTOMER PO tab above." %}</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- TAB 2: CREATE CUSTOMER PO (POLISHING STYLE) -->
+<!-- ============================================ -->
+{% if user.is_staff %}
+<div id="section-create" class="tab-content">
+    <div class="main-grid">
+        
+        <!-- LEFT COLUMN: RECORD CARD -->
+        <div class="glass-card">
+            <h3 id="formTitleHeader" style="margin-bottom:24px;font-size:20px;letter-spacing:1px; color:white; text-transform:uppercase;">{% translate "RECORD CUSTOMER PO" %}</h3>
+
+            <form method="POST" action="{% url 'create_order' %}" id="createOrderForm">
+                {% csrf_token %}
+                <input type="hidden" name="po_id" id="editPoIdInput" value="">
+
+                <!-- 1. MANDATORY: {% translate "CLIENT / BUYER" %} SELECTOR -->
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label style="font-size: 11px; font-weight:800; color: white;">{% translate "Client / Buyer" %} <span style="color:#ef4444;">*</span></label>
+                    <select name="client" required class="form-control" style="font-size:13px; padding:10px 12px; height:auto;" onchange="filterProductOptions()">
+                        <option value="">{% translate "Choose client..." %}</option>
+                        {% for client in clients %}
+                            <option value="{{ client.id }}" data-packing-pref="{{ client.packing_preference }}">{{ client.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 2. MANDATORY: PO LINE PRODUCTS -->
+                <div style="border-top: 1px solid var(--glass-border); padding-top: 16px;">
+                    <label style="font-size: 11px; font-weight:800; color: white; margin-bottom: 12px; display: block;">{% translate "PO Line Products" %} <span style="color:#ef4444;">*</span></label>
+                    
+                    <div id="items-container">
+                        <!-- rows appended dynamically -->
+                    </div>
+
+                    <button type="button" class="btn-secondary" style="width: 100%; border: 1px dashed var(--border-soft); background: rgba(255,255,255,0.01); color: var(--text-secondary); padding: 10px; border-radius: 8px; margin-bottom: 16px; font-weight: 700; font-size: 13px;" onclick="addItemRow()">
+                        + {% translate "ADD PRODUCT ITEM" %}
+                    </button>
+                </div>
+
+                <!-- 3. TALLY BOX (Directly under products) -->
+                <div class="tally-display-box" style="margin: 10px 0 20px;">
+                    <div>
+                        <div class="tally-lbl">{% translate "Total Pieces" %}</div>
+                        <div id="tallyPieces" class="tally-val" style="color:#10b981;">0 pcs</div>
+                    </div>
+                    <div style="border-left: 1px solid var(--glass-border); padding-left: 20px;">
+                        <div class="tally-lbl">{% translate "Est. Weight" %}</div>
+                        <div id="tallyWeight" class="tally-val" style="color:#fbbf24;">0.000 kg</div>
+                    </div>
+                </div>
+
+                <!-- 4. OPTIONAL CONFIGURATIONS GROUPED BELOW -->
+                <div style="border-top: 1px solid var(--glass-border); margin-top:20px; padding-top:16px; margin-bottom:16px;">
+                    <h4 style="font-size: 11px; font-weight:800; color: #818cf8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom: 14px;">
+                        📋 {% translate "Fulfillment & Shipping Details (Optional)" %}
+                    </h4>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:12px; margin-bottom:12px;">
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="min-height: 20px; display: flex; align-items: center;">{% translate "PO Ref #" %}</label>
+                        <input type="text" name="external_po_number" placeholder="e.g. PO-XYZ" class="form-control" style="font-size:12px; padding:8px 10px; height:38px; box-sizing:border-box;">
+                    </div>
+
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="min-height: 20px; display: flex; align-items: center; justify-content: space-between; gap: 4px; flex-wrap: wrap;">
+                            <span>{% translate "Delivery Deadline" %}</span>
+                            <span style="font-size:9px; color:#a5b4fc; text-transform:none; font-weight:normal;" id="deadlineDefaultText">(Default: +10 days)</span>
+                        </label>
+                        <input type="text" name="promised_date" id="promisedDateInput" placeholder="Select deadline..." class="form-control" style="font-size:12px; padding:8px 10px; height:38px; box-sizing:border-box;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:12px; margin-bottom:12px;">
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="min-height: 20px; display: flex; align-items: center;">{% translate "Priority Level" %}</label>
+                        <select name="priority" class="form-control" style="font-size:12px; padding:8px 10px; height:38px; box-sizing:border-box;">
+                            <option value="NORMAL">{% translate "NORMAL DELIVERY" %}</option>
+                            <option value="URGENT">🔥 {% translate "URGENT" %} DELIVERY</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label style="min-height: 20px; display: flex; align-items: center;">{% translate "Order Memo / Notes" %}</label>
+                        <input type="text" name="notes" placeholder="e.g. pack separate cartons" class="form-control" style="font-size:12px; padding:8px 10px; height:38px; box-sizing:border-box;">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:20px; border-top: 1px solid var(--glass-border); padding-top: 16px;">
+                    <button type="submit" id="saveOrderBtn" class="btn-primary" style="margin-top:0; flex:1;">
+                        {% translate "SAVE CUSTOMER PO" %}
+                    </button>
+                    <button type="button" id="cancelEditBtn" class="btn-secondary" style="margin-top:0; display:none; flex:1; background:rgba(239,68,68,0.1); border:1px solid var(--error-red); color:#f87171;" onclick="cancelEditMode()">
+                        {% translate "CANCEL EDIT" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- RIGHT COLUMN: {% translate "TODAY'S REGISTERED POs" %} (Cohesive feedback) -->
+        <div class="glass-card">
+            <h3 style="margin-bottom:24px;font-size:20px;letter-spacing:1px; display:flex; align-items:center; gap:10px;">
+                <span style="color:var(--indigo-primary);">●</span> {% translate "TODAY'S REGISTERED POs" %}
+            </h3>
+
+            <div style="overflow-x:auto; max-height:550px; overflow-y:auto;">
+                <table class="recent-table">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 16px;">SO Ref / Client</th>
+                            <th>PO Ref Number</th>
+                            <th style="text-align:right;">{% translate "Total Pieces" %}</th>
+                            <th style="text-align:right; padding-right:16px;">{% translate "Readiness" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td style="padding-left: 16px; vertical-align:middle;">
+                                <div style="font-weight:800; color:var(--text-primary); font-size:13px;">{{ order.order_number }}</div>
+                                <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">👤 {{ order.client.name }}</div>
+                            </td>
+                            <td style="vertical-align:middle; color:var(--text-primary); font-size:12px; font-weight:600;">
+                                {{ order.external_po_number|default:"--" }}
+                            </td>
+                            <td style="text-align:right; font-weight:800; color:#818cf8; vertical-align:middle;">
+                                {{ order.total_ordered_pieces }} pcs
+                            </td>
+                            <td style="text-align:right; padding-right:16px; vertical-align:middle;">
+                                <span class="badge" style="font-size:10px; padding:3px 8px;
+                                    {% if order.readiness_percentage >= 100 %}background:rgba(16,185,129,0.15); color:#34d399;
+                                    {% elif order.readiness_percentage > 0 %}background:rgba(245,158,11,0.15); color:#fbbf24;
+                                    {% else %}background:rgba(156,163,175,0.1); color:#cbd5e1;{% endif %}">
+                                    {{ order.readiness_percentage }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="empty-state">
+                                <i>✨</i>
+                                {% translate "No Customer POs registered today." %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endif %}
+
+<!-- ============================================ -->
+<!-- TAB 3: DISPATCH LOGS -->
+<!-- ============================================ -->
+<div id="section-dispatch" class="tab-content">
+    <div class="glass-card">
+        <h3 style="margin-bottom:24px;font-size:20px;letter-spacing:1px;">{% translate "HISTORICAL DISPATCH REGISTER" %}</h3>
+
+        <div style="overflow-x:auto;">
+            <table class="recent-table">
+                <thead>
+                    <tr>
+                        <th style="padding-left: 16px;">{% translate "DISPATCH REF" %}</th>
+                        <th>{% translate "CLIENT / BUYER" %}</th>
+                        <th>{% translate "SO REFERENCE" %}</th>
+                        <th>{% translate "DISPATCH DATE" %}</th>
+                        <th style="text-align:right; padding-right:16px;">{% translate "TOTAL PIECES / WT" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dsp in dispatches %}
+                    <tr>
+                        <td style="padding-left: 16px; font-weight:800; color:var(--text-primary);">
+                            🚚 {{ dsp.dispatch_number }}
+                        </td>
+                        <td>
+                            <span style="font-weight:700;">👤 {{ dsp.client.name }}</span>
+                        </td>
+                        <td>
+                            <span style="color:var(--text-secondary); font-weight:600;">{{ dsp.sales_order.order_number }}</span>
+                        </td>
+                        <td>
+                            <span style="color:var(--text-secondary);">{{ dsp.dispatch_date|date:"d M Y, H:i" }}</span>
+                        </td>
+                        <td style="text-align:right; padding-right:16px; font-weight:800; color:#34d399;">
+                            {{ dsp.total_pieces }} pcs
+                            <div style="font-size:11px; color:var(--text-secondary); font-weight:normal;">{{ dsp.total_weight }} kg</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <i>✨</i>
+                            {% translate "No dispatch transactions recorded in history yet." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDING DETAIL/DISPATCH DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closePODrawer()"></div>
+<div class="drawer" id="poDrawer">
+    <div class="drawer-header">
+        <div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <h2 id="drawerPONumber" style="font-size:24px; font-weight:800; margin:0; font-family:'Outfit', sans-serif; color:var(--text-primary);">SO-XXXX</h2>
+                {% if user.is_staff %}
+                <button type="button" id="drawerEditBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; margin: 0; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent-blue); color: #60a5fa;" onclick="triggerEditFromDrawer()">
+                    ✏️ {% translate "Edit PO" %}
+                </button>
+                <button type="button" id="drawerDeleteBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; margin: 0 0 0 6px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171;" onclick="triggerDeleteFromDrawer()">
+                    🗑️ {% translate "Delete PO" %}
+                </button>
+                {% endif %}
+            </div>
+            <div id="drawerClientName" style="color:var(--text-secondary); font-size:14px; font-weight:600; margin-top:2px;">Client Details</div>
+        </div>
+        <button class="drawer-close" onclick="closePODrawer()">×</button>
+    </div>
+    
+    <div class="drawer-body">
+        <div style="background:rgba(255,255,255,0.01); border:1px solid var(--border-soft); border-radius:12px; padding:16px; margin-bottom:20px; font-size:13px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+                <span style="color:var(--text-secondary);">Client PO Ref:</span> <b id="drawerExternalRef" style="color:var(--text-primary);">--</b>
+            </div>
+            <div>
+                <span style="color:var(--text-secondary);">{% translate "Promised Date:" %}</span> <b id="drawerPromisedDate" style="color:var(--text-primary);">--</b>
+            </div>
+            <div>
+                <span style="color:var(--text-secondary);">{% translate "Current Status:" %}</span> <b id="drawerStatusText" style="color:var(--text-primary);">--</b>
+            </div>
+            <div>
+                <span style="color:var(--text-secondary);">{% translate "Order Date:" %}</span> <b id="drawerOrderDate" style="color:var(--text-primary);">--</b>
+            </div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.01); border:1px solid var(--border-soft); border-radius:12px; padding:16px; margin-bottom:24px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; color:var(--text-secondary);">
+                <span>{% translate "Readiness" %} (Ready Stock / Remaining Needed)</span>
+                <span id="drawer{% translate "Readiness" %}Pct" style="font-weight:700; color:#34d399;">0%</span>
+            </div>
+            <div class="po-progress-bar" style="margin-bottom:16px;">
+                <div id="drawer{% translate "Readiness" %}Progress" class="po-progress-fill" style="width: 0%; background: #10b981;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; color:var(--text-secondary);">
+                <span>{% translate "WIP Pipeline Coverage" %} (WIP + Ready / Remaining Needed)</span>
+                <span id="drawerCoveragePct" style="font-weight:700; color:#60a5fa;">0%</span>
+            </div>
+            <div class="po-progress-bar" style="margin-bottom:4px;">
+                <div id="drawerCoverageProgress" class="po-progress-fill" style="width: 0%; background: #3b82f6;"></div>
+            </div>
+        </div>
+
+        <!-- Quick Action: Full Dispatch -->
+        <div id="quickDispatchSection" style="margin-bottom:24px; display:none;">
+            <form id="quickDispatchForm" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="dispatch_type" value="full">
+                <button type="submit" class="btn-action-primary">
+                    📦 QUICK FULL DISPATCH (REMAINING READY STOCK)
+                </button>
+            </form>
+        </div>
+
+        <div class="drawer-section-title">
+            <span>●</span> Itemized {% translate "Readiness" %} & WIP Pipeline
+        </div>
+
+        <!-- Form for Partial / Selected Dispatch -->
+        <form id="partialDispatchForm" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="dispatch_type" value="partial">
+            
+            <div id="drawerItemsList">
+                <!-- Injected via JavaScript -->
+            </div>
+
+            <div id="partialDispatchActions" style="margin-top:24px; display:none;">
+                <div style="margin-bottom:18px;">
+                    <label style="display:block; margin-bottom:8px; font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                        {% translate "Dispatch Memo / Notes" %}
+                    </label>
+                    <textarea name="notes" placeholder="Enter vehicle number, challan references or notes..." 
+                              style="width:100%; height:70px; padding:12px; background:rgba(15, 23, 42, 0.6); border:1px solid var(--border-soft); border-radius:10px; color:var(--text-primary); font-size:13px; resize:none; outline:none;"></textarea>
+                </div>
+                <button type="submit" class="btn-action-secondary" style="width: 100%;">
+                    🚚 {% translate "EXECUTE PARTIAL DISPATCH ALLOCATION" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Option template for clone -->
+<div id="itemOptionsTemplate" style="display: none;">
+    <option value="" data-client-id="" data-weight="0" data-lot="1" data-lotbox="1">Select finished item...</option>
+    {% for item in items %}
+        <option value="{{ item.id }}" data-client-id="{{ item.client.id|default:"" }}" data-weight="{{ item.machining_weight|default:0 }}" data-lot="{{ item.lot_size|default:1 }}" data-lotbox="{{ item.lot_with_box|default:1 }}">{{ item.code }} - {{ item.local_name }}</option>
+    {% endfor %}
+</div>
+
+<script id="client-past-items" type="application/json">
+    {{ client_past_items_json|safe }}
+</script>
+<script id="client-item-styles" type="application/json">
+    {{ client_item_styles_json|safe }}
+</script>
+
+<script>
+    const rowTomSelects = {};
+    let clientTS = null;
+
+    const clientPastItems = JSON.parse(document.getElementById('client-past-items').textContent || '{}');
+    const clientItemStyles = JSON.parse(document.getElementById('client-item-styles').textContent || '{}');
+
+    function setRowUnit(rowId, val) {
+        const row = document.getElementById(`row_${rowId}`);
+        if (!row) return;
+
+        const input = row.querySelector('.unit-selector');
+        if (input) input.value = val;
+
+        const ctnBtn = document.getElementById(`unit-ctn-${rowId}`);
+        const pcsBtn = document.getElementById(`unit-pcs-${rowId}`);
+        const styleContainer = row.querySelector('.style-container');
+
+        if (val === 'CTN') {
+            if (ctnBtn) ctnBtn.classList.add('active');
+            if (pcsBtn) pcsBtn.classList.remove('active');
+            if (styleContainer) styleContainer.style.display = 'block';
+        } else {
+            if (pcsBtn) pcsBtn.classList.add('active');
+            if (ctnBtn) ctnBtn.classList.remove('active');
+            if (styleContainer) styleContainer.style.display = 'none';
+        }
+
+        updateLineCalculation(rowId);
+    }
+
+    function setRowStyle(rowId, val) {
+        const row = document.getElementById(`row_${rowId}`);
+        if (!row) return;
+
+        const input = row.querySelector('.style-selector');
+        if (input) input.value = val;
+
+        const regBtn = document.getElementById(`style-reg-${rowId}`);
+        const boxBtn = document.getElementById(`style-box-${rowId}`);
+
+        if (val === 'REG') {
+            if (regBtn) regBtn.classList.add('active');
+            if (boxBtn) boxBtn.classList.remove('active');
+        } else {
+            if (boxBtn) boxBtn.classList.add('active');
+            if (regBtn) regBtn.classList.remove('active');
+        }
+
+        updateLineCalculation(rowId);
+    }
+
+    function applyStyleDefault(rowId, itemId) {
+        if (!itemId) return;
+        const clientSel = document.querySelector('select[name="client"]');
+        if (!clientSel) return;
+        const clientId = clientSel.value;
+        if (!clientId) return;
+
+        const styleKey = `${clientId}_${itemId}`;
+        let targetStyle = 'REG';
+        if (clientItemStyles[styleKey]) {
+            targetStyle = clientItemStyles[styleKey];
+        } else {
+            const selectedOpt = clientSel.options[clientSel.selectedIndex];
+            const clientPackingPref = selectedOpt ? selectedOpt.getAttribute('data-packing-pref') : '';
+            if (clientPackingPref === 'BOX_PREF' || clientPackingPref === 'BOX_STRICT') {
+                targetStyle = 'BOX';
+            }
+        }
+        setRowStyle(rowId, targetStyle);
+    }
+
+    // Dynamically filter product options based on selected client (scoped items + global items) using TomSelect API
+    function filterProductOptions() {
+        const clientSel = document.querySelector('select[name="client"]');
+        if (!clientSel) return;
+        const clientId = clientSel.value;
+
+        const rows = document.querySelectorAll(".item-row");
+        rows.forEach(row => {
+            const rowId = row.id.split("_")[1];
+            const ts = rowTomSelects[rowId];
+            if (!ts) return;
+
+            const currentValue = ts.getValue();
+            
+            // Clear existing options and groups
+            ts.clearOptions();
+            ts.clearOptionGroups();
+
+            // Add group
+            ts.addOptionGroup('client_group', {label: 'Client Scoped / Past / Global Items'});
+
+            const template = document.getElementById("itemOptionsTemplate");
+            if (!template) return;
+
+            const templateOptions = Array.from(template.querySelectorAll("option"));
+
+            templateOptions.forEach(opt => {
+                if (opt.value === "") return; // Skip placeholder
+                const optClientId = opt.getAttribute("data-client-id");
+                const itemIdStr = opt.value.toString();
+                
+                const pastItemsList = clientPastItems[clientId] || [];
+                const hasOrderedBefore = pastItemsList.map(id => id.toString()).includes(itemIdStr);
+
+                if (!optClientId || optClientId === clientId || hasOrderedBefore) {
+                    const optionData = {
+                        value: opt.value,
+                        text: opt.textContent,
+                        weight: opt.getAttribute("data-weight"),
+                        lot: opt.getAttribute("data-lot"),
+                        lotbox: opt.getAttribute("data-lotbox"),
+                        optgroup: 'client_group'
+                    };
+                    ts.addOption(optionData);
+                }
+            });
+
+            // Restore selection if still valid
+            if (currentValue && ts.options[currentValue]) {
+                ts.setValue(currentValue, true);
+            } else {
+                ts.setValue("", true);
+                updateLineCalculation(rowId);
+            }
+
+            if (ts.getValue()) {
+                applyStyleDefault(rowId, ts.getValue());
+                updateLineCalculation(rowId);
+            }
+        });
+    }
+
+    // Tab switching JavaScript matching Polishing mode switching
+    function switchPOTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+
+        const targetSec = document.getElementById('section-' + tabName);
+        const targetBtn = document.getElementById('tab-' + tabName + '-btn');
+        
+        if (targetSec && targetBtn) {
+            targetSec.classList.add('active');
+            targetBtn.classList.add('active');
+        }
+
+        // Initialize flatpickr dynamically if switcher triggers create tab
+        if (tabName === 'create') {
+            flatpickr("#promisedDateInput", {
+                altInput: true,
+                altFormat: "j/n/Y",
+                dateFormat: "Y-m-d",
+                theme: "dark",
+                minDate: "today"
+            });
+
+            // Prefill with default date (+10 days) if empty
+            const promisedInput = document.getElementById("promisedDateInput");
+            if (promisedInput && !promisedInput.value) {
+                const defaultDate = new Date();
+                defaultDate.setDate(defaultDate.getDate() + 10);
+                const year = defaultDate.getFullYear();
+                const month = String(defaultDate.getMonth() + 1 + 100).substring(1);
+                const day = String(defaultDate.getDate() + 100).substring(1);
+                const formattedDate = `${year}-${month}-${day}`;
+                promisedInput.value = formattedDate;
+
+                // Update default helper text next to label dynamically
+                const defaultTextEl = document.getElementById("deadlineDefaultText");
+                if (defaultTextEl) {
+                    const options = { day: 'numeric', month: 'short', year: 'numeric' };
+                    defaultTextEl.textContent = `(Default: ${defaultDate.toLocaleDateString('en-IN', options)})`;
+                }
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Retrieve optional tab URL query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab');
+        if (activeTab === 'create') {
+            switchPOTab('create');
+        } else if (activeTab === 'dispatch') {
+            switchPOTab('dispatch');
+        } else {
+            switchPOTab('board');
+        }
+
+        // Initialize client TomSelect wrapper
+        const clientSel = document.querySelector('select[name="client"]');
+        if (clientSel && typeof TomSelect !== 'undefined') {
+            clientTS = new TomSelect(clientSel, {
+                create: false,
+                placeholder: "{% translate "Choose client..." %}",
+                allowEmptyOption: false,
+                onChange: function() {
+                    filterProductOptions();
+                }
+            });
+        }
+
+        // Add first initial product row
+        if (document.getElementById("items-container") && document.querySelectorAll(".item-row").length === 0) {
+            addItemRow();
+        }
+    });
+
+    let dynamicRowCount = 0;
+
+    function addItemRow() {
+        const container = document.getElementById("items-container");
+        
+        dynamicRowCount++;
+        const rowId = dynamicRowCount;
+        const newCard = document.createElement("div");
+        newCard.className = "item-row";
+        newCard.id = `row_${rowId}`;
+        newCard.style.padding = "20px";
+        newCard.style.borderLeft = "4px solid #3b82f6";
+        newCard.style.position = "relative";
+        newCard.style.display = "block";
+        newCard.style.marginBottom = "16px";
+        
+        newCard.innerHTML = `
+            <span class="remove-row-btn" style="top:8px; right:8px; font-size:16px; cursor:pointer;" onclick="removeRow('row_${rowId}')">×</span>
+            
+            <!-- Item Selector -->
+            <div class="input-group" style="margin-bottom:12px; padding-right:16px;">
+                <select name="item_id[]" required class="form-control item-selector" style="font-size:12px; padding:6px 10px; height:auto;" id="item-select-${rowId}">
+                    <option value="">Select finished item...</option>
+                </select>
+            </div>
+
+            <!-- Multi-spec compact input container -->
+            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:end; width: 100%;">
+                <!-- Unit Selector -->
+                <div style="flex:1 1 100px; min-width:90px;">
+                    <label style="display:block; margin-bottom:4px; font-size:9px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Unit</label>
+                    <div class="toggle-switch-wrapper">
+                        <button type="button" class="toggle-switch-btn" id="unit-ctn-${rowId}" onclick="setRowUnit(${rowId}, 'CTN')">CTN</button>
+                        <button type="button" class="toggle-switch-btn" id="unit-pcs-${rowId}" onclick="setRowUnit(${rowId}, 'PCS')">PCS</button>
+                    </div>
+                    <input type="hidden" class="unit-selector" value="{% if request.company.id == 1 %}PCS{% else %}CTN{% endif %}">
+                </div>
+
+                <!-- Carton Style -->
+                <div class="style-container" style="flex:1 1 100px; min-width:90px; display:{% if request.company.id == 1 %}none{% else %}block{% endif %};">
+                    <label class="style-label" style="display:block; margin-bottom:4px; font-size:9px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Style</label>
+                    <div class="toggle-switch-wrapper">
+                        <button type="button" class="toggle-switch-btn style-active" id="style-reg-${rowId}" onclick="setRowStyle(${rowId}, 'REG')">REG</button>
+                        <button type="button" class="toggle-switch-btn style-active" id="style-box-${rowId}" onclick="setRowStyle(${rowId}, 'BOX')">BOX</button>
+                    </div>
+                    <input type="hidden" class="style-selector" value="REG">
+                </div>
+
+                <!-- Qty Input -->
+                <div style="flex:1 1 80px; min-width:70px;">
+                    <label style="display:block; margin-bottom:4px; font-size:9px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Quantity</label>
+                    <input type="number" min="1" required class="form-control entry-input" 
+                           placeholder="Qty" style="width:100%; font-size:11px; padding:4px 6px; text-align:center; height:32px; background:rgba(15,23,42,0.6); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-primary); outline:none;" oninput="updateLineCalculation(${rowId})">
+                    
+                    <!-- Hidden input submitted to backend -->
+                    <input type="hidden" name="quantity[]" class="qty-input">
+                </div>
+
+                <!-- Remarks -->
+                <div style="flex:2 1 150px; min-width:130px;">
+                    <label style="display:block; margin-bottom:4px; font-size:9px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Line Remarks</label>
+                    <input type="text" class="form-control remarks-input" placeholder="Remarks..." style="width:100%; font-size:11px; padding:4px 8px; height:32px; background:rgba(15,23,42,0.6); border:1px solid var(--border-soft); border-radius:8px; color:var(--text-primary); outline:none;" oninput="updateLineCalculation(${rowId})">
+                    
+                    <!-- Hidden remarks submitted to backend -->
+                    <input type="hidden" name="remarks[]" class="remarks-hidden">
+                </div>
+            </div>
+
+            <!-- Helper badge displaying computed details -->
+            <div id="helper_${rowId}" style="margin-top:8px; font-size:11px; color:#34d399; font-weight:700; display:none; align-items:center; gap:6px;">
+                <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#10b981;"></span>
+                Total pieces count: 0 pcs
+            </div>
+        `;
+        
+        container.appendChild(newCard);
+
+        // Initialize TomSelect wrapper for item search
+        const selectEl = document.getElementById(`item-select-${rowId}`);
+        if (selectEl) {
+            rowTomSelects[rowId] = new TomSelect(selectEl, {
+                create: false,
+                placeholder: "Select finished item...",
+                allowEmptyOption: false,
+                onChange: function(value) {
+                    applyStyleDefault(rowId, value);
+                    updateLineCalculation(rowId);
+                }
+            });
+        }
+        
+        // Dynamically apply client options filter to the new row
+        filterProductOptions();
+        
+        const initialUnit = "{% if request.company.id == 1 %}PCS{% else %}CTN{% endif %}";
+        setRowUnit(rowId, initialUnit);
+        setRowStyle(rowId, "REG");
+    }
+
+    function removeRow(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            const rowsCount = document.querySelectorAll(".item-row").length;
+            if (rowsCount > 1) {
+                const numericId = rowId.split("_")[1];
+                if (rowTomSelects[numericId]) {
+                    rowTomSelects[numericId].destroy();
+                    delete rowTomSelects[numericId];
+                }
+                row.remove();
+                calculatePO();
+            } else {
+                alert("You must define at least one item inside the Customer PO.");
+            }
+        }
+    }
+
+    // Dynamic Row spec updates & calculations
+    function updateLineCalculation(rowNum) {
+        const row = document.getElementById(`row_${rowNum}`);
+        if (!row) return;
+
+        const ts = rowTomSelects[rowNum];
+        const unitEl = row.querySelector('.unit-selector');
+        const styleLabel = row.querySelector('.style-label');
+        const styleEl = row.querySelector('.style-selector');
+        const entryInput = row.querySelector('.entry-input');
+        const qtyHidden = row.querySelector('.qty-input');
+        
+        const remarksVisible = row.querySelector('.remarks-input');
+        const remarksHidden = row.querySelector('.remarks-hidden');
+        
+        const helper = document.getElementById(`helper_${rowNum}`);
+
+        if (!ts || !ts.getValue()) {
+            if (qtyHidden) qtyHidden.value = "0";
+            if (helper) helper.style.display = 'none';
+            const styleContainer = row.querySelector('.style-container');
+            if (styleContainer) styleContainer.style.display = 'none';
+            calculatePO();
+            return;
+        }
+
+        const optionData = ts.options[ts.getValue()];
+        const lotSize = parseInt(optionData.lot) || 1;
+        const lotBoxSize = parseInt(optionData.lotbox) || 1;
+
+        const unit = unitEl.value;
+        const entryVal = parseInt(entryInput.value) || 0;
+
+        let computedPieces = 0;
+
+        if (unit === 'PCS') {
+            const styleContainer = row.querySelector('.style-container');
+            if (styleContainer) styleContainer.style.display = 'none';
+            computedPieces = entryVal;
+            if (helper) helper.style.display = 'none';
+            if (remarksHidden) remarksHidden.value = remarksVisible.value;
+        } else {
+            const styleContainer = row.querySelector('.style-container');
+            if (styleContainer) styleContainer.style.display = 'block';
+            
+            const style = styleEl.value;
+            const multiplier = (style === 'BOX') ? lotBoxSize : lotSize;
+            computedPieces = entryVal * multiplier;
+            
+            if (helper && entryVal > 0) {
+                helper.innerHTML = `<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#10b981;"></span> ⚡ Total: <b>${computedPieces} pcs</b> (${entryVal} ctn × ${multiplier} pcs)`;
+                helper.style.display = 'flex';
+            } else if (helper) {
+                helper.style.display = 'none';
+            }
+
+            // Persistence: Prepend the carton spec to final submitted remarks
+            const cartonDesc = `[${entryVal} ctn (${style})]`;
+            if (remarksVisible && remarksVisible.value.trim()) {
+                if (remarksHidden) remarksHidden.value = `${cartonDesc} ${remarksVisible.value.trim()}`;
+            } else {
+                if (remarksHidden) remarksHidden.value = cartonDesc;
+            }
+        }
+
+        if (qtyHidden) qtyHidden.value = computedPieces;
+        calculatePO();
+    }
+
+    // Dynamic Live Tallying Calculations
+    function calculatePO() {
+        let totalPieces = 0;
+        let totalWeight = 0.0;
+        
+        const rows = document.querySelectorAll(".item-row");
+        rows.forEach(row => {
+            const rowId = row.id.split("_")[1];
+            const ts = rowTomSelects[rowId];
+            const qtyHiddenInput = row.querySelector(".qty-input");
+            
+            if (ts && ts.getValue() && qtyHiddenInput) {
+                const qtyVal = parseInt(qtyHiddenInput.value) || 0;
+                totalPieces += qtyVal;
+                
+                const optionData = ts.options[ts.getValue()];
+                const weightPerPc = parseFloat(optionData.weight) || 0.0;
+                totalWeight += qtyVal * weightPerPc;
+            }
+        });
+        
+        const tallyPieces = document.getElementById("tallyPieces");
+        const tallyWeight = document.getElementById("tallyWeight");
+        
+        if (tallyPieces) tallyPieces.textContent = `${totalPieces} pcs`;
+        if (tallyWeight) tallyWeight.textContent = `${totalWeight.toFixed(3)} kg`;
+    }
+
+    // Dynamic Dispatch Side Drawer Handlers
+    let activePOId = null;
+
+    function openPODrawer(poId) {
+        activePOId = poId;
+        
+        document.getElementById('drawerItemsList').innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-secondary);">Loading order metrics...</div>';
+        document.getElementById('quickDispatchSection').style.display = 'none';
+        document.getElementById('partialDispatchActions').style.display = 'none';
+
+        fetch(`/orders/api/${poId}/`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('drawerPONumber').textContent = data.order_number;
+                document.getElementById('drawerClientName').textContent = `👤 ${data.client_name}`;
+                document.getElementById('drawerExternalRef').textContent = data.external_po_number;
+                document.getElementById('drawerPromisedDate').textContent = data.promised_date;
+                document.getElementById('drawerStatusText').textContent = data.status;
+                document.getElementById('drawerOrderDate').textContent = data.order_date;
+                
+                document.getElementById('drawer{% translate "Readiness" %}Pct').textContent = `${data.readiness_percentage}%`;
+                document.getElementById('drawer{% translate "Readiness" %}Progress').style.width = `${data.readiness_percentage}%`;
+                
+                document.getElementById('drawerCoveragePct').textContent = `${data.coverage_percentage}%`;
+                document.getElementById('drawerCoverageProgress').style.width = `${data.coverage_percentage}%`;
+
+                document.getElementById('quickDispatchForm').action = `/orders/${poId}/dispatch/`;
+                document.getElementById('partialDispatchForm').action = `/orders/${poId}/dispatch/`;
+
+                let listHtml = '';
+                let hasReadyStock = false;
+                let hasRemainingNeed = false;
+
+                data.items.forEach(item => {
+                    const isCompleted = item.remaining_qty <= 0;
+                    if (!isCompleted) hasRemainingNeed = true;
+                    if (item.ready_stock > 0 && !isCompleted) hasReadyStock = true;
+
+                    listHtml += `
+                        <div class="drawer-item-card">
+                            <div class="drawer-item-header">
+                                <div>
+                                    <div style="font-weight:800; font-size:14px; color:var(--text-primary);">${item.item_code}</div>
+                                    <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${item.item_name}</div>
+                                </div>
+                                <div>
+                                    ${isCompleted ? 
+                                        `<span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981; font-size:9px;">Fully {% translate "Dispatched" %}</span>` : 
+                                        `<span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; font-size:9px;">Pending ${item.remaining_qty} pcs</span>`
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="drawer-grid-metrics">
+                                <div>
+                                    <div style="font-size:10px; color:var(--text-secondary); text-transform:uppercase;">Ordered</div>
+                                    <div class="drawer-metric-val" style="color:var(--text-primary);">${item.ordered_qty}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size:10px; color:var(--text-secondary); text-transform:uppercase;">{% translate "Dispatched" %}</div>
+                                    <div class="drawer-metric-val" style="color:#64748b;">${item.dispatched_qty}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size:10px; color:var(--text-secondary); text-transform:uppercase;">In Warehouse</div>
+                                    <div class="drawer-metric-val" style="color:#10b981;">${item.ready_stock}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size:10px; color:var(--text-secondary); text-transform:uppercase;">Pipeline WIP</div>
+                                    <div class="drawer-metric-val" style="color:#3b82f6;">${item.pipeline_qty}</div>
+                                </div>
+                            </div>
+
+                            ${(item.remaining_qty > item.ready_stock && item.buffer_stock > 0) ? `
+                                <div style="margin-top:10px; padding:8px 12px; background:rgba(139, 92, 246, 0.08); border:1px solid rgba(139, 92, 246, 0.2); border-radius:8px; display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:14px;">💡</span>
+                                    <span style="font-size:11px; font-weight:700; color:#c084fc; line-height:1.3;">
+                                        Suggestion: ${item.buffer_stock} pcs available in loose buffer. Pack them to complete this item.
+                                    </span>
+                                </div>
+                            ` : ''}
+
+                            ${(!isCompleted && item.ready_stock > 0) ? `
+                                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.03); padding-top:12px; margin-top:12px;">
+                                    <span style="font-size:12px; color:var(--text-secondary);">Allocate to Dispatch:</span>
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <input type="number" name="qty_${item.id}" class="dispatch-qty-input" 
+                                               min="0" max="${Math.min(item.remaining_qty, item.ready_stock)}" 
+                                               value="${Math.min(item.remaining_qty, item.ready_stock)}"
+                                               placeholder="0">
+                                        <span style="font-size:11px; color:var(--text-secondary);">/ max ${Math.min(item.remaining_qty, item.ready_stock)}</span>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+
+                window.activePOData = data;
+
+                document.getElementById('drawerItemsList').innerHTML = listHtml;
+
+                if (hasRemainingNeed && hasReadyStock) {
+                    document.getElementById('quickDispatchSection').style.display = 'block';
+                    document.getElementById('partialDispatchActions').style.display = 'block';
+                }
+
+                document.getElementById('drawerOverlay').classList.add('active');
+                document.getElementById('poDrawer').classList.add('active');
+            })
+            .catch(err => {
+                console.error("Failed to load PO details", err);
+                document.getElementById('drawerItemsList').innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Error loading order specifications.</div>';
+            });
+    }
+
+    function closePODrawer() {
+        document.getElementById('drawerOverlay').classList.remove('active');
+        document.getElementById('poDrawer').classList.remove('active');
+        activePOId = null;
+    }
+
+    function handleFormSubmission(event, formId) {
+        event.preventDefault();
+        const form = document.getElementById(formId);
+        const formData = new FormData(form);
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(`SUCCESS: ${data.message}`);
+                window.location.reload();
+            } else {
+                alert(`ERROR: ${data.error || 'Dispatch execution failed.'}`);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("An unexpected error occurred during dispatch processing.");
+        });
+    }
+
+    document.getElementById('quickDispatchForm').addEventListener('submit', (e) => handleFormSubmission(e, 'quickDispatchForm'));
+    document.getElementById('partialDispatchForm').addEventListener('submit', (e) => handleFormSubmission(e, 'partialDispatchForm'));
+
+    function triggerDeleteFromDrawer() {
+        if (!window.activePOData) {
+            alert("Error: No active PO data loaded.");
+            return;
+        }
+        const data = window.activePOData;
+        if (confirm(`Are you sure you want to permanently delete Customer PO ${data.order_number}?`)) {
+            window.location.href = `/orders/${data.id}/delete/`;
+        }
+    }
+
+    function triggerEditFromDrawer() {
+        try {
+            if (!window.activePOData) {
+                alert("Error: No active PO data loaded in memory yet.");
+                return;
+            }
+            const data = window.activePOData;
+            
+            // Prefill form
+            const editInput = document.getElementById('editPoIdInput');
+            if (!editInput) throw new Error("Could not find editPoIdInput element in DOM");
+            editInput.value = data.id;
+
+            const header = document.getElementById('formTitleHeader');
+            if (!header) throw new Error("Could not find formTitleHeader element in DOM");
+            header.innerHTML = `<span class="badge" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:12px; margin-right:8px; vertical-align:middle;">EDIT MODE</span> EDIT PO ${data.order_number}`;
+
+            const saveBtn = document.getElementById('saveOrderBtn');
+            if (!saveBtn) throw new Error("Could not find saveOrderBtn element in DOM");
+            saveBtn.textContent = 'UPDATE CUSTOMER PO';
+
+            const cancelBtn = document.getElementById('cancelEditBtn');
+            if (!cancelBtn) throw new Error("Could not find cancelEditBtn element in DOM");
+            cancelBtn.style.display = 'block';
+
+            const form = document.getElementById('createOrderForm');
+            if (!form) throw new Error("Could not find createOrderForm element in DOM");
+
+            const clientSel = form.querySelector('select[name="client"]');
+            if (clientSel) {
+                if (clientTS) {
+                    clientTS.setValue(data.client_id);
+                } else {
+                    clientSel.value = data.client_id;
+                }
+            }
+
+            const extPoInput = form.querySelector('input[name="external_po_number"]');
+            if (extPoInput) extPoInput.value = data.external_po_number;
+
+            const promisedInput = form.querySelector('input[name="promised_date"]');
+            if (promisedInput) {
+                promisedInput.value = data.promised_date;
+                // Update flatpickr instance value if exists
+                if (promisedInput._flatpickr) {
+                    promisedInput._flatpickr.setDate(data.promised_date);
+                }
+            }
+
+            const prioritySel = form.querySelector('select[name="priority"]');
+            if (prioritySel) prioritySel.value = data.priority;
+
+            const notesInput = form.querySelector('input[name="notes"]');
+            if (notesInput) notesInput.value = data.notes;
+
+            // Clear dynamic rows
+            const container = document.getElementById("items-container");
+            if (!container) throw new Error("Could not find items-container element in DOM");
+            container.innerHTML = "";
+            
+            // Re-append items from activePOData
+            if (data.items && data.items.length > 0) {
+                data.items.forEach(item => {
+                    addItemRow();
+                    const lastRow = document.getElementById(`row_${dynamicRowCount}`);
+                    const currentRowId = dynamicRowCount;
+                    if (lastRow) {
+                        const sel = lastRow.querySelector(".item-selector");
+                        if (rowTomSelects[currentRowId]) {
+                            rowTomSelects[currentRowId].setValue(item.item_id, true);
+                        } else if (sel) {
+                            sel.value = item.item_id;
+                        }
+                        
+                        const entryInput = lastRow.querySelector(".entry-input");
+                        if (entryInput) entryInput.value = item.ordered_qty;
+                        
+                        // Parse original remarks to separate carton details if they were saved in remarks
+                        const remHidden = lastRow.querySelector(".remarks-hidden");
+                        const remVisible = lastRow.querySelector(".remarks-input");
+                        if (remHidden) remHidden.value = item.remarks || "";
+                        
+                        if (remVisible) {
+                            // If it starts with a carton block like "[2 ctn (REG)]", we can extract the clean remarks
+                            const match = (item.remarks || "").match(/^\[\d+ ctn \((?:REG|BOX)\)\]\s*(.*)$/);
+                            if (match) {
+                                remVisible.value = match[1];
+                                // We can also prefill the unit and style choices dynamically for an amazing premium experience!
+                                const unitSel = lastRow.querySelector(".unit-selector");
+                                const styleSel = lastRow.querySelector(".style-selector");
+                                const ctnMatch = (item.remarks || "").match(/^\[(\d+) ctn \(((?:REG|BOX))\)\]/);
+                                if (ctnMatch && unitSel && styleSel && entryInput) {
+                                    unitSel.value = "CTN";
+                                    styleSel.value = ctnMatch[2];
+                                    entryInput.value = ctnMatch[1];
+                                }
+                            } else {
+                                remVisible.value = item.remarks || "";
+                            }
+                        }
+                        
+                        updateLineCalculation(currentRowId);
+                    }
+                });
+            }
+
+            calculatePO();
+
+            // Switch to create tab
+            switchPOTab('create');
+            
+            // Close drawer
+            closePODrawer();
+        } catch (e) {
+            alert("JS Error in triggerEditFromDrawer: " + e.message + "\nStack: " + e.stack);
+            console.error(e);
+        }
+    }
+
+    function cancelEditMode() {
+        document.getElementById('editPoIdInput').value = "";
+        document.getElementById('formTitleHeader').textContent = '{% translate "RECORD CUSTOMER PO" %}';
+        document.getElementById('saveOrderBtn').textContent = '{% translate "SAVE CUSTOMER PO" %}';
+        document.getElementById('cancelEditBtn').style.display = 'none';
+
+        const form = document.getElementById('createOrderForm');
+        form.reset();
+        if (clientTS) {
+            clientTS.setValue("", true);
+        }
+
+        // Clear and add one blank row
+        const container = document.getElementById("items-container");
+        container.innerHTML = "";
+        addItemRow();
+        
+        // Prefill delivery deadline on form reset
+        const promisedInput = document.getElementById("promisedDateInput");
+        if (promisedInput) {
+            const defaultDate = new Date();
+            defaultDate.setDate(defaultDate.getDate() + 10);
+            const year = defaultDate.getFullYear();
+            const month = String(defaultDate.getMonth() + 1 + 100).substring(1);
+            const day = String(defaultDate.getDate() + 100).substring(1);
+            promisedInput.value = `${year}-${month}-${day}`;
+        }
+
+        calculatePO();
+    }
+
+    // Clientside Searching & Filtering Logic
+    let currentFilterStatus = 'all';
+
+    function filterPill(status) {
+        // Toggle active pill
+        document.querySelectorAll('.filter-pill').forEach(pill => pill.classList.remove('active'));
+        const activePill = document.getElementById('pill-' + status);
+        if (activePill) {
+            activePill.classList.add('active');
+        }
+        currentFilterStatus = status;
+        filterCards();
+    }
+
+    function filterByStatus(kpiStatus) {
+        // Clicking KPI cards switches active filter pill automatically
+        if (kpiStatus === 'active') {
+            filterPill('all');
+        } else if (kpiStatus === 'ready') {
+            filterPill('ready');
+        } else if (kpiStatus === 'wip') {
+            filterPill('partial');
+        } else if (kpiStatus === 'completed') {
+            filterPill('completed');
+        }
+    }
+
+    window.activeCompanyFilter = null;
+    function switchCompanyFilter(companyId, tabEl) {
+        window.activeCompanyFilter = companyId;
+        const tabs = document.querySelectorAll('.company-tab');
+        tabs.forEach(tab => {
+            tab.style.background = 'transparent';
+            tab.style.color = 'var(--text-secondary)';
+        });
+        tabEl.style.background = 'rgba(255,255,255,0.1)';
+        tabEl.style.color = 'white';
+        filterCards();
+    }
+
+    function filterCards() {
+        const query = document.getElementById('poSearchInput').value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.po-card-item');
+
+        cards.forEach(card => {
+            const client = card.getAttribute('data-client') || '';
+            const so = card.getAttribute('data-so') || '';
+            const poRef = card.getAttribute('data-po-ref') || '';
+            const status = card.getAttribute('data-status') || '';
+            const isUrgent = card.getAttribute('data-urgent') === 'true';
+            const companyId = card.getAttribute('data-company-id') || '';
+
+            // Match query
+            const matchesQuery = client.includes(query) || so.includes(query) || poRef.includes(query);
+
+            // Match company
+            let matchesCompany = true;
+            if (window.activeCompanyFilter !== null) {
+                matchesCompany = (companyId === String(window.activeCompanyFilter));
+            }
+
+            // Match pill filter status
+            let matchesStatus = false;
+            if (currentFilterStatus === 'all') {
+                // All active means non-completed
+                matchesStatus = (status !== 'completed');
+            } else if (currentFilterStatus === 'urgent') {
+                matchesStatus = isUrgent && (status !== 'completed');
+            } else if (currentFilterStatus === 'ready') {
+                matchesStatus = (status === 'ready');
+            } else if (currentFilterStatus === 'partial') {
+                matchesStatus = (status === 'partial' || status === 'wip');
+            } else if (currentFilterStatus === 'completed') {
+                matchesStatus = (status === 'completed');
+            }
+
+            if (matchesQuery && matchesStatus && matchesCompany) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // Call filter on load to default to All Active
+    document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(filterCards, 100);
+    });
+</script>
+
+{% endblock %}

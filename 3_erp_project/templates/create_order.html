@@ -1,0 +1,461 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<style>
+    :root {
+        --indigo-primary: #6366f1;
+        --indigo-glow: rgba(99, 102, 241, 0.15);
+        --glass-bg: rgba(17, 24, 39, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.08);
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 32px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .polishing-header {
+        margin-bottom: 40px;
+    }
+
+    .polishing-header h1 {
+        font-size: 64px;
+        background: linear-gradient(135deg, #fff 0%, #6366f1 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -2px;
+        margin-bottom: 8px;
+    }
+
+    .polishing-header p {
+        font-size: 20px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    /* Main Layout Grid matching Polishing */
+    .main-grid {
+        display: grid;
+        grid-template-columns: 480px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+        .main-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Item Row Styling mimicking Polishing selective border */
+    .item-row {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        border-left: 3px solid var(--indigo-primary);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .item-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: var(--indigo-primary);
+        border-left-color: #818cf8;
+        transform: translateX(4px);
+    }
+
+    .row-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 12px;
+    }
+
+    .stat-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+
+    .input-group label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-secondary);
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        color: var(--text-primary);
+        outline: none;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        border-color: var(--indigo-primary);
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+    }
+
+    .remove-row-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        font-size: 16px;
+        transition: all 0.2s;
+    }
+
+    .remove-row-btn:hover {
+        background: #ef4444;
+        color: white;
+    }
+
+    /* Tally metrics design matching Polishing */
+    .tally-display-box {
+        background: rgba(0,0,0,0.2);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 16px;
+        margin: 20px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tally-lbl {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .tally-val {
+        font-size: 20px;
+        font-weight: 800;
+        color: #fbbf24;
+    }
+
+    /* Buttons */
+    .btn-primary {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        box-shadow: 0 10px 30px var(--indigo-glow);
+        width: 100%;
+        margin-top: 12px;
+        padding: 14px;
+        border: none;
+        color: white;
+        font-size: 14px;
+        font-weight: 700;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--glass-border);
+        color: var(--text-primary);
+        width: 100%;
+        padding: 12px;
+        font-size: 13px;
+        font-weight: 700;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .recent-table th {
+        background: rgba(0, 0, 0, 0.2);
+    }
+</style>
+
+<!-- HEADER SECTION -->
+<div class="polishing-header">
+    <a href="{% url 'orders_board' %}" style="text-decoration: none; color: #818cf8; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px;">
+        ← Back to Customer PO Board
+    </a>
+    <h1 style="display: flex; align-items: center;">
+        New Customer PO
+        <span class="header-info-badge" tabindex="0" data-tooltip="Register a new customer Purchase Order, define line item quantities, set delivery dates, and track priority fulfillment." data-tooltip-pos="right" aria-label="New Customer PO Info">ℹ️</span>
+    </h1>
+    <p>Register purchase order agreements and configure product line specifications</p>
+</div>
+
+<!-- MAIN GRID STRUCTURE -->
+<div class="main-grid">
+    
+    <!-- LEFT COLUMN: RECORD CUSTOMER PO FORM -->
+    <div class="glass-card">
+        <h3 style="margin-bottom:24px;font-size:20px;letter-spacing:1px; color:white; text-transform:uppercase;">RECORD CUSTOMER PO</h3>
+
+        <form method="POST" action="{% url 'create_order' %}" id="createOrderForm">
+            {% csrf_token %}
+
+            <div class="input-group">
+                <label>Client / Buyer</label>
+                <select name="client" required class="form-control">
+                    <option value="">Choose client...</option>
+                    {% for client in clients %}
+                        <option value="{{ client.id }}">{{ client.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:20px;">
+                <div class="input-group">
+                    <label>PO Ref # (Optional)</label>
+                    <input type="text" name="external_po_number" placeholder="e.g. PO-XYZ" class="form-control">
+                </div>
+
+                <div class="input-group">
+                    <label>Promised Delivery Date</label>
+                    <input type="text" name="promised_date" id="promisedDateInput" required placeholder="Select deadline..." class="form-control">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Priority Level</label>
+                <select name="priority" class="form-control">
+                    <option value="NORMAL">NORMAL DELIVERY</option>
+                    <option value="URGENT">🔥 URGENT DELIVERY</option>
+                </select>
+            </div>
+
+            <div class="input-group" style="margin-bottom: 24px;">
+                <label>Order Memo / Notes</label>
+                <textarea name="notes" placeholder="Enter vehicle constraints, packaging, remarks..." style="height: 60px; resize: none;" class="form-control"></textarea>
+            </div>
+
+            <!-- Dynamic Product card rows nested exactly like Polishing -->
+            <div style="border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 12px; display: block;">PO Line Products</label>
+                
+                <div id="items-container">
+                    <!-- Javascript appends .item-row cards here -->
+                </div>
+
+                <button type="button" class="btn-secondary" style="margin-bottom: 20px;" onclick="addItemRow()">
+                    + ADD PRODUCT ITEM
+                </button>
+            </div>
+
+            <!-- TALLY METRICS GRID -->
+            <div class="tally-display-box">
+                <div>
+                    <div class="tally-lbl">Total Pieces</div>
+                    <div id="tallyPieces" class="tally-val" style="color:#10b981;">0 pcs</div>
+                </div>
+                <div style="border-left: 1px solid var(--glass-border); padding-left: 20px;">
+                    <div class="tally-lbl">Est. Weight</div>
+                    <div id="tallyWeight" class="tally-val" style="color:#fbbf24;">0.000 kg</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                SAVE CUSTOMER PO
+            </button>
+            
+            <a href="{% url 'orders_board' %}" class="btn-secondary" style="margin-top:12px; text-align:center;">
+                CANCEL
+            </a>
+        </form>
+    </div>
+
+    <!-- RIGHT COLUMN: TODAY'S REGISTERED CUSTOMER POs (Matches WIP in Polishing) -->
+    <div class="glass-card">
+        <h3 style="margin-bottom:24px;font-size:20px;letter-spacing:1px; display:flex; align-items:center; gap:10px;">
+            <span style="color:var(--indigo-primary);">●</span> TODAY'S REGISTERED POs
+        </h3>
+
+        <div style="overflow-x:auto; max-height:550px; overflow-y:auto;">
+            <table class="recent-table">
+                <thead>
+                    <tr>
+                        <th style="padding-left: 16px;">SO Ref / Client</th>
+                        <th>PO Ref Number</th>
+                        <th style="text-align:right;">Total Pieces</th>
+                        <th style="text-align:right; padding-right:16px;">Readiness</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in recent_orders %}
+                    <tr>
+                        <td style="padding-left: 16px; vertical-align:middle;">
+                            <div style="font-weight:800; color:var(--text-primary); font-size:13px;">{{ order.order_number }}</div>
+                            <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">👤 {{ order.client.name }}</div>
+                        </td>
+                        <td style="vertical-align:middle; color:var(--text-primary); font-size:12px; font-weight:600;">
+                            {{ order.external_po_number|default:"--" }}
+                        </td>
+                        <td style="text-align:right; font-weight:800; color:#818cf8; vertical-align:middle;">
+                            {{ order.total_ordered_pieces }} pcs
+                        </td>
+                        <td style="text-align:right; padding-right:16px; vertical-align:middle;">
+                            <span class="badge" style="font-size:10px; padding:3px 8px;
+                                {% if order.readiness_percentage >= 100 %}background:rgba(16,185,129,0.15); color:#34d399;
+                                {% elif order.readiness_percentage > 0 %}background:rgba(245,158,11,0.15); color:#fbbf24;
+                                {% else %}background:rgba(156,163,175,0.1); color:#cbd5e1;{% endif %}">
+                                {{ order.readiness_percentage }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-state">
+                            <i>✨</i>
+                            No Customer POs registered today.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Option template for clone -->
+<div id="itemOptionsTemplate" style="display: none;">
+    <option value="" data-weight="0">Select finished item...</option>
+    {% for item in items %}
+        <option value="{{ item.id }}" data-weight="{{ item.machining_weight|default:0 }}">{{ item.code }} - {{ item.name }}</option>
+    {% endfor %}
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        flatpickr("#promisedDateInput", {
+            altInput: true,
+            altFormat: "j/n/Y",
+            dateFormat: "Y-m-d",
+            theme: "dark",
+            minDate: "today"
+        });
+
+        // Add first initial product card
+        addItemRow();
+    });
+
+    let rowCount = 0;
+
+    function addItemRow() {
+        const container = document.getElementById("items-container");
+        const optionsTemplate = document.getElementById("itemOptionsTemplate").innerHTML;
+        
+        rowCount++;
+        const newCard = document.createElement("div");
+        newCard.className = "item-row";
+        newCard.id = `row_${rowCount}`;
+        
+        newCard.innerHTML = `
+            <span class="remove-row-btn" onclick="removeRow('row_${rowCount}')">×</span>
+            
+            <div class="input-group" style="margin-bottom:12px;">
+                <label>Item Name</label>
+                <select name="item_id[]" required class="form-control item-selector" onchange="calculatePO()">
+                    ${optionsTemplate}
+                </select>
+            </div>
+
+            <div class="row-grid">
+                <div class="input-group" style="margin-bottom:0;">
+                    <label>Ordered Qty</label>
+                    <input type="number" name="quantity[]" min="1" required class="form-control qty-input" 
+                           placeholder="0" style="text-align:center;" oninput="calculatePO()">
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                    <label>Row Remarks</label>
+                    <input type="text" name="remarks[]" class="form-control" placeholder="remarks...">
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(newCard);
+        calculatePO();
+    }
+
+    function removeRow(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            const rowsCount = document.querySelectorAll(".item-row").length;
+            if (rowsCount > 1) {
+                row.remove();
+                calculatePO();
+            } else {
+                alert("You must define at least one item inside the Customer PO.");
+            }
+        }
+    }
+
+    // Dynamic Live Calculations
+    function calculatePO() {
+        const selectors = document.querySelectorAll(".item-selector");
+        const qtyInputs = document.querySelectorAll(".qty-input");
+        
+        let totalPieces = 0;
+        let totalWeight = 0.0;
+        
+        selectors.forEach((select, index) => {
+            const qtyVal = parseInt(qtyInputs[index].value) || 0;
+            
+            if (select.value) {
+                totalPieces += qtyVal;
+                
+                // Fetch weight
+                const selectedOption = select.options[select.selectedIndex];
+                const weightPerPc = parseFloat(selectedOption.getAttribute("data-weight")) || 0.0;
+                totalWeight += qtyVal * weightPerPc;
+            }
+        });
+        
+        document.getElementById("tallyPieces").textContent = `${totalPieces} pcs`;
+        document.getElementById("tallyWeight").textContent = `${totalWeight.toFixed(3)} kg`;
+    }
+</script>
+
+{% endblock %}

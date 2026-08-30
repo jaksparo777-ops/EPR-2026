@@ -1,0 +1,2022 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<style>
+.calendar-weight-cell:focus {
+    outline: 2px solid #6366f1 !important;
+    outline-offset: -1px;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.6) !important;
+    background: rgba(99, 102, 241, 0.25) !important;
+}
+
+.tab-container {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+    background: rgba(255,255,255,0.03);
+    padding: 6px;
+    border-radius: 16px;
+    width: fit-content;
+    border: 1px solid var(--border-soft);
+}
+
+.tab-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    padding: 10px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.05);
+}
+
+.tab-btn.active {
+    background: var(--accent-blue);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    padding: 24px;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+.entry-grid {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 991px) {
+    input.flatpickr-input.tx-date-picker-alt-input,
+    input.tx-date-picker-alt-input,
+    .tx-date-picker-alt-input {
+        width: 100% !important;
+        height: 40px !important;
+        background: rgba(0, 0, 0, 0.25) !important;
+        border: 1px solid var(--border-soft) !important;
+        border-radius: 10px !important;
+        color: #fbbf24 !important;
+        font-weight: 700 !important;
+        padding-left: 62px !important;
+        padding-right: 12px !important;
+        font-size: 13px !important;
+        cursor: pointer !important;
+    }
+
+    .stats-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+    }
+    .entry-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+    }
+    .tab-container {
+        width: 100%;
+        display: flex;
+    }
+    .tab-btn {
+        flex: 1;
+        text-align: center;
+        padding: 10px 8px;
+        font-size: 13px;
+    }
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+    .heat-btn {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        border: 1px solid var(--border-soft);
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+
+    .heat-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .heat-btn.used {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .heat-btn.active {
+        background: var(--accent-blue) !important;
+        color: white !important;
+        border-color: var(--accent-blue) !important;
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        transform: scale(1.1);
+    }
+
+    .today-analytics-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24px 32px;
+    }
+    .analytics-stats {
+        display: flex;
+        gap: 48px;
+        align-items: center;
+    }
+
+    .mobile-casting-recent, .mobile-casting-history, .mobile-casting-summary {
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .desktop-table-view {
+            display: none !important;
+        }
+        .mobile-casting-recent, .mobile-casting-history, .mobile-casting-summary {
+            display: flex !important;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .header-section {
+            margin-bottom: 10px !important;
+            gap: 8px !important;
+        }
+        .header-section h1 {
+            font-size: 18px !important;
+            margin-bottom: 0 !important;
+        }
+        .header-section p {
+            display: none !important;
+        }
+        .header-section .datepicker-container {
+            height: 32px !important;
+            padding: 4px 8px !important;
+        }
+        .header-section .datepicker-container input {
+            font-size: 12px !important;
+            width: 90px !important;
+        }
+        
+        .today-analytics-card {
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 10px 14px !important;
+            border-radius: 12px !important;
+        }
+        .today-analytics-card .stat-label {
+            font-size: 11px !important;
+        }
+        .today-analytics-card .analytics-stats {
+            gap: 16px !important;
+            width: auto !important;
+        }
+        .today-analytics-card .stat-value {
+            font-size: 18px !important;
+        }
+        .today-analytics-card .stat-value span {
+            font-size: 10px !important;
+        }
+
+        .tab-container {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            gap: 6px !important;
+            padding: 4px 0 8px 0 !important;
+            margin-bottom: 12px !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .tab-container::-webkit-scrollbar {
+            display: none;
+        }
+        .tab-container .tab-btn {
+            flex: 0 0 auto !important;
+            padding: 6px 12px !important;
+            font-size: 11px !important;
+            border-radius: 8px !important;
+            white-space: nowrap !important;
+        }
+
+        .entry-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+        .card {
+            padding: 12px !important;
+            border-radius: 12px !important;
+        }
+        #heat-buttons-container {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            gap: 6px !important;
+            padding: 2px 0 6px 0 !important;
+            scrollbar-width: none;
+        }
+        #heat-buttons-container::-webkit-scrollbar {
+            display: none;
+        }
+        .heat-btn {
+            flex: 0 0 auto !important;
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 12px !important;
+            padding: 0 !important;
+        }
+
+        .sheet-grid-container {
+            padding: 12px 10px !important;
+        }
+        .sheet-grid-container table {
+            min-width: 820px !important;
+        }
+        .sheet-grid-container th, .sheet-grid-container td {
+            padding: 4px 1px !important;
+            font-size: 10px !important;
+        }
+        .sheet-grid-container th:first-child, .sheet-grid-container td:first-child {
+            width: 100px !important;
+            min-width: 100px !important;
+            padding: 6px 4px !important;
+        }
+        .sheet-grid-container .calendar-weight-cell {
+            min-height: 28px !important;
+            border-radius: 6px !important;
+        }
+        .sheet-grid-container .badge {
+            padding: 2px 3px !important;
+            font-size: 10px !important;
+        }
+
+        #adjustmentDrawer {
+            width: 100% !important;
+            max-width: 100vw !important;
+            padding: 16px 12px !important;
+        }
+        #adjustmentDrawer h2 {
+            font-size: 18px !important;
+        }
+        #adjustmentForm > div {
+            gap: 12px !important;
+        }
+    }
+</style>
+
+<div class="header-section" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+    <div>
+        <h1 style="margin: 0; font-size: 22px; display: flex; align-items: center;">
+            Casting Operations
+            <span class="header-info-badge" tabindex="0" data-tooltip="Record daily foundry heats, liquid metal pour weights, item quantities, and manage raw casting stock." data-tooltip-pos="right" aria-label="Casting Operations Info">ℹ️</span>
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 12px; margin: 2px 0 0 0;">Manage daily heat entries & monitor casting stock</p>
+    </div>
+    <div class="datepicker-container" onclick="if(document.getElementById('casting-date')._flatpickr) document.getElementById('casting-date')._flatpickr.open()" style="display: flex; align-items: center; gap: 6px; background: var(--card-dark); border: 1px solid var(--border-soft); padding: 4px 10px; border-radius: 10px; height: 34px; cursor: pointer;">
+        <label style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0; cursor: pointer;">Date:</label>
+        <input type="text" id="casting-date" placeholder="Select Date" style="background: transparent; border: none; color: var(--text-primary); font-size: 13px; font-weight: 700; width: 105px; cursor: pointer; padding: 0; outline: none;">
+    </div>
+</div>
+
+<!-- TOP CARDS -->
+<div class="stats-grid" style="grid-template-columns: 1fr; margin-bottom: 12px;">
+    <div class="card stat-card today-analytics-card">
+        <div>
+            <div class="stat-label" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-blue);">Analytics ({{ selected_date }})</div>
+        </div>
+        <div class="analytics-stats">
+            <div class="stat-value" style="color: #60a5fa; margin-top: 0; font-size: 22px; display: flex; align-items: baseline; gap: 6px;">
+                <span style="font-size: 11px; color: var(--text-secondary); font-weight: 400;">Heats:</span>
+                {{ today_heats }}
+            </div>
+            <div class="stat-value" style="color: #f59e0b; margin-top: 0; font-size: 22px; display: flex; align-items: baseline; gap: 6px;">
+                <span style="font-size: 11px; color: var(--text-secondary); font-weight: 400;">Weight:</span>
+                {{ today_weight }} <span style="font-size: 12px; font-weight: 600;">kg</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-container">
+    <button class="tab-btn active" id="entry-btn" onclick="showTab('entry')">Daily Entry</button>
+    <button class="tab-btn" id="all-btn" onclick="showTab('all')">All Entries</button>
+    <button class="tab-btn" id="summary-btn" onclick="showTab('summary')">Summary</button>
+    <button class="tab-btn" id="sheet-btn" onclick="showTab('sheet')">Casting Calendar Sheet</button>
+</div>
+
+<!-- DAILY ENTRY -->
+<div id="entry-tab">
+    <div class="entry-grid">
+        <div class="card">
+            <h3 style="margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="plus-circle" style="width: 20px; color: var(--accent-blue);"></i> New Heat Entry
+                </div>
+                {% if last_heat_items %}
+                <button type="button" onclick="cloneLastHeat()" 
+                        style="background: rgba(255,255,255,0.05); color: var(--accent-blue); border: 1px solid var(--border-soft); padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                    <i data-lucide="copy" style="width: 14px;"></i> Copy Last Heat Items
+                </button>
+                {% endif %}
+            </h3>
+
+            <form method="POST" id="casting-form">
+                {% csrf_token %}
+                <input type="hidden" name="edit_id" id="edit-id">
+                <input type="hidden" name="date" id="casting-date-form-input">
+                
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Transaction Date</label>
+                    <div style="position:relative;">
+                        <input type="text" id="casting-tx-date-input" style="width:100%; height:40px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); border-radius:10px; color:#fbbf24; font-weight:700; padding:0 12px 0 46px !important; font-size:13px; cursor:pointer;" readonly>
+                        <div id="tx-date-badge" style="position:absolute; left:8px; top:6px; width:28px; height:28px; background:#1e293b; border:1px solid #6366f1; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; overflow:hidden; z-index:5; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">
+                            <div id="tx-date-badge-month" style="background:#4f46e5; color:#ffffff; font-size:7px; font-weight:900; width:100%; text-align:center; line-height:10px; text-transform:uppercase; letter-spacing:0.5px;">JUL</div>
+                            <div id="tx-date-badge-day" style="color:#fbbf24; font-size:12px; font-weight:900; line-height:16px;">25</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <label style="margin-bottom: 0;">Heat Number</label>
+                        <button type="button" onclick="addNewHeat()" 
+                                style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                            + Add Heat
+                        </button>
+                    </div>
+                    <div id="heat-buttons-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
+                        {% for i in heats_range %}
+                        <button type="button" 
+                                class="heat-btn {% if i|stringformat:'s' in used_heats_today %}used{% endif %}" 
+                                onclick="selectHeat('{{ i }}')" 
+                                id="heat-btn-{{ i }}">
+                            {{ i }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="heat_no" id="heat-no" required>
+                </div>
+
+                <div class="form-group">
+                    <label>POURED BY (CASTING TEAM / CASTER)</label>
+                    <select name="poured_by" id="poured-by-select" style="width: 100%; background:rgba(255,255,255,0.05); border:1px solid var(--border-soft); color:white; padding:12px; border-radius:12px; font-size:14px; outline:none;">
+                        <option value="">-- Select Caster --</option>
+                        <optgroup label="INTERNAL STAFF (IN-HOUSE)">
+                            {% for w in casting_workers %}
+                            <option value="w_{{ w.id }}">{{ w.name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        <optgroup label="EXTERNAL JOB WORK UNITS">
+                            {% for jw in casting_job_workers %}
+                            <option value="jw_{{ jw.id }}">{{ jw.name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                    </select>
+                </div>
+
+
+                <div id="items-container">
+                    <!-- Dynamic rows go here -->
+                </div>
+
+                <button type="button" id="add-row-btn" onclick="addItemRow()" style="width: 100%; margin-bottom: 20px; background: rgba(255,255,255,0.05); color: var(--text-primary);">
+                    + ADD ITEM
+                </button>
+
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea name="notes" id="notes-input" rows="3" placeholder="Additional details..." style="width: 100%;"></textarea>
+                </div>
+
+                <button type="submit" id="submit-btn" style="width: 100%; margin-top: 8px;">
+                    <i data-lucide="save" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"></i> Save Entry
+                </button>
+
+                <button type="button" id="reset-btn" onclick="resetForm()" style="width: 100%; margin-top: 12px; background: rgba(255,255,255,0.05); color: var(--text-secondary); display: none;">
+                    Cancel Edit
+                </button>
+            </form>
+        </div>
+
+        <div class="card" style="padding: 0;">
+            <div style="padding: 24px 32px; border-bottom: 1px solid var(--border-soft); display: flex; align-items: center; justify-content: space-between;">
+                <h3 style="margin-bottom: 0;">Heat Entries ({{ selected_date }})</h3>
+                <i data-lucide="history" style="color: var(--text-secondary); width: 20px;"></i>
+            </div>
+            <div style="padding: 0 32px 32px 32px;">
+                <div class="table-responsive desktop-table-view">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Heat</th>
+                                <th>Item</th>
+                                <th>Client</th>
+                                <th style="text-align: right;">Pcs</th>
+                                <th style="text-align: right;">Wt</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for group in recent %}
+                            <tr style="background: rgba(255,255,255,0.03); border-left: 3px solid var(--accent-blue);">
+                                <td colspan="2" style="font-weight: 700; color: var(--accent-blue); font-size: 13px; padding: 12px 16px;">
+                                    <i data-lucide="calendar" style="width:12px; height:12px; vertical-align: middle; margin-right:4px;"></i> {{ group.date }} 
+                                    <span style="margin-left: 10px;">Heat: {{ group.heat_no }}</span>
+                                </td>
+                                <td colspan="2" style="text-align: right; font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; vertical-align: middle;">Heat Totals:</td>
+                                <td style="text-align: right; font-weight: 700; color: #60a5fa; vertical-align: middle;">{{ group.total_pcs }}</td>
+                                <td style="text-align: right; color: #f59e0b; font-weight: 600; vertical-align: middle;">{{ group.total_wt }}</td>
+                                <td></td>
+                            </tr>
+                            {% for row in group.items %}
+                            <tr>
+                                <td colspan="2"></td>
+                                <td style="font-weight: 500; padding-left: 20px;">{{ row.item_name }}</td>
+                                <td style="font-size: 13px; color: var(--text-secondary);">
+                                    {% if row.client_name == 'OM' %}
+                                        <span class="badge" style="background: rgba(129, 140, 248, 0.2); color: #818cf8; border: 1px solid rgba(129, 140, 248, 0.3); font-size: 10px; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                            OM 🔄 <span style="font-weight: 500; font-size: 8px; text-transform: uppercase;">Internal</span>
+                                        </span>
+                                    {% else %}
+                                        {{ row.client_name|default:"-" }}
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right; font-weight: 700;">{{ row.quantity }}</td>
+                                <td style="text-align: right; color: var(--text-secondary);">
+                                    {% if row.actual_scale_weight > 0 %}
+                                        <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700;">
+                                            {{ row.actual_scale_weight }} kg <span style="font-size: 8px; font-weight: 500; opacity: 0.8; margin-left:2px;">(SCALE)</span>
+                                        </span>
+                                        <div style="font-size: 9px; opacity: 0.5; margin-top: 2px;">Calc: {{ row.weight }} kg</div>
+                                    {% else %}
+                                        {{ row.weight }}
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                        <button type="button" class="tab-btn" style="padding: 4px 8px; font-size: 10px; background: rgba(59, 130, 246, 0.1); color: #60a5fa;" 
+                                            onclick="editEntry(this.dataset)"
+                                            data-id="{{ row.id }}"
+                                            data-heat_no="{{ row.heat_no }}"
+                                            data-client_id="{{ row.client_id }}"
+                                            data-item_id="{{ row.item_id }}"
+                                            data-quantity="{{ row.quantity }}"
+                                            data-weight="{{ row.weight }}"
+                                            data-actual_scale_weight="{{ row.actual_scale_weight }}"
+                                            data-notes="{{ row.notes }}"
+                                            data-date="{{ row.created_at|date:'Y-m-d' }}"
+                                            data-poured_by="{{ row.poured_by }}">
+                                            Edit
+                                        </button>
+                                        <a href="?delete_id={{ row.id }}{% if selected_date %}&date={{ selected_date }}{% endif %}" class="tab-btn" style="padding: 4px 8px; font-size: 10px; background: rgba(239, 68, 68, 0.1); color: #ef4444; text-decoration: none;"
+                                            onclick="return confirm('Are you sure?')">
+                                            Del
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-secondary);">No entries found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ULTRA-COMPACT MOBILE RECENT CASTING LIST -->
+                <div class="mobile-casting-recent" style="padding-top: 12px;">
+                    {% for group in recent %}
+                    <div style="background: rgba(99, 102, 241, 0.12); padding: 6px 10px; border-radius: 8px; font-weight: 800; font-size: 11px; color: #818cf8; text-transform: uppercase; margin-top: 6px; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                        <span>🔥 Heat: {{ group.heat_no }} • {{ group.date }}</span>
+                        <span>{{ group.total_pcs }} pcs ({{ group.total_wt }} kg)</span>
+                    </div>
+                    {% for row in group.items %}
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 4px; gap: 6px;">
+                        <div style="display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto;">
+                            <span style="font-size: 12px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ row.item_name }}</span>
+                            <span style="font-size: 10px; color: var(--text-secondary);">{{ row.client_name|default:"-" }}</span>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 800; color: white; flex-shrink: 0;">
+                            {{ row.quantity }} pcs
+                        </div>
+                        <div style="flex-shrink: 0; display: flex; gap: 4px;">
+                            <button type="button" class="tab-btn" style="padding: 4px 6px; font-size: 10px; background: rgba(59, 130, 246, 0.15); color: #60a5fa;"
+                                onclick="editEntry(this.dataset)"
+                                data-id="{{ row.id }}"
+                                data-heat_no="{{ row.heat_no }}"
+                                data-client_id="{{ row.client_id }}"
+                                data-item_id="{{ row.item_id }}"
+                                data-quantity="{{ row.quantity }}"
+                                data-weight="{{ row.weight }}"
+                                data-actual_scale_weight="{{ row.actual_scale_weight }}"
+                                data-notes="{{ row.notes }}"
+                                data-date="{{ row.created_at|date:'Y-m-d' }}"
+                                data-poured_by="{{ row.poured_by }}">
+                                Edit
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% empty %}
+                    <div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:12px;">No entries found.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ALL ENTRIES TAB -->
+<div id="all-tab" style="display:none;">
+    <div class="card" style="padding: 0;">
+        <div style="padding: 24px 32px; border-bottom: 1px solid var(--border-soft);">
+            <h3 style="margin-bottom: 0;">Full Transaction History</h3>
+        </div>
+        <div style="padding: 0 32px 32px 32px;">
+            <div class="table-responsive desktop-table-view">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Heat No</th>
+                            <th>Item</th>
+                            <th>Client</th>
+                            <th style="text-align: right;">Pcs</th>
+                            <th style="text-align: right;">Wt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in all_entries %}
+                        <tr>
+                            <td>{{ row.created_at|date:"d/m/Y" }}</td>
+                            <td style="font-weight: 700;">{{ row.heat_no|default:"-" }}</td>
+                            <td>{{ row.item.code }} - {{ row.item.name }}</td>
+                            <td>
+                                {% if row.client.name == 'OM' %}
+                                    <span class="badge" style="background: rgba(129, 140, 248, 0.2); color: #818cf8; border: 1px solid rgba(129, 140, 248, 0.3); font-size: 10px; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                        OM 🔄 <span style="font-weight: 500; font-size: 8px; text-transform: uppercase;">Internal</span>
+                                    </span>
+                                {% else %}
+                                    {{ row.client.name|default:"-" }}
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right; font-weight: 700;">{{ row.quantity }}</td>
+                            <td style="text-align: right;">{{ row.weight }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 48px; color: var(--text-secondary);">No entries found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ULTRA-COMPACT MOBILE FULL HISTORY LIST -->
+            <div class="mobile-casting-history" style="padding-top: 12px;">
+                {% for row in all_entries %}
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 4px; gap: 6px;">
+                    <div style="display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto;">
+                        <span style="font-size: 12px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ row.item.code }}</span>
+                        <span style="font-size: 10px; color: var(--text-secondary);">Heat #{{ row.heat_no|default:"-" }} • {{ row.created_at|date:"d/m" }}</span>
+                    </div>
+                    <div style="font-size: 12px; font-weight: 800; color: white; flex-shrink: 0;">
+                        {{ row.quantity }} pcs
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:12px;">No entries found.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SUMMARY TAB -->
+<div id="summary-tab" style="display:none;">
+    <div class="card" style="padding: 0;">
+        <div style="padding: 24px 32px; border-bottom: 1px solid var(--border-soft); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <h3 style="margin-bottom: 0;">Stock Summary by Item</h3>
+            {% if user.is_staff %}
+            <button type="button" onclick="openAdjustmentDrawer()"
+                    style="background:#f59e0b; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px; display:flex; align-items:center; gap:6px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); transition: transform 0.2s;"
+                    onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+                ⚙️ Adjust Inventory
+            </button>
+            {% endif %}
+        </div>
+        <div style="padding: 0 32px 32px 32px;">
+            <div class="table-responsive desktop-table-view">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Code</th>
+                            <th>Item Name</th>
+                            <th style="text-align: right;">Total Pcs</th>
+                            <th style="text-align: right;">Total Weight</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in summary_data %}
+                        <tr>
+                            <td style="font-weight: 700; color: #60a5fa;">{{ row.item__code }}</td>
+                            <td>{{ row.item__name }}</td>
+                            <td style="text-align: right; font-weight: 700;">{{ row.total_pcs }}</td>
+                            <td style="text-align: right;">{{ row.total_wt }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 48px; color: var(--text-secondary);">No data available.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ULTRA-COMPACT MOBILE CASTING SUMMARY LIST -->
+            <div class="mobile-casting-summary" style="padding-top: 12px;">
+                {% for row in summary_data %}
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius: 10px; margin-bottom: 4px; gap: 6px;">
+                    <div style="display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto;">
+                        <span style="font-size: 12px; font-weight: 700; color: #60a5fa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ row.item__code }}</span>
+                        <span style="font-size: 10px; color: var(--text-secondary);">{{ row.item__name }}</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
+                        <span style="font-size: 11px; font-weight: 800; color: white;">{{ row.total_pcs }} pcs</span>
+                        <span style="font-size: 11px; font-weight: 800; color: #f59e0b;">{{ row.total_wt }} kg</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:12px;">No data available.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MONTHLY CALENDAR SHEET TAB -->
+<div id="sheet-tab" style="display:none; width: 100%;">
+    <div class="card" style="padding: 0; width: 100%;">
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-soft); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h3 style="margin-bottom: 2px; font-size: 18px; font-weight: 800; color: white;">Monthly Casting Sheet Grid</h3>
+                <p style="margin: 0; font-size: 12px; color: var(--text-secondary);">Click any day cell to view or edit casting weight for <b>{{ month_name }}</b></p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <a href="?month={{ prev_month_str }}&tab=sheet" class="tab-btn" style="padding: 8px 14px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-soft); border-radius: 10px; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                    ◀ Prev Month
+                </a>
+                
+                <div class="datepicker-container" onclick="if(document.getElementById('sheet-month-picker')._flatpickr) document.getElementById('sheet-month-picker')._flatpickr.open()" style="display: flex; align-items: center; gap: 8px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); padding: 6px 14px; border-radius: 10px; cursor: pointer; height: 38px;">
+                    <span style="font-size: 13px;">📅</span>
+                    <input type="text" id="sheet-month-picker" value="{{ month_val }}" style="background: transparent; border: none; color: #818cf8; font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; outline: none; width: 100px;">
+                </div>
+
+                <a href="?month={{ next_month_str }}&tab=sheet" class="tab-btn" style="padding: 8px 14px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border-soft); border-radius: 10px; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                    Next Month ▶
+                </a>
+
+                <a href="?tab=sheet" class="tab-btn" style="padding: 8px 14px; font-size: 12px; font-weight: 800; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; text-decoration: none;">
+                    This Month
+                </a>
+            </div>
+        </div>
+        <div class="sheet-grid-container" style="padding: 24px 32px 32px 32px;">
+            <div class="table-responsive" style="overflow-x: auto; max-width: 100%;">
+                <table style="width: 100%; border-collapse: collapse; min-width: 1200px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-soft);">
+                            <th style="padding: 12px 8px; text-align: left; font-size: 11px; font-weight: bold; width: 180px; position: sticky; left: 0; background: #111827; z-index: 10;">Caster (Job Worker)</th>
+                            {% for d in days_metadata %}
+                            <th id="day-col-{{ d.day }}" style="padding: 12px 4px; text-align: center; font-size: 10px; font-weight: bold; width: 35px; {% if d.is_today %}color: #60a5fa; background: rgba(59, 130, 246, 0.12); border-radius: 6px;{% elif d.is_holiday %}color: #f87171; background: rgba(239, 68, 68, 0.05);{% endif %}">
+                                {% if d.is_today %}<span style="background: #2563eb; color: white; padding: 2px 5px; border-radius: 4px; font-size: 9px; box-shadow: 0 0 8px rgba(37, 99, 235, 0.6);">{{ d.day }}</span>{% else %}{{ d.day }}{% endif %}
+                            </th>
+                            {% endfor %}
+                            <th style="padding: 12px 8px; text-align: right; font-size: 11px; font-weight: bold; width: 100px; color: #f59e0b;">Total (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in sheet_data %}
+                        <tr style="border-bottom: 1px solid var(--border-soft);">
+                            <td style="padding: 14px 8px; font-weight: bold; position: sticky; left: 0; background: #111827; z-index: 10;">
+                                <div>{{ row.caster.name }}</div>
+                                <div style="font-size: 9px; color: var(--text-secondary); font-weight: normal; text-transform: uppercase;">{{ row.caster.type }}</div>
+                            </td>
+                            {% for day in row.days %}
+                            <td style="padding: 10px 2px; text-align: center; {% if day.is_today %}background: rgba(59, 130, 246, 0.06);{% elif day.is_holiday %}background: rgba(239, 68, 68, 0.02);{% endif %}">
+                                <div class="calendar-weight-cell" 
+                                     tabindex="0"
+                                     data-caster-id="{{ row.caster.id }}" 
+                                     data-date="{{ month_val }}-{{ day.day|stringformat:'02d' }}" 
+                                     data-day="{{ day.day }}"
+                                     data-weight="{{ day.weight|default:'' }}"
+                                     onclick="editCellWeight(this)"
+                                     onkeydown="handleGridCellKeydown(event, this)"
+                                     style="min-height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 8px; border: 1px solid {% if day.is_today %}rgba(59, 130, 246, 0.4){% elif day.is_holiday %}rgba(239, 68, 68, 0.25){% else %}transparent{% endif %}; transition: all 0.2s; font-size: 11px; font-weight: bold; outline: none;">
+                                    {% if day.weight %}
+                                        <span class="badge" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25); padding: 4px 6px; border-radius: 6px; width: 100%; text-align: center;">
+                                            {{ day.weight }}
+                                        </span>
+                                    {% else %}
+                                        <span style="opacity: {% if day.is_today %}0.8{% elif day.is_holiday %}0.4{% else %}0.2{% endif %}; font-weight: {% if day.is_today or day.is_holiday %}bold{% else %}normal{% endif %}; color: {% if day.is_today %}#60a5fa{% elif day.is_holiday %}#f87171{% else %}inherit{% endif %};">-</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            {% endfor %}
+                            <td style="padding: 14px 8px; text-align: right; font-weight: 800; color: #f59e0b;" id="total-wt-{{ row.caster.id }}">
+                                {{ row.total_weight }} kg
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="34" style="text-align: center; padding: 48px; color: var(--text-secondary);">No casters found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inline Edit Weight Modal -->
+<div id="weight-edit-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div class="card" style="width: 320px; padding: 24px; position: relative; background: #111827; border: 1px solid var(--border-soft); border-radius: 16px;">
+        <h4 style="margin: 0 0 8px 0; color: white;" id="modal-caster-title">Edit Casting Weight</h4>
+        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 16px 0;" id="modal-date-subtitle">Date: 2026-07-10</p>
+        
+        <input type="hidden" id="modal-caster-id">
+        <input type="hidden" id="modal-date">
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label style="font-size: 10px; font-weight: bold; color: var(--text-secondary); text-transform: uppercase;">Casting Weight (kg)</label>
+            <input type="number" step="0.001" id="modal-weight-input" style="width: 100%; text-align: center; font-size: 24px; font-weight: 800; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius: 10px; color: white; outline: none;" placeholder="0.0" onkeydown="handleModalInputKeydown(event)">
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px;">
+            <button type="button" class="tab-btn" onclick="closeWeightModal()" style="background: rgba(255,255,255,0.05); color: var(--text-secondary); width: 100%; border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px;">Cancel</button>
+            <button type="button" class="tab-btn" onclick="saveWeightModal()" style="background: var(--accent-blue); color: white; width: 100%; border: none; border-radius: 8px; padding: 10px; font-weight: bold;">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let pouredByTS = null;
+function showTab(tab){
+    document.getElementById('entry-tab').style.display = 'none';
+    document.getElementById('all-tab').style.display = 'none';
+    document.getElementById('summary-tab').style.display = 'none';
+    document.getElementById('sheet-tab').style.display = 'none';
+    
+    const target = document.getElementById(tab + '-tab');
+    if (target) {
+        target.style.display = 'block';
+    }
+    
+    const statsGrid = document.querySelector('.stats-grid');
+    if (statsGrid) {
+        statsGrid.style.display = (tab === 'entry') ? 'grid' : 'none';
+    }
+
+    document.querySelectorAll('.tab-container .tab-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(tab + '-btn');
+    if (activeBtn) activeBtn.classList.add('active');
+    
+    if (tab === 'sheet') {
+        setTimeout(() => {
+            const activeCol = document.getElementById('day-col-{{ current_day }}');
+            if (activeCol) {
+                const container = document.querySelector('.sheet-grid-container .table-responsive');
+                if (container) {
+                    const scrollLeft = Math.max(0, activeCol.offsetLeft - 120);
+                    container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+                }
+            }
+        }, 100);
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    window.history.replaceState(null, '', url);
+}
+
+const clientsMaster = [
+    {% for c in clients %}
+    { id: "{{ c.id }}", name: "{% if c.name == 'OM' %}OM 🔄 [Internal]{% else %}{{ c.name }}{% endif %}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+const itemsMaster = [
+    {% for item in items %}
+    {% if not item.components.exists %}
+    { 
+        id: "{{ item.id }}", 
+        code: "{{ item.code }}", 
+        name: "{{ item.name }}", 
+        weight: {{ item.casting_weight|default:0 }},
+        client_id: "{{ item.client.id|default:'' }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endif %}
+    {% endfor %}
+];
+
+let rowCount = 0;
+let isEditing = false;
+
+function addItemRow(data = null) {
+    const id = rowCount++;
+    const container = document.getElementById('items-container');
+    
+    // Smart Inheritance: Default to the client from the last row if no data provided
+    let initialClientId = data ? data.client_id : "";
+    if (!data) {
+        const lastRow = container.querySelector('.item-row-block:last-child');
+        if (lastRow) {
+            const lastClientSelect = lastRow.querySelector('.client-select');
+            if (lastClientSelect && lastClientSelect.tomselect) {
+                initialClientId = lastClientSelect.tomselect.getValue();
+            }
+        }
+    }
+
+    const row = document.createElement('div');
+    row.className = 'item-row-block card';
+    row.id = `row-${id}`;
+    row.style = 'margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 10px; position: relative;';
+
+    row.innerHTML = `
+        ${!isEditing ? `<div onclick="removeRow(${id})" style="position:absolute; right:8px; top:6px; cursor:pointer; color:#ef4444; font-weight:bold; font-size:16px; z-index:10;">×</div>` : ''}
+        
+        <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 8px; margin-bottom: 8px; padding-right: 18px;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.7; margin-bottom: 2px; display: block;">Client</label>
+                <select name="${isEditing ? 'client' : 'client[]'}" class="client-select" id="client-select-${id}">
+                    <option value="">Select Client</option>
+                    ${clientsMaster.map(c => `<option value="${c.id}" ${initialClientId == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.7; margin-bottom: 2px; display: block;">Item</label>
+                <select name="${isEditing ? 'item' : 'item[]'}" class="item-select" id="item-select-${id}">
+                    <option value="">Select Item</option>
+                    ${itemsMaster.map(it => `<option value="${it.id}">${it.code} - ${it.name}</option>`).join('')}
+                </select>
+            </div>
+        </div>
+
+        <div class="input-row" style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 8px;">
+            <div>
+                <label style="font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.7; margin-bottom: 2px; display: block;">Pieces</label>
+                <input type="number" name="${isEditing ? 'quantity' : 'quantity[]'}" class="pcs-input" value="${data ? data.quantity : ''}" oninput="calculateWeight(${id})" style="width:100%; height:36px; padding:4px 8px; font-size:13px; font-weight:700;">
+            </div>
+            <div>
+                <label style="font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.7; margin-bottom: 2px; display: block;">Calc Wt (kg)</label>
+                <input type="number" step="0.001" name="${isEditing ? 'weight' : 'weight[]'}" class="wt-input" value="${data ? data.weight : ''}" style="width:100%; height:36px; padding:4px 8px; font-size:13px; font-weight:700;">
+            </div>
+            <div>
+                <label style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #f59e0b; margin-bottom: 2px; display: block;">Scale Wt (kg)</label>
+                <input type="number" step="0.001" name="${isEditing ? 'actual_scale_weight' : 'actual_scale_weight[]'}" class="scale-wt-input" value="${data && data.actual_scale_weight ? data.actual_scale_weight : ''}" placeholder="Optional" style="width:100%; height:36px; border: 1px dashed rgba(245,158,11,0.4); border-radius: 8px; background: rgba(255,255,255,0.05); color: white; padding: 4px 8px; font-size: 13px; outline: none; font-weight:700;">
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(row);
+    
+    const cTS = new TomSelect(`#client-select-${id}`, { create: false, placeholder: 'Client...' });
+    const iTS = new TomSelect(`#item-select-${id}`, {
+        create: false,
+        placeholder: 'Item...',
+        valueField: 'value',
+        labelField: 'text',
+        searchField: ['text'],
+        score: function(search) {
+            search = search.toLowerCase().trim();
+            return function(item) {
+                if (!search) return 1;
+                const text = item.text.toLowerCase();
+                const cleanCode = item.text.replace(/^🧩 \[SINGLE\]\s*|^📦 \[SET\]\s*/i, '').toLowerCase().trim();
+                if (cleanCode.startsWith(search)) {
+                    return 10;
+                } else if (text.includes(search)) {
+                    return 1;
+                }
+                return 0;
+            };
+        }
+    });
+    
+    let rowUpdating = false;
+
+    cTS.on('change', function(clientId) {
+        if (rowUpdating) return;
+        rowUpdating = true;
+        
+        const itemId = iTS.getValue();
+        
+        if (clientId) {
+            // Filter Item options to only those for this client
+            const filtered = itemsMaster.filter(it => it.client_id == clientId);
+            
+            iTS.clearOptions();
+            iTS.addOption({value: '', text: 'Select Item'});
+            filtered.forEach(it => {
+                iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+            });
+            
+            const currentItem = itemsMaster.find(it => it.id == itemId);
+            if (currentItem && currentItem.client_id == clientId) {
+                iTS.setValue(itemId);
+            } else {
+                iTS.setValue('');
+            }
+        } else {
+            // Restore all items
+            iTS.clearOptions();
+            iTS.addOption({value: '', text: 'Select Item'});
+            itemsMaster.forEach(it => {
+                iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+            });
+            iTS.setValue(itemId);
+        }
+        
+        rowUpdating = false;
+    });
+
+    iTS.on('change', function(itemId) {
+        calculateWeight(id);
+
+        if (rowUpdating) return;
+        rowUpdating = true;
+        
+        if (itemId) {
+            const item = itemsMaster.find(it => it.id == itemId);
+            if (item && item.client_id) {
+                const currentClient = cTS.getValue();
+                if (currentClient != item.client_id) {
+                    cTS.setValue(item.client_id);
+                    
+                    const filtered = itemsMaster.filter(it => it.client_id == item.client_id);
+                    iTS.clearOptions();
+                    iTS.addOption({value: '', text: 'Select Item'});
+                    filtered.forEach(it => {
+                        iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+                    });
+                    iTS.setValue(itemId);
+                }
+            }
+        }
+        
+        rowUpdating = false;
+    });
+    
+    // Handle initial state for editing / cloning / inheritance
+    if (initialClientId || (data && data.item_id)) {
+        rowUpdating = true;
+        if (data && data.client_id) {
+            cTS.setValue(data.client_id);
+            const filtered = itemsMaster.filter(it => it.client_id == data.client_id);
+            iTS.clearOptions();
+            iTS.addOption({value: '', text: 'Select Item'});
+            filtered.forEach(it => {
+                iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+            });
+        } else if (initialClientId) {
+            cTS.setValue(initialClientId);
+            const filtered = itemsMaster.filter(it => it.client_id == initialClientId);
+            iTS.clearOptions();
+            iTS.addOption({value: '', text: 'Select Item'});
+            filtered.forEach(it => {
+                iTS.addOption({value: it.id, text: `${it.code} - ${it.name}`});
+            });
+        }
+        if (data && data.item_id) {
+            iTS.setValue(data.item_id);
+        }
+        rowUpdating = false;
+    }
+}
+
+function removeRow(id) {
+    if (document.querySelectorAll('.item-row-block').length > 1) {
+        document.getElementById(`row-${id}`).remove();
+    }
+}
+
+function calculateWeight(id) {
+    const row = document.getElementById(`row-${id}`);
+    const itemId = row.querySelector('.item-select').value;
+    const pcs = parseFloat(row.querySelector('.pcs-input').value || 0);
+    const item = itemsMaster.find(it => it.id == itemId);
+    if (item) {
+        row.querySelector('.wt-input').value = (item.weight * pcs).toFixed(3);
+    }
+}
+function createHeatButton(n) {
+    const container = document.getElementById('heat-buttons-container');
+    if (!container) return null;
+    let btn = document.getElementById('heat-btn-' + n);
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'heat-btn';
+        btn.id = 'heat-btn-' + n;
+        btn.onclick = function() { selectHeat(n); };
+        btn.innerText = n;
+        container.appendChild(btn);
+    }
+    return btn;
+}
+
+function selectHeat(n) {
+    if (!n) return;
+    let btn = document.getElementById('heat-btn-' + n);
+    if (!btn) {
+        const existingBtns = document.querySelectorAll('.heat-btn');
+        let maxNum = 0;
+        existingBtns.forEach(b => {
+            const val = parseInt(b.innerText);
+            if (!isNaN(val) && val > maxNum) maxNum = val;
+        });
+        const targetNum = parseInt(n);
+        if (!isNaN(targetNum) && targetNum > maxNum) {
+            for (let i = maxNum + 1; i <= targetNum; i++) {
+                createHeatButton(i);
+            }
+            btn = document.getElementById('heat-btn-' + n);
+        }
+    }
+
+    // Reset all buttons
+    document.querySelectorAll('.heat-btn').forEach(b => {
+        b.classList.remove('active');
+    });
+    
+    // Activate selected
+    if (btn) btn.classList.add('active');
+    
+    // Set hidden input
+    document.getElementById('heat-no').value = n;
+}
+
+function addNewHeat() {
+    const existingBtns = document.querySelectorAll('.heat-btn');
+    let maxNum = 0;
+    existingBtns.forEach(b => {
+        const val = parseInt(b.innerText);
+        if (!isNaN(val) && val > maxNum) maxNum = val;
+    });
+    const nextHeat = maxNum + 1;
+    createHeatButton(nextHeat);
+    selectHeat(nextHeat);
+}
+
+let castingTxDatePicker = null;
+
+function editEntry(data) {
+    isEditing = true;
+    
+    // Dataset attributes are strings, normalize them
+    const id = data.id;
+    const heatNo = data.heat_no;
+    const clientId = data.client_id;
+    const itemId = data.item_id;
+    const qty = data.quantity;
+    const weight = data.weight;
+    const notes = data.notes;
+    const pouredBy = data.poured_by;
+    const txDate = data.date;
+
+    const actualScaleWeight = data.actual_scale_weight;
+
+    document.getElementById('edit-id').value = id;
+    if (txDate) {
+        if (castingTxDatePicker) castingTxDatePicker.setDate(txDate);
+        document.getElementById('casting-date-form-input').value = txDate;
+    }
+
+    selectHeat(heatNo);
+    
+    document.getElementById('notes-input').value = notes;
+    if (pouredByTS) {
+        pouredByTS.setValue(pouredBy || '');
+    } else if (document.getElementById('poured-by-select')) {
+        document.getElementById('poured-by-select').value = pouredBy || '';
+    }
+    
+    document.getElementById('items-container').innerHTML = '';
+    addItemRow({
+        client_id: clientId,
+        item_id: itemId,
+        quantity: qty,
+        weight: weight,
+        actual_scale_weight: actualScaleWeight
+    });
+    
+    document.getElementById('add-row-btn').style.display = 'none';
+    document.getElementById('submit-btn').innerHTML = '<i data-lucide="save" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"></i> Update Entry';
+    document.getElementById('reset-btn').style.display = 'block';
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    lucide.createIcons();
+}
+
+function resetForm() {
+    isEditing = false;
+    document.getElementById('casting-form').reset();
+    if (pouredByTS) {
+        pouredByTS.setValue('', true);
+    }
+    if (castingTxDatePicker) {
+        castingTxDatePicker.setDate('{{ selected_date }}');
+    }
+    document.getElementById('casting-date-form-input').value = '{{ selected_date }}';
+    document.getElementById('edit-id').value = '';
+    document.getElementById('items-container').innerHTML = '';
+    addItemRow();
+    autoSelectCasterIfOnlyOne();
+    
+    document.getElementById('add-row-btn').style.display = 'block';
+    document.getElementById('submit-btn').innerHTML = '<i data-lucide="save" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"></i> Save Entry';
+    document.getElementById('reset-btn').style.display = 'none';
+    lucide.createIcons();
+}
+
+const lastHeatItems = {% if last_heat_items %}{{ last_heat_items|safe }}{% else %}[]{% endif %};
+
+function cloneLastHeat() {
+    if (!lastHeatItems || lastHeatItems.length === 0) {
+        alert("No previous heat items found.");
+        return;
+    }
+    
+    if (confirm("This will clear current items and copy " + lastHeatItems.length + " items from the last heat. Continue?")) {
+        const container = document.getElementById('items-container');
+        container.innerHTML = '';
+        lastHeatItems.forEach(it => {
+            addItemRow({
+                client_id: it.client_id,
+                item_id: it.item_id,
+                quantity: it.quantity || '',
+                weight: it.weight || ''
+            });
+        });
+        lucide.createIcons();
+    }
+}
+
+function autoSelectCasterIfOnlyOne() {
+    const select = document.getElementById('poured-by-select');
+    if (!select) return;
+    const options = Array.from(select.options).filter(o => o.value !== '');
+    if (options.length === 1) {
+        if (pouredByTS) {
+            pouredByTS.setValue(options[0].value);
+        } else {
+            select.value = options[0].value;
+        }
+    }
+}
+
+function updateTxDateBadge(dateObj) {
+    if (!dateObj) return;
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    const monthEl = document.getElementById("tx-date-badge-month");
+    const dayEl = document.getElementById("tx-date-badge-day");
+    if (monthEl && dayEl) {
+        monthEl.textContent = months[dateObj.getMonth()];
+        dayEl.textContent = dateObj.getDate();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Datepicker
+    flatpickr("#casting-date", {
+        altInput: true,
+        altFormat: "j/n/Y",
+        dateFormat: "Y-m-d",
+        defaultDate: '{{ selected_date }}',
+        theme: "dark",
+        onChange: function(selectedDates, dateStr, instance) {
+            window.location.href = `?date=${dateStr}`;
+        }
+    });
+
+    castingTxDatePicker = flatpickr("#casting-tx-date-input", {
+        altInput: true,
+        altInputClass: "tx-date-picker-alt-input",
+        altFormat: "j/n/Y",
+        dateFormat: "Y-m-d",
+        defaultDate: '{{ selected_date }}',
+        theme: "dark",
+        onReady: function(selectedDates, dateStr, instance) {
+            if (instance.altInput) {
+                instance.altInput.style.setProperty("padding-left", "62px", "important");
+            }
+        },
+        onChange: function(selectedDates, dateStr) {
+            document.getElementById('casting-date-form-input').value = dateStr;
+            if (selectedDates[0]) {
+                updateTxDateBadge(selectedDates[0]);
+            }
+        }
+    });
+    document.getElementById('casting-date-form-input').value = '{{ selected_date }}';
+    if (castingTxDatePicker && castingTxDatePicker.selectedDates[0]) {
+        updateTxDateBadge(castingTxDatePicker.selectedDates[0]);
+    }
+
+    // Initialize Flatpickr for Month Picker
+    flatpickr("#sheet-month-picker", {
+        plugins: [
+            new monthSelectPlugin({
+                shorthand: true,
+                dateFormat: "Y-m",
+                altFormat: "F Y",
+                theme: "dark"
+            })
+        ],
+        defaultDate: "{{ month_val }}",
+        onChange: function(selectedDates, dateStr, instance) {
+            window.location.href = `?month=${dateStr}&tab=sheet`;
+        }
+    });
+
+    const select = document.getElementById('poured-by-select');
+    if (select && typeof TomSelect !== 'undefined') {
+        pouredByTS = new TomSelect(select, { create: false, placeholder: 'Select worker...' });
+    }
+    // Custom validation logic
+    document.getElementById('casting-form').addEventListener('submit', function(e) {
+        const rows = document.querySelectorAll('.item-row-block');
+        let valid = true;
+        let errors = [];
+        
+        const heatNo = document.getElementById('heat-no').value;
+        if (!heatNo) {
+            valid = false;
+            errors.push("Please select a Heat Number.");
+        }
+        
+        const caster = document.getElementById('poured-by-select').value;
+        if (!caster) {
+            valid = false;
+            errors.push("Please select a Caster (Poured By).");
+        }
+
+        rows.forEach((row, index) => {
+            const clientVal = row.querySelector('.client-select').value;
+            const itemVal = row.querySelector('.item-select').value;
+            const pcsVal = row.querySelector('.pcs-input').value;
+            const wtVal = row.querySelector('.wt-input').value;
+            const scaleWtVal = row.querySelector('.scale-wt-input').value;
+            
+            if (scaleWtVal && parseFloat(scaleWtVal) > 0) {
+                // Scale weight override: both item and client are optional
+            } else {
+                // Standard entry
+                if (!clientVal || !itemVal || !pcsVal || !wtVal) {
+                    valid = false;
+                    errors.push(`Row ${index + 1}: Client, Item, Pieces, and Calc Wt are required.`);
+                }
+            }
+        });
+        
+        if (!valid) {
+            e.preventDefault();
+            alert(errors.join('\n'));
+        }
+    });
+
+    addItemRow();
+    autoSelectCasterIfOnlyOne();
+    
+    // Auto restore active tab
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab') || '{{ active_tab }}' || 'entry';
+    showTab(activeTab);
+    
+    lucide.createIcons();
+});
+
+let currentEditingCell = null;
+
+function getNextCalendarCell(cell) {
+    if (!cell) return null;
+    const parentTd = cell.closest('td');
+    if (!parentTd) return null;
+    const nextTd = parentTd.nextElementSibling;
+    if (nextTd) {
+        const nextCell = nextTd.querySelector('.calendar-weight-cell');
+        if (nextCell) return nextCell;
+    }
+    const tr = cell.closest('tr');
+    const nextTr = tr ? tr.nextElementSibling : null;
+    if (nextTr) {
+        const firstTd = nextTr.querySelector('td:nth-child(2)');
+        if (firstTd) return firstTd.querySelector('.calendar-weight-cell');
+    }
+    return null;
+}
+
+function getPrevCalendarCell(cell) {
+    if (!cell) return null;
+    const parentTd = cell.closest('td');
+    if (!parentTd) return null;
+    const prevTd = parentTd.previousElementSibling;
+    if (prevTd) {
+        const prevCell = prevTd.querySelector('.calendar-weight-cell');
+        if (prevCell) return prevCell;
+    }
+    const tr = cell.closest('tr');
+    const prevTr = tr ? tr.previousElementSibling : null;
+    if (prevTr) {
+        const tds = prevTr.querySelectorAll('td');
+        if (tds.length >= 2) {
+            const lastCell = tds[tds.length - 2].querySelector('.calendar-weight-cell');
+            if (lastCell) return lastCell;
+        }
+    }
+    return null;
+}
+
+function getCellBelow(cell) {
+    if (!cell) return null;
+    const tr = cell.closest('tr');
+    if (!tr) return null;
+    const nextTr = tr.nextElementSibling;
+    if (!nextTr) return null;
+    const cellIndex = Array.from(tr.children).indexOf(cell.closest('td'));
+    const targetTd = nextTr.children[cellIndex];
+    return targetTd ? targetTd.querySelector('.calendar-weight-cell') : null;
+}
+
+function getCellAbove(cell) {
+    if (!cell) return null;
+    const tr = cell.closest('tr');
+    if (!tr) return null;
+    const prevTr = tr.previousElementSibling;
+    if (!prevTr) return null;
+    const cellIndex = Array.from(tr.children).indexOf(cell.closest('td'));
+    const targetTd = prevTr.children[cellIndex];
+    return targetTd ? targetTd.querySelector('.calendar-weight-cell') : null;
+}
+
+function handleGridCellKeydown(e, cell) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        editCellWeight(cell);
+    } else if (e.key === 'Tab') {
+        e.preventDefault();
+        const target = e.shiftKey ? getPrevCalendarCell(cell) : getNextCalendarCell(cell);
+        if (target) target.focus();
+    } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const next = getNextCalendarCell(cell);
+        if (next) next.focus();
+    } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const prev = getPrevCalendarCell(cell);
+        if (prev) prev.focus();
+    } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const below = getCellBelow(cell);
+        if (below) below.focus();
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const above = getCellAbove(cell);
+        if (above) above.focus();
+    }
+}
+
+function handleModalInputKeydown(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        saveWeightModal('next');
+    } else if (e.key === 'Tab') {
+        e.preventDefault();
+        saveWeightModal(e.shiftKey ? 'prev' : 'next');
+    } else if (e.key === 'Escape') {
+        e.preventDefault();
+        const cellToFocus = currentEditingCell;
+        closeWeightModal();
+        if (cellToFocus) cellToFocus.focus();
+    }
+}
+
+function editCellWeight(cell) {
+    currentEditingCell = cell;
+    const casterId = cell.getAttribute('data-caster-id');
+    const dateStr = cell.getAttribute('data-date');
+    const currentWeight = cell.getAttribute('data-weight');
+    
+    const row = cell.closest('tr');
+    const name = row.querySelector('td:first-child div:first-child').textContent.trim();
+    
+    document.getElementById('modal-caster-title').textContent = `Log Weight for ${name}`;
+    document.getElementById('modal-date-subtitle').textContent = `Date: ${dateStr}`;
+    document.getElementById('modal-caster-id').value = casterId;
+    document.getElementById('modal-date').value = dateStr;
+    document.getElementById('modal-weight-input').value = currentWeight || '';
+    
+    document.getElementById('weight-edit-modal').style.display = 'flex';
+    setTimeout(() => {
+        const input = document.getElementById('modal-weight-input');
+        input.focus();
+        input.select();
+    }, 50);
+}
+
+function closeWeightModal() {
+    document.getElementById('weight-edit-modal').style.display = 'none';
+}
+
+async function saveWeightModal(autoAdvanceDir = null) {
+    const casterId = document.getElementById('modal-caster-id').value;
+    const dateStr = document.getElementById('modal-date').value;
+    const weightVal = document.getElementById('modal-weight-input').value;
+    
+    const activeCell = currentEditingCell;
+    const targetCellToAdvance = (autoAdvanceDir === 'next') 
+        ? getNextCalendarCell(activeCell) 
+        : ((autoAdvanceDir === 'prev') ? getPrevCalendarCell(activeCell) : null);
+    
+    const fd = new FormData();
+    fd.append('date', dateStr);
+    fd.append('caster_id', casterId);
+    fd.append('weight', weightVal);
+    
+    try {
+        const response = await fetch('/api/casting/log-weight/', {
+            method: 'POST',
+            body: fd,
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            const weightNum = parseFloat(weightVal) || 0;
+            
+            if (activeCell) {
+                activeCell.style.background = 'rgba(16, 185, 129, 0.15)';
+                activeCell.style.borderColor = '#10b981';
+                activeCell.setAttribute('data-weight', weightVal);
+                if (weightNum > 0) {
+                    activeCell.innerHTML = `
+                        <span class="badge" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25); padding: 4px 6px; border-radius: 6px; width: 100%; text-align: center;">
+                            ${weightVal}
+                        </span>
+                    `;
+                } else {
+                    activeCell.innerHTML = `<span style="opacity: 0.2; font-weight: normal;">-</span>`;
+                }
+                
+                const row = activeCell.closest('tr');
+                if (row) {
+                    let newTotal = 0.0;
+                    row.querySelectorAll('.calendar-weight-cell').forEach(c => {
+                        const w = parseFloat(c.getAttribute('data-weight')) || 0.0;
+                        newTotal += w;
+                    });
+                    const totalEl = document.getElementById(`total-wt-${casterId}`);
+                    if (totalEl) totalEl.textContent = `${newTotal.toFixed(3)} kg`;
+                }
+                
+                setTimeout(() => {
+                    activeCell.style.background = '';
+                    activeCell.style.borderColor = '';
+                }, 1000);
+            }
+            
+            closeWeightModal();
+
+            if (targetCellToAdvance && autoAdvanceDir) {
+                setTimeout(() => {
+                    targetCellToAdvance.focus();
+                    editCellWeight(targetCellToAdvance);
+                }, 50);
+            } else if (activeCell) {
+                activeCell.focus();
+            }
+        } else {
+            alert(data.message || "Failed to save weight.");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Failed to communicate with server.");
+    }
+}
+</script>
+
+{% if user.is_staff %}
+<!-- INVENTORY ADJUSTMENT DRAWER (AUDIT SAFE) -->
+<div id="adjustmentBackdrop" class="drawer-backdrop" onclick="closeAdjustmentDrawer()" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 1000; display: none;"></div>
+<div id="adjustmentDrawer" class="glass-card" style="position: fixed; top: 0; right: -650px; width: 550px; height: 100%; z-index: 1001; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); padding: 40px; overflow-y: auto; background: #0f172a; border-left: 1px solid var(--border-soft); border-radius: 0; box-shadow: -10px 0 40px rgba(0,0,0,0.6);">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-soft); padding-bottom: 20px; margin-bottom: 30px;">
+        <h2 style="margin: 0; font-size: 26px; font-weight: 800; font-family: 'Outfit', sans-serif; display: flex; align-items: center; gap: 10px; color: #f59e0b;">
+            ⚙️ Adjust Inventory
+        </h2>
+        <button onclick="closeAdjustmentDrawer()" style="background: none; border: none; color: var(--text-secondary); font-size: 28px; cursor: pointer; padding: 0;">&times;</button>
+    </div>
+
+    <!-- Adjustment Mode Selector -->
+    <div style="display: flex; gap: 8px; margin-bottom: 25px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 12px; border: 1px solid var(--border-soft);">
+        <button type="button" id="btn-adj-single" onclick="setAdjustmentMode('single')" class="graph-tab-btn active" style="flex: 1; text-align: center; padding: 10px; font-weight: bold; border-radius: 8px; background: var(--accent-blue); color: white; border: none; cursor: pointer;">Single Item</button>
+        <button type="button" id="btn-adj-bulk" onclick="setAdjustmentMode('bulk')" class="graph-tab-btn" style="flex: 1; text-align: center; padding: 10px; font-weight: bold; border-radius: 8px; background: transparent; color: var(--text-secondary); border: none; cursor: pointer;">Bulk Audit (Multi)</button>
+    </div>
+
+    <form id="adjustmentForm">
+        {% csrf_token %}
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- Warehouse Select (Auto-selected & locked to CASTING) -->
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Warehouse Stage</label>
+                <select id="adj_warehouse" name="warehouse" style="width: 100%; pointer-events: none; background: rgba(255,255,255,0.02); color: #cbd5e1;" onchange="onWarehouseChange()">
+                    <option value="CASTING" selected>Casting Stock [CASTING]</option>
+                </select>
+            </div>
+
+            <!-- SINGLE MODE FIELDS -->
+            <div id="single-mode-fields" style="display: flex; flex-direction: column; gap: 24px;">
+                <!-- Item Select -->
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Select Item</label>
+                    <select id="adj_item" name="item_id" style="width: 100%;" onchange="fetchCurrentStock()">
+                        <option value="">-- Choose Item --</option>
+                        {% for item in all_items %}
+                        <option value="{{ item.id }}">{{ item.code }} - {{ item.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Current calculated quantity (Read only) -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                        Current Warehouse Available Stock
+                    </div>
+                    <div style="display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px;">
+                        <span id="adj_current_qty" style="font-size: 32px; font-weight: 800; color: var(--text-primary);">--</span>
+                        <span style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">pieces on shelves</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                        ℹ️ This represents completed casting items currently sitting in the warehouse waiting to be machined.
+                    </div>
+                </div>
+
+                <!-- New physical count -->
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Actual Physical Count (Pcs)</label>
+                    <input type="number" id="adj_physical_count" name="physical_count" placeholder="Enter actual pieces present in warehouse..." min="0" style="padding: 14px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius: 12px; color: white;" oninput="recalculateDelta()">
+                    <div style="margin-top: 10px; font-size: 13px; color: #fbbf24; font-weight: 600; display: none;" id="adj_delta_info">
+                        Correction Delta: <span id="adj_delta_pcs">0</span> pcs
+                    </div>
+                </div>
+            </div>
+
+            <!-- BULK MODE FIELDS -->
+            <div id="bulk-mode-fields" style="display: none; flex-direction: column; gap: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Audit Stock for Selected Items</label>
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" onclick="selectAllBulkRows()" style="background: none; border: none; color: var(--accent-blue); font-size: 12px; font-weight: bold; cursor: pointer; padding: 0;">Select All Items</button>
+                        <span style="color: var(--border-soft);">|</span>
+                        <button type="button" onclick="clearBulkInputs()" style="background: none; border: none; color: #ef4444; font-size: 12px; font-weight: bold; cursor: pointer; padding: 0;">Clear All</button>
+                    </div>
+                </div>
+
+                <!-- Default Qty Control -->
+                <div style="display: flex; gap: 10px; align-items: center; background: rgba(255, 255, 255, 0.02); padding: 10px; border-radius: 12px; border: 1px solid var(--border-soft);">
+                    <input type="number" id="bulk_default_qty" placeholder="Set default qty for all..." style="flex: 1; padding: 10px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius: 8px; color: white; font-size: 13px;">
+                    <button type="button" onclick="applyDefaultQtyToAll()" style="background: var(--accent-blue); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;">Apply to All</button>
+                </div>
+
+                <!-- Bulk Item Selector Dropdown -->
+                <div>
+                    <select id="bulk_item_selector" onchange="showBulkRow(this.value)" style="width: 100%; padding: 12px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius: 12px; color: white;">
+                        <option value="">-- Click here to select/add item to adjust --</option>
+                        {% for item in all_items %}
+                        <option value="{{ item.id }}">{{ item.code }} - {{ item.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div id="bulk-adjust-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 380px; overflow-y: auto; padding-right: 5px; border: 1px solid var(--border-soft); padding: 10px; border-radius: 12px; background: rgba(0,0,0,0.2);">
+                    {% for item in all_items %}
+                    <div class="bulk-item-row" id="bulk-row-{{ item.id }}" data-item-id="{{ item.id }}" style="display: none; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid var(--border-soft); border-radius: 10px; padding: 10px 14px; gap: 12px;">
+                        <div style="flex: 1; min-width: 0;">
+                            <strong style="color: var(--accent-blue); display: block; font-size: 13px;">{{ item.code }}</strong>
+                            <span style="color: var(--text-secondary); font-size: 11px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.name }}</span>
+                        </div>
+                        <div style="text-align: right; width: 80px;">
+                            <span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; display: block; margin-bottom: 2px;">Calculated</span>
+                            <span id="bulk_curr_{{ item.id }}" class="bulk-curr-val" style="font-weight: bold; color: white; font-size: 13px;">Loading...</span>
+                        </div>
+                        <div style="width: 100px;">
+                            <input type="hidden" name="item_id" value="{{ item.id }}" disabled class="bulk-input-field bulk-hidden-item-id">
+                            <input type="number" name="physical_count" placeholder="Actual..." min="0" oninput="onBulkInput(this, '{{ item.id }}')" style="padding: 10px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius: 8px; color: white; font-size: 13px; width: 100%; box-sizing: border-box;" class="bulk-input-field bulk-phys-count">
+                        </div>
+                        <div>
+                            <button type="button" onclick="hideBulkRow('{{ item.id }}')" style="background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer; padding: 0 5px;">&times;</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Notes/Reason -->
+            <div>
+                <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Reason / Correction Note</label>
+                <textarea id="adj_notes" name="notes" placeholder="e.g. Audit correction, physical stock count mismatch resolution..." required style="width: 100%; min-height: 100px; background: var(--input-dark); border: 1px solid var(--border-soft); border-radius: 12px; color: white; padding: 14px; resize: none; font-size: 14px;"></textarea>
+            </div>
+
+            <!-- Info alert for safety -->
+            <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.5; color: #fbbf24;">
+                ⚠️ <strong>Audit Warning:</strong> This adjustment writes corrective <code>STOCK_ADJUSTMENT</code> transaction logs. It does <strong>not</strong> affect historical logs, daily worker outputs, piece-rates, or payroll calculations.
+            </div>
+
+            <!-- Form submission button -->
+            <button type="submit" id="btnSubmitAdjustment" style="background: #ea580c; color: white; font-weight: bold; border-radius: 12px; padding: 16px; width: 100%; margin-top: 10px; box-shadow: 0 4px 14px rgba(234, 88, 12, 0.25); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                💾 Save Adjustments
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Adjustment Drawer controls
+    let activeAdjustmentMode = 'single';
+
+    function setAdjustmentMode(mode) {
+        activeAdjustmentMode = mode;
+        const btnSingle = document.getElementById('btn-adj-single');
+        const btnBulk = document.getElementById('btn-adj-bulk');
+        const singleFields = document.getElementById('single-mode-fields');
+        const bulkFields = document.getElementById('bulk-mode-fields');
+
+        if (mode === 'single') {
+            btnSingle.style.background = 'var(--accent-blue)';
+            btnSingle.style.color = 'white';
+            btnBulk.style.background = 'transparent';
+            btnBulk.style.color = 'var(--text-secondary)';
+            singleFields.style.display = 'flex';
+            bulkFields.style.display = 'none';
+            
+            document.getElementById('adj_item').disabled = false;
+            document.getElementById('adj_physical_count').disabled = false;
+            document.querySelectorAll('.bulk-input-field').forEach(input => input.disabled = true);
+        } else {
+            btnSingle.style.background = 'transparent';
+            btnSingle.style.color = 'var(--text-secondary)';
+            btnBulk.style.background = 'var(--accent-blue)';
+            btnBulk.style.color = 'white';
+            singleFields.style.display = 'none';
+            bulkFields.style.display = 'flex';
+            
+            document.getElementById('adj_item').disabled = true;
+            document.getElementById('adj_physical_count').disabled = true;
+            
+            document.querySelectorAll('.bulk-input-field').forEach(input => {
+                if (input.name === 'physical_count') {
+                    input.disabled = false;
+                } else {
+                    input.disabled = true;
+                }
+            });
+
+            fetchAllCurrentStock();
+        }
+    }
+
+    function openAdjustmentDrawer() {
+        document.getElementById('adjustmentBackdrop').style.display = 'block';
+        document.getElementById('adjustmentDrawer').style.right = '0';
+        
+        if (!window.adjItemTS && document.getElementById('adj_item')) {
+            window.adjItemTS = new TomSelect('#adj_item', {
+                create: false,
+                placeholder: 'Choose Item to Adjust'
+            });
+        }
+        if (!window.bulkItemTS && document.getElementById('bulk_item_selector')) {
+            window.bulkItemTS = new TomSelect('#bulk_item_selector', {
+                create: false,
+                placeholder: 'Type/Search Item to Add...'
+            });
+        }
+        setAdjustmentMode('single');
+    }
+
+    function closeAdjustmentDrawer() {
+        document.getElementById('adjustmentBackdrop').style.display = 'none';
+        document.getElementById('adjustmentDrawer').style.right = '-650px';
+        document.getElementById('adjustmentForm').reset();
+        document.getElementById('adj_current_qty').innerText = '--';
+        document.getElementById('adj_delta_info').style.display = 'none';
+        if (window.adjItemTS) {
+            window.adjItemTS.clear();
+        }
+        clearBulkInputs();
+        setAdjustmentMode('single');
+    }
+
+    function onWarehouseChange() {
+        if (activeAdjustmentMode === 'single') {
+            fetchCurrentStock();
+        } else {
+            fetchAllCurrentStock();
+        }
+    }
+
+    function fetchCurrentStock() {
+        const itemId = document.getElementById('adj_item').value;
+        const warehouse = document.getElementById('adj_warehouse').value;
+        const currentQtyEl = document.getElementById('adj_current_qty');
+
+        if (!itemId || !warehouse) {
+            currentQtyEl.innerText = '--';
+            return;
+        }
+
+        currentQtyEl.innerText = 'Calculating...';
+
+        fetch(`/api/stock/get-qty/?item_id=${itemId}&warehouse=${warehouse}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.qty !== undefined) {
+                    currentQtyEl.innerText = data.qty;
+                    recalculateDelta();
+                } else {
+                    currentQtyEl.innerText = 'Error';
+                }
+            })
+            .catch(() => {
+                currentQtyEl.innerText = 'Error';
+            });
+    }
+
+    function fetchAllCurrentStock() {
+        const warehouse = document.getElementById('adj_warehouse').value;
+        document.querySelectorAll('.bulk-curr-val').forEach(span => span.innerText = '...');
+        
+        fetch(`/api/stock/get-all-qty/?warehouse=${warehouse}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.qtys) {
+                    for (const [itemId, qty] of Object.entries(data.qtys)) {
+                        const el = document.getElementById(`bulk_curr_${itemId}`);
+                        if (el) el.innerText = qty;
+                    }
+                }
+            })
+            .catch(() => {
+                document.querySelectorAll('.bulk-curr-val').forEach(span => span.innerText = 'Error');
+            });
+    }
+
+    function showBulkRow(itemId) {
+        if (!itemId) return;
+        const row = document.getElementById(`bulk-row-${itemId}`);
+        if (row) {
+            row.style.display = 'flex';
+            document.getElementById('bulk_item_selector').value = '';
+            if (window.bulkItemTS) {
+                window.bulkItemTS.clear(true);
+            }
+        }
+    }
+
+    function hideBulkRow(itemId) {
+        const row = document.getElementById(`bulk-row-${itemId}`);
+        if (row) {
+            row.style.display = 'none';
+            const numInput = row.querySelector('.bulk-phys-count');
+            if (numInput) numInput.value = '';
+            const hiddenInput = row.querySelector('.bulk-hidden-item-id');
+            if (hiddenInput) hiddenInput.disabled = true;
+        }
+    }
+
+    function selectAllBulkRows() {
+        document.querySelectorAll('.bulk-item-row').forEach(row => {
+            row.style.display = 'flex';
+        });
+    }
+
+    function applyDefaultQtyToAll() {
+        const qtyVal = document.getElementById('bulk_default_qty').value;
+        if (qtyVal.trim() === '') {
+            alert('Please enter a default quantity first.');
+            return;
+        }
+        
+        selectAllBulkRows();
+        
+        document.querySelectorAll('.bulk-phys-count').forEach(input => {
+            input.value = qtyVal;
+            const row = input.closest('.bulk-item-row');
+            if (row) {
+                const itemId = row.getAttribute('data-item-id');
+                onBulkInput(input, itemId);
+            }
+        });
+    }
+
+    function onBulkInput(inputEl, itemId) {
+        const row = inputEl.closest('.bulk-item-row');
+        const hiddenItemIdInput = row.querySelector('.bulk-hidden-item-id');
+        
+        if (inputEl.value.trim() !== '') {
+            hiddenItemIdInput.disabled = false;
+        } else {
+            hiddenItemIdInput.disabled = true;
+        }
+    }
+
+    function clearBulkInputs() {
+        const defQtyInput = document.getElementById('bulk_default_qty');
+        if (defQtyInput) defQtyInput.value = '';
+        
+        document.querySelectorAll('.bulk-input-field').forEach(input => {
+            if (input.type === 'number') {
+                input.value = '';
+            }
+            if (input.type === 'hidden') {
+                input.disabled = true;
+            }
+        });
+        document.querySelectorAll('.bulk-item-row').forEach(row => {
+            row.style.display = 'none';
+        });
+        if (window.bulkItemTS) {
+            window.bulkItemTS.clear(true);
+        }
+    }
+
+    function recalculateDelta() {
+        const currentText = document.getElementById('adj_current_qty').innerText;
+        const currentQty = parseInt(currentText);
+        const physicalQty = parseInt(document.getElementById('adj_physical_count').value);
+        const deltaInfo = document.getElementById('adj_delta_info');
+        const deltaPcs = document.getElementById('adj_delta_pcs');
+
+        if (isNaN(currentQty) || isNaN(physicalQty)) {
+            deltaInfo.style.display = 'none';
+            return;
+        }
+
+        const delta = physicalQty - currentQty;
+        deltaPcs.innerText = (delta > 0 ? '+' : '') + delta;
+        
+        if (delta > 0) {
+            deltaPcs.style.color = '#34d399';
+        } else if (delta < 0) {
+            deltaPcs.style.color = '#ef4444';
+        } else {
+            deltaPcs.style.color = '#94a3b8';
+        }
+        
+        deltaInfo.style.display = 'block';
+    }
+
+    // Ajax Form Submission Handler
+    document.getElementById('adjustmentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('btnSubmitAdjustment');
+        const originalBtnHTML = submitBtn.innerHTML;
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '⚡ Processing Audit Correction...';
+
+        if (activeAdjustmentMode === 'single') {
+            const itemId = document.getElementById('adj_item').value;
+            const physicalCount = document.getElementById('adj_physical_count').value;
+            if (!itemId || physicalCount === '') {
+                alert('Please select an item and enter actual count.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+                return;
+            }
+        } else {
+            let hasAnyBulkValue = false;
+            document.querySelectorAll('#bulk-adjust-list input[type="number"]').forEach(input => {
+                if (input.value.trim() !== '') {
+                    hasAnyBulkValue = true;
+                }
+            });
+            if (!hasAnyBulkValue) {
+                alert('Please enter actual physical count for at least one item.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+                return;
+            }
+        }
+
+        const formData = new FormData(this);
+
+        fetch('/api/stock/adjust/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const container = document.querySelector('.toast-container') || (() => {
+                    const c = document.createElement('div');
+                    c.className = 'toast-container';
+                    document.querySelector('.content').appendChild(c);
+                    return c;
+                })();
+
+                const toast = document.createElement('div');
+                toast.className = 'toast toast-success';
+                toast.role = 'alert';
+                toast.innerHTML = `<span>${data.message}</span><button type="button" class="toast-close" onclick="this.parentElement.remove()">&times;</button>`;
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.opacity = 0;
+                    setTimeout(() => toast.remove(), 300);
+                }, 5000);
+
+                closeAdjustmentDrawer();
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+
+            } else {
+                alert('Correction Failed: ' + (data.error || 'Unknown error occurred.'));
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+            }
+        })
+        .catch(err => {
+            alert('A networking error occurred during adjustment.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHTML;
+        });
+    });
+</script>
+{% endif %}
+
+{% endblock %}

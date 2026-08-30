@@ -1,0 +1,920 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+
+<style>
+    :root {
+        --indigo-glow: rgba(99, 102, 241, 0.15);
+        --glass-bg: rgba(17, 24, 39, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.12);
+        --card-dark: #111827;
+        --border-soft: rgba(255, 255, 255, 0.1);
+        --accent-indigo: #6366f1;
+        --accent-blue: #3b82f6;
+        --accent-emerald: #10b981;
+        --accent-amber: #f59e0b;
+        --accent-purple: #8b5cf6;
+    }
+
+    .sql-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        margin-bottom: 24px;
+    }
+
+    /* Main Tab Navigation */
+    .sql-nav-tabs {
+        display: flex;
+        gap: 10px;
+        border-bottom: 1px solid var(--glass-border);
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
+    .sql-tab-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        color: #cbd5e1 !important;
+        padding: 10px 18px;
+        font-weight: 700;
+        font-size: 13px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        touch-action: manipulation;
+        user-select: none;
+        position: relative;
+        z-index: 2;
+    }
+
+    .sql-tab-btn:hover {
+        color: #ffffff !important;
+        background: rgba(99, 102, 241, 0.2);
+        border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .sql-tab-btn.active {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(79, 70, 229, 0.5) 100%);
+        color: #ffffff !important;
+        border-color: var(--accent-indigo);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+    }
+
+    /* Action Buttons in Editor Bar */
+    .btn-sql-execute {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+        font-size: 13.5px !important;
+        padding: 10px 22px !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(52, 211, 153, 0.5) !important;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 42px;
+    }
+
+    .btn-sql-execute:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5) !important;
+        background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
+    }
+
+    .btn-sql-clear {
+        background: rgba(239, 68, 68, 0.15) !important;
+        color: #f87171 !important;
+        border: 1px solid rgba(239, 68, 68, 0.35) !important;
+        font-weight: 700 !important;
+        font-size: 12.5px !important;
+        padding: 10px 16px !important;
+        border-radius: 12px !important;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 42px;
+    }
+
+    .btn-sql-clear:hover {
+        background: rgba(239, 68, 68, 0.3) !important;
+        color: #ffffff !important;
+        border-color: #f87171 !important;
+    }
+
+    /* Query Template Cards */
+    .query-template-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--glass-border);
+        border-left: 4px solid var(--accent-blue);
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        z-index: 1;
+    }
+
+    .query-template-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(99, 102, 241, 0.4);
+        transform: translateX(4px);
+    }
+
+    .query-template-card.active-query {
+        border-left-color: var(--accent-emerald);
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    /* Action Type Badges */
+    .action-badge-SELECT { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+    .action-badge-INSERT { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+    .action-badge-UPDATE { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+    .action-badge-DELETE { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+    /* SQL Editor Box */
+    .sql-editor-container {
+        position: relative;
+        background: #090d16;
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
+
+    .sql-editor-header {
+        background: #0f172a;
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    textarea#sqlQueryInput {
+        width: 100%;
+        min-height: 220px;
+        background: transparent;
+        color: #38bdf8;
+        font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        padding: 18px;
+        border: none;
+        outline: none;
+        resize: vertical;
+        box-sizing: border-box;
+    }
+
+    /* SQL Results Table */
+    .sql-results-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 12.5px;
+    }
+
+    .sql-results-table th {
+        background: rgba(15, 23, 42, 0.95);
+        color: #94a3b8;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 10.5px;
+        letter-spacing: 0.8px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--glass-border);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .sql-results-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        color: #f1f5f9;
+        white-space: nowrap;
+    }
+
+    .sql-results-table tr:hover td {
+        background: rgba(255, 255, 255, 0.025);
+    }
+
+    /* Table Schema Grid */
+    .schema-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 16px;
+    }
+
+    .schema-card {
+        background: rgba(255, 255, 255, 0.015);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        padding: 18px;
+        transition: all 0.2s;
+    }
+
+    /* Toggle Switch Styling */
+    .switch-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #cbd5e1;
+        cursor: pointer;
+        user-select: none;
+        min-height: 38px;
+    }
+
+    .switch-input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .switch-slider {
+        position: relative;
+        display: inline-block;
+        width: 42px;
+        height: 22px;
+        background-color: #334155;
+        border-radius: 20px;
+        transition: .3s;
+        flex-shrink: 0;
+    }
+
+    .switch-slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        border-radius: 50%;
+        transition: .3s;
+    }
+
+    .switch-input:checked + .switch-slider {
+        background-color: #10b981;
+    }
+
+    .switch-input:checked + .switch-slider:before {
+        transform: translateX(20px);
+    }
+
+    /* Responsive Layout Grid */
+    .sql-console-grid {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 20px;
+        align-items: start;
+    }
+
+    /* Media Queries for Responsiveness & Touch Area Polish */
+    @media (max-width: 1100px) {
+        .sql-console-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .polishing-header h1 {
+            font-size: 26px !important;
+        }
+
+        .sql-card {
+            padding: 16px !important;
+            border-radius: 16px !important;
+        }
+
+        .sql-nav-tabs {
+            overflow-x: auto;
+            white-space: nowrap;
+            flex-wrap: nowrap !important;
+            padding-bottom: 14px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sql-tab-btn {
+            padding: 12px 18px !important;
+            font-size: 13px !important;
+            flex-shrink: 0;
+            min-height: 44px !important;
+        }
+
+        .sql-editor-header {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 12px;
+        }
+
+        .sql-editor-actions {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .sql-editor-actions button {
+            flex: 1;
+            justify-content: center;
+            padding: 12px 16px !important;
+            min-height: 44px !important;
+            font-size: 13px !important;
+        }
+
+        .schema-grid, .samples-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+
+<!-- HEADER SECTION -->
+<div class="polishing-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:28px;">
+    <div>
+        <h1 style="font-size:36px; font-weight:800; line-height:1.1; margin-bottom:10px; margin-top:0; display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+            <span>⚡ SQL Explorer & Data Flow Engine</span>
+            <span class="header-info-badge" tabindex="0" data-tooltip="Inspect normalized system tables, execute complex analytical queries, and test data insertion, updates & deletion." data-tooltip-pos="right" aria-label="SQL Explorer Info">ℹ️</span>
+        </h1>
+        <p style="color:var(--text-secondary); font-size:15px; margin:0;">
+            Inspect normalized database tables, execute SQL queries, and test data entries from Raw Casting to Sales Dispatch
+        </p>
+    </div>
+    
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <!-- Write Mode Toggle Switch -->
+        <label class="switch-label" style="background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); padding:6px 14px; border-radius:12px;">
+            <input type="checkbox" class="switch-input" id="toggleWriteMode" onchange="onWriteModeToggle()">
+            <span class="switch-slider"></span>
+            <span id="writeModeStatusText" style="color:#fbbf24;">✍️ WRITE MODE (INSERT/UPDATE/DELETE)</span>
+        </label>
+
+        <span class="badge" style="background:rgba(99,102,241,0.1); color:#818cf8; border:1px solid rgba(99,102,241,0.3); padding:8px 14px; border-radius:12px; font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px;">
+            🗄️ {{ total_tables }} System Tables
+        </span>
+    </div>
+</div>
+
+<!-- NAVIGATION TABS -->
+<div class="sql-nav-tabs">
+    <button class="sql-tab-btn active" id="tab-console-btn" onclick="switchSqlTab('console')">
+        💻 SQL Query Console
+    </button>
+    <button class="sql-tab-btn" id="tab-samples-btn" onclick="switchSqlTab('samples')">
+        🧪 10 Sample SQL Commands
+    </button>
+    <button class="sql-tab-btn" id="tab-schema-btn" onclick="switchSqlTab('schema')">
+        🗄️ Database Schema Inspector ({{ total_tables }})
+    </button>
+    <button class="sql-tab-btn" id="tab-flow-btn" onclick="switchSqlTab('flow')">
+        🗺️ Visual Data Flow Diagram
+    </button>
+</div>
+
+<!-- ============================================ -->
+<!-- TAB 1: SQL QUERY CONSOLE -->
+<!-- ============================================ -->
+<div id="section-console" class="sql-tab-content">
+    <div class="sql-console-grid">
+        
+        <!-- LEFT: PRE-BUILT COMPLEX DATA FLOW QUERIES -->
+        <div class="sql-card" style="padding:20px;">
+            <h3 style="margin:0 0 16px; font-size:15px; font-weight:800; color:white; display:flex; align-items:center; gap:8px;">
+                <span style="color:var(--accent-blue);">●</span> Pre-Built Data Flow Queries
+                <span class="header-info-badge" tabindex="0" data-tooltip="Click any template query to automatically load and execute SQL data flow tracing." data-tooltip-pos="right">ℹ️</span>
+            </h3>
+            
+            {% for q in prebuilt_queries %}
+            <div class="query-template-card {% if forloop.first %}active-query{% endif %}" id="q-card-{{ q.id }}" onclick="loadPrebuiltQuery('{{ q.id }}')">
+                <div style="font-weight:700; font-size:13px; color:white; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>{{ q.title }}</span>
+                    <span class="header-info-badge" tabindex="0" data-tooltip="{{ q.tooltip|escapejs }}" data-tooltip-pos="right" onclick="event.stopPropagation();">ℹ️</span>
+                </div>
+                <div style="font-size:11px; color:var(--text-secondary); line-height:1.4;">{{ q.subtitle }}</div>
+                <textarea id="raw-sql-{{ q.id }}" style="display:none;">{{ q.sql }}</textarea>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- RIGHT: SQL EDITOR & RESULTS TABLE -->
+        <div>
+            <!-- SQL Editor Box -->
+            <div class="sql-card" style="padding:0; overflow:hidden;">
+                <div class="sql-editor-container" style="margin-bottom:0; border-radius:0;">
+                    <div class="sql-editor-header">
+                        <div style="font-size:12px; font-weight:800; color:#f8fafc; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:8px;">
+                            <span style="color:#60a5fa; font-size:16px;">⚡</span>
+                            <span>SQL EDITOR</span>
+                            <span id="editorSafetyNote" style="color:#94a3b8; font-size:11px; font-weight:600; text-transform:none;">(SELECT, WITH, INSERT, UPDATE, DELETE)</span>
+                        </div>
+                        
+                        <!-- HIGH CONTRAST VIBRANT ACTION BUTTONS -->
+                        <div class="sql-editor-actions" style="display:flex; gap:10px; align-items:center;">
+                            <button type="button" class="btn-sql-clear" onclick="clearSqlEditor()">
+                                🗑️ Clear
+                            </button>
+                            <button type="button" class="btn-sql-execute" onclick="executeSql()" id="btnExecuteSql">
+                                ▶️ RUN SQL QUERY
+                            </button>
+                        </div>
+                    </div>
+
+                    <textarea id="sqlQueryInput" placeholder="Enter SQL command (SELECT, INSERT, UPDATE, DELETE)... Press Ctrl+Enter to execute"></textarea>
+                    
+                    <!-- BOTTOM ACTION BAR -->
+                    <div style="background:#0b1329; padding:10px 18px; border-top:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:11px; color:#94a3b8; font-family:monospace;">Tip: Press <kbd style="background:#1e293b; padding:2px 6px; border-radius:4px; color:white;">Ctrl + Enter</kbd> to run query</span>
+                        <button type="button" class="btn-sql-execute" onclick="executeSql()" id="btnExecuteSqlBottom" style="padding:8px 16px !important; font-size:12.5px !important;">
+                            ▶️ Execute Query
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execution Status & Error Alert -->
+            <div id="queryErrorAlert" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#f87171; padding:14px 18px; border-radius:14px; margin-bottom:20px; font-size:13px; font-family:monospace; line-height:1.5;">
+                <!-- Error text injected via JS -->
+            </div>
+
+            <!-- Mutation Success Alert -->
+            <div id="mutationSuccessAlert" style="display:none; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); color:#34d399; padding:14px 18px; border-radius:14px; margin-bottom:20px; font-size:13.5px; font-weight:700;">
+                <!-- Success text injected via JS -->
+            </div>
+
+            <!-- Query Output Metrics Banner -->
+            <div id="outputMetricsBanner" style="display:none; justify-content:space-between; align-items:center; margin-bottom:16px; background:rgba(255,255,255,0.02); padding:10px 16px; border-radius:12px; border:1px solid var(--glass-border);">
+                <div style="font-size:13px; color:var(--text-primary); font-weight:700;">
+                    <span style="color:#34d399;">✓ Query Executed Cleanly</span> &nbsp;•&nbsp; 
+                    <span id="outputRowCount" style="color:#60a5fa;">0 rows</span> returned
+                </div>
+                <div style="font-size:12px; color:var(--text-secondary); font-family:monospace;" id="outputDuration">
+                    Duration: 0 ms
+                </div>
+            </div>
+
+            <!-- Query Results Table Container -->
+            <div class="sql-card" id="resultsTableCard" style="padding:0; overflow:hidden; display:none;">
+                <div style="max-height:500px; overflow:auto;">
+                    <table class="sql-results-table" id="sqlResultsTable">
+                        <thead id="resultsThead">
+                            <!-- Dynamic Columns -->
+                        </thead>
+                        <tbody id="resultsTbody">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- TAB 2: 10 SAMPLE SQL COMMANDS (SELECT, INSERT, UPDATE, DELETE) -->
+<!-- ============================================ -->
+<div id="section-samples" class="sql-tab-content" style="display:none;">
+    <div class="sql-card" style="margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+                <h3 style="margin:0; font-size:18px; font-weight:800; color:white;">🧪 10 Sample SQL Commands Template</h3>
+                <p style="margin:4px 0 0 0; font-size:13px; color:var(--text-secondary);">Click any of the 10 sample commands below to load it into the SQL console and test database operations</p>
+            </div>
+            <span class="badge" style="background:rgba(99,102,241,0.12); color:#818cf8; font-weight:700; padding:6px 12px; border-radius:10px;">
+                4 SELECT &nbsp;|&nbsp; 2 INSERT &nbsp;|&nbsp; 2 UPDATE &nbsp;|&nbsp; 2 DELETE
+            </span>
+        </div>
+    </div>
+
+    <div class="samples-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(420px, 1fr)); gap:16px;">
+        {% for sample in sample_commands %}
+        <div class="sql-card" style="padding:18px; border-left:4px solid {% if sample.action_type == 'SELECT' %}#3b82f6{% elif sample.action_type == 'INSERT' %}#10b981{% elif sample.action_type == 'UPDATE' %}#f59e0b{% else %}#ef4444{% endif %};">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <h4 style="margin:0; font-size:14px; font-weight:800; color:white;">{{ sample.title }}</h4>
+                <span class="badge action-badge-{{ sample.action_type }}" style="font-size:10px; font-weight:800; padding:3px 8px; border-radius:6px;">
+                    {{ sample.action_type }}
+                </span>
+            </div>
+            <p style="font-size:12px; color:var(--text-secondary); margin:0 0 12px 0; line-height:1.4;">{{ sample.description }}</p>
+            <div style="background:#090d16; border:1px solid var(--glass-border); border-radius:10px; padding:10px; margin-bottom:12px; max-height:140px; overflow-y:auto;">
+                <code style="font-family:monospace; font-size:11.5px; color:#60a5fa; white-space:pre-wrap; word-break:break-all;" id="sample-text-{{ sample.id }}">{{ sample.sql }}</code>
+            </div>
+            <button type="button" class="btn-sql-execute" onclick="loadSampleCommand('{{ sample.id }}')" style="width:100%; justify-content:center; padding:10px !important;">
+                📥 Load Query into Console & Execute →
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- TAB 3: DATABASE SCHEMA INSPECTOR -->
+<!-- ============================================ -->
+<div id="section-schema" class="sql-tab-content" style="display:none;">
+    <div class="sql-card" style="margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+                <h3 style="margin:0; font-size:18px; font-weight:800; color:white;">Normalized Database Tables Schema Inspector</h3>
+                <p style="margin:4px 0 0 0; font-size:13px; color:var(--text-secondary);">Browse table columns, data types, row counts, and data flow relationships</p>
+            </div>
+            <input type="text" id="schemaSearchInput" placeholder="🔍 Search table name or column..." onkeyup="filterSchemaCards()" class="filter-input" style="width:260px; font-size:13px; padding:8px 12px;">
+        </div>
+    </div>
+
+    <div class="schema-grid" id="schemaGridContainer">
+        {% for table in tables %}
+        <div class="schema-card table-schema-block" data-table-name="{{ table.table_name }}" data-category="{{ table.category }}">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                <div>
+                    <span class="badge" style="font-size:9px; padding:2px 6px; background:rgba(99,102,241,0.15); color:#818cf8; margin-bottom:4px; display:inline-block;">
+                        {{ table.category }}
+                    </span>
+                    <h4 style="margin:0; font-size:15px; font-weight:800; color:white; display:flex; align-items:center;">
+                        {{ table.display_name }}
+                        <span class="header-info-badge" tabindex="0" data-tooltip="{{ table.tooltip|escapejs }}" data-tooltip-pos="right">ℹ️</span>
+                    </h4>
+                    <code style="font-size:11px; color:#60a5fa; margin-top:2px; display:block;">{{ table.table_name }}</code>
+                </div>
+                <span class="badge" style="font-size:11px; padding:4px 10px; background:rgba(16,185,129,0.12); color:#34d399; font-weight:800;">
+                    {{ table.row_count }} rows
+                </span>
+            </div>
+
+            <p style="font-size:12px; color:var(--text-secondary); margin:0 0 12px 0; line-height:1.4;">{{ table.description }}</p>
+
+            <details style="border-top:1px solid rgba(255,255,255,0.05); padding-top:10px; font-size:11px;">
+                <summary style="cursor:pointer; color:#818cf8; font-weight:700; outline:none;">
+                    View {{ table.columns|length }} Table Columns & Types
+                </summary>
+                <div style="margin-top:10px; max-height:200px; overflow-y:auto; padding-right:4px;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="color:var(--text-secondary); text-align:left; font-size:10px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                                <th style="padding:4px 0;">Column</th>
+                                <th style="padding:4px 0;">Type</th>
+                                <th style="padding:4px 0; text-align:right;">Null</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for col in table.columns %}
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.02);">
+                                <td style="padding:4px 0; font-family:monospace; color:#f1f5f9; font-weight:600;">{{ col.name }}</td>
+                                <td style="padding:4px 0; color:var(--text-secondary);">{{ col.type }}</td>
+                                <td style="padding:4px 0; text-align:right; color:{% if col.null_ok %}#fbbf24{% else %}#34d399{% endif %}; font-weight:700;">
+                                    {% if col.null_ok %}YES{% else %}NO{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- TAB 4: VISUAL DATA FLOW DIAGRAM -->
+<!-- ============================================ -->
+<div id="section-flow" class="sql-tab-content" style="display:none;">
+    <div class="sql-card" style="max-width:900px; margin:0 auto;">
+        <h3 style="margin:0 0 8px; font-size:22px; font-weight:800; color:white; font-family:'Outfit', sans-serif;">
+            🗺️ End-to-End ERP Data Flow Lifecycle
+        </h3>
+        <p style="color:var(--text-secondary); font-size:14px; margin-bottom:24px;">
+            Visual representation of how data entries flow sequentially across normalized system tables
+        </p>
+
+        <!-- STAGE 1 -->
+        <div class="flow-step-node" style="background:rgba(17,24,39,0.8); border:1px solid var(--glass-border); border-radius:16px; padding:16px 20px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:40px; height:40px; background:rgba(99,102,241,0.15); color:#818cf8; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">1</div>
+                <div>
+                    <h4 style="margin:0; font-size:15px; font-weight:800; color:white; display:flex; align-items:center;">
+                        Master Data Setup
+                        <span class="header-info-badge" tabindex="0" data-tooltip="Defines foundational catalog items, client buyers, legal entity companies, and stage warehouses." data-tooltip-pos="right">ℹ️</span>
+                    </h4>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                        Tables: <code>master_data_item</code>, <code>master_data_client</code>, <code>master_data_legalentity</code>
+                    </div>
+                </div>
+            </div>
+            <span class="badge" style="background:rgba(99,102,241,0.12); color:#818cf8;">Master Tables</span>
+        </div>
+
+        <div class="flow-arrow" style="text-align:center; color:#6366f1; font-size:20px; margin:6px 0;">⬇</div>
+
+        <!-- STAGE 2 -->
+        <div class="flow-step-node" style="background:rgba(17,24,39,0.8); border:1px solid var(--glass-border); border-radius:16px; padding:16px 20px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:40px; height:40px; background:rgba(245,158,11,0.15); color:#fbbf24; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">2</div>
+                <div>
+                    <h4 style="margin:0; font-size:15px; font-weight:800; color:white; display:flex; align-items:center;">
+                        Casting Furnace Entry
+                        <span class="header-info-badge" tabindex="0" data-tooltip="Records raw ingot heat pours, gross weights, heat numbers, and adds raw parts to CASTING warehouse stock." data-tooltip-pos="right">ℹ️</span>
+                    </h4>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                        Transaction: <code>casting_entry</code> &nbsp;•&nbsp; Table: <code>production_stocktransaction</code> ➔ <code>master_data_itemstock</code>
+                    </div>
+                </div>
+            </div>
+            <span class="badge" style="background:rgba(245,158,11,0.12); color:#fbbf24;">Raw Production</span>
+        </div>
+
+        <div class="flow-arrow" style="text-align:center; color:#6366f1; font-size:20px; margin:6px 0;">⬇</div>
+
+        <!-- STAGE 3 -->
+        <div class="flow-step-node" style="background:rgba(17,24,39,0.8); border:1px solid var(--glass-border); border-radius:16px; padding:16px 20px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:40px; height:40px; background:rgba(59,130,246,0.15); color:#60a5fa; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">3</div>
+                <div>
+                    <h4 style="margin:0; font-size:15px; font-weight:800; color:white; display:flex; align-items:center;">
+                        Machining Issue & Daily Receive
+                        <span class="header-info-badge" tabindex="0" data-tooltip="Issues casting stock to machining workers (machining_out) and logs completed daily outputs (machining_in)." data-tooltip-pos="right">ℹ️</span>
+                    </h4>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                        Transactions: <code>machining_out</code> ➔ <code>machining_in</code> &nbsp;•&nbsp; Linked Worker: <code>authentication_worker</code>
+                    </div>
+                </div>
+            </div>
+            <span class="badge" style="background:rgba(59,130,246,0.12); color:#60a5fa;">Machining WIP</span>
+        </div>
+
+        <div class="flow-arrow" style="text-align:center; color:#6366f1; font-size:20px; margin:6px 0;">⬇</div>
+
+        <!-- STAGE 4 -->
+        <div class="flow-step-node" style="background:rgba(17,24,39,0.8); border:1px solid var(--glass-border); border-radius:16px; padding:16px 20px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:40px; height:40px; background:rgba(139,92,246,0.15); color:#a78bfa; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">4</div>
+                <div>
+                    <h4 style="margin:0; font-size:15px; font-weight:800; color:white; display:flex; align-items:center;">
+                        Polishing Issue & Daily Receive
+                        <span class="header-info-badge" tabindex="0" data-tooltip="Issues machined parts to polishers (polishing_out) and records finished polished output (polishing_in)." data-tooltip-pos="right">ℹ️</span>
+                    </h4>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                        Transactions: <code>polishing_out</code> ➔ <code>polishing_in</code> &nbsp;•&nbsp; Piece Rate: <code>production_itemworkerallocation</code>
+                    </div>
+                </div>
+            </div>
+            <span class="badge" style="background:rgba(139,92,246,0.12); color:#a78bfa;">Polishing WIP</span>
+        </div>
+
+        <div class="flow-arrow" style="text-align:center; color:#6366f1; font-size:20px; margin:6px 0;">⬇</div>
+
+        <!-- STAGE 5 -->
+        <div class="flow-step-node" style="background:rgba(17,24,39,0.8); border:1px solid var(--glass-border); border-radius:16px; padding:16px 20px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:40px; height:40px; background:rgba(16,185,129,0.15); color:#34d399; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">5</div>
+                <div>
+                    <h4 style="margin:0; font-size:15px; font-weight:800; color:white; display:flex; align-items:center;">
+                        Packaging & Master Carton Kitting
+                        <span class="header-info-badge" tabindex="0" data-tooltip="Packs polished items into unit boxes or master cartons with lot labels, creating physical cartons on shelf." data-tooltip-pos="right">ℹ️</span>
+                    </h4>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                        Tables: <code>production_carton</code> ➔ <code>production_cartonitem</code> &nbsp;•&nbsp; Transaction: <code>packaging_in</code>
+                    </div>
+                </div>
+            </div>
+            <span class="badge" style="background:rgba(16,185,129,0.12); color:#34d399;">Packaged Stock</span>
+        </div>
+
+        <div class="flow-arrow" style="text-align:center; color:#6366f1; font-size:20px; margin:6px 0;">⬇</div>
+
+        <!-- STAGE 6 -->
+        <div class="flow-step-node" style="background:rgba(17,24,39,0.8); border:1px solid var(--glass-border); border-radius:16px; padding:16px 20px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:40px; height:40px; background:rgba(236,72,153,0.15); color:#f472b6; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">6</div>
+                <div>
+                    <h4 style="margin:0; font-size:15px; font-weight:800; color:white; display:flex; align-items:center;">
+                        Customer PO & Dispatch Delivery Challan
+                        <span class="header-info-badge" tabindex="0" data-tooltip="Customer PO agreements allocate ready cartons for shipment, generating Delivery Challans and dispatch_out logs." data-tooltip-pos="right">ℹ️</span>
+                    </h4>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">
+                        Tables: <code>orders_salesorder</code> ➔ <code>orders_dispatch</code> ➔ <code>orders_dispatchitem</code>
+                    </div>
+                </div>
+            </div>
+            <span class="badge" style="background:rgba(236,72,153,0.12); color:#f472b6;">Sales & Delivery</span>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function switchSqlTab(tab) {
+    document.querySelectorAll('.sql-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.sql-tab-content').forEach(content => content.style.display = 'none');
+    
+    document.getElementById(`tab-${tab}-btn`).classList.add('active');
+    document.getElementById(`section-${tab}`).style.display = 'block';
+}
+
+function onWriteModeToggle() {
+    const isChecked = document.getElementById('toggleWriteMode').checked;
+    const statusText = document.getElementById('writeModeStatusText');
+    if (isChecked) {
+        statusText.style.color = '#34d399';
+        statusText.textContent = '✍️ WRITE MODE ENABLED (INSERT/UPDATE/DELETE Active)';
+    } else {
+        statusText.style.color = '#fbbf24';
+        statusText.textContent = '✍️ WRITE MODE DISABLED (SELECT Only)';
+    }
+}
+
+function loadPrebuiltQuery(queryId) {
+    const rawSqlElem = document.getElementById(`raw-sql-${queryId}`);
+    if (rawSqlElem) {
+        document.getElementById('sqlQueryInput').value = rawSqlElem.value.trim();
+        
+        document.querySelectorAll('.query-template-card').forEach(card => card.classList.remove('active-query'));
+        const activeCard = document.getElementById(`q-card-${queryId}`);
+        if (activeCard) activeCard.classList.add('active-query');
+        
+        executeSql();
+    }
+}
+
+function loadSampleCommand(sampleId) {
+    const sampleElem = document.getElementById(`sample-text-${sampleId}`);
+    if (sampleElem) {
+        document.getElementById('sqlQueryInput').value = sampleElem.innerText.trim();
+        switchSqlTab('console');
+        
+        // Auto check write mode if sample is INSERT, UPDATE, or DELETE
+        if (sampleId.includes('insert') || sampleId.includes('update') || sampleId.includes('delete')) {
+            document.getElementById('toggleWriteMode').checked = true;
+            onWriteModeToggle();
+        }
+        
+        executeSql();
+    }
+}
+
+function clearSqlEditor() {
+    document.getElementById('sqlQueryInput').value = '';
+    document.getElementById('queryErrorAlert').style.display = 'none';
+    document.getElementById('mutationSuccessAlert').style.display = 'none';
+    document.getElementById('resultsTableCard').style.display = 'none';
+    document.getElementById('outputMetricsBanner').style.display = 'none';
+}
+
+async function executeSql() {
+    const sql = document.getElementById('sqlQueryInput').value.trim();
+    const isWriteMode = document.getElementById('toggleWriteMode').checked;
+    const alertBox = document.getElementById('queryErrorAlert');
+    const mutationBox = document.getElementById('mutationSuccessAlert');
+    const tableCard = document.getElementById('resultsTableCard');
+    const metricsBanner = document.getElementById('outputMetricsBanner');
+    const btns = document.querySelectorAll('#btnExecuteSql, #btnExecuteSqlBottom');
+    
+    if (!sql) {
+        alertBox.style.display = 'block';
+        alertBox.innerHTML = '⚠️ Please enter a SQL command to execute.';
+        return;
+    }
+
+    btns.forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Executing...';
+    });
+    alertBox.style.display = 'none';
+    mutationBox.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/sql-explorer/run/', {
+            method: 'POST',
+            body: JSON.stringify({ 
+                query: sql,
+                allow_write: isWriteMode
+            }),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            alertBox.style.display = 'none';
+
+            if (data.is_mutation) {
+                // Render Mutation Success Box (INSERT, UPDATE, DELETE)
+                tableCard.style.display = 'none';
+                metricsBanner.style.display = 'none';
+                mutationBox.style.display = 'block';
+                mutationBox.innerHTML = `
+                    ✨ <strong>${data.action} Successful:</strong> ${data.message} <br>
+                    <span style="font-size:12px; font-weight:normal; color:#a7f3d0;">Execution duration: ${data.duration_ms} ms</span>
+                `;
+            } else {
+                // Render SELECT Query Table Output
+                mutationBox.style.display = 'none';
+                metricsBanner.style.display = 'flex';
+                tableCard.style.display = 'block';
+
+                document.getElementById('outputRowCount').textContent = `${data.row_count} rows`;
+                document.getElementById('outputDuration').textContent = `Duration: ${data.duration_ms} ms`;
+
+                const thead = document.getElementById('resultsThead');
+                thead.innerHTML = `
+                    <tr>
+                        <th style="width:40px;">#</th>
+                        ${data.columns.map(col => `<th>${col}</th>`).join('')}
+                    </tr>
+                `;
+
+                const tbody = document.getElementById('resultsTbody');
+                if (data.rows.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="${data.columns.length + 1}" style="text-align:center; padding:30px; color:var(--text-secondary);">
+                                ✨ Query executed cleanly. Returned 0 rows.
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = data.rows.map((row, idx) => `
+                        <tr>
+                            <td style="color:var(--text-secondary); font-family:monospace;">${idx + 1}</td>
+                            ${row.map(val => {
+                                if (val === null) return `<td style="color:#64748b; font-style:italic;">NULL</td>`;
+                                return `<td>${val}</td>`;
+                            }).join('')}
+                        </tr>
+                    `).join('');
+                }
+            }
+
+        } else {
+            metricsBanner.style.display = 'none';
+            tableCard.style.display = 'none';
+            mutationBox.style.display = 'none';
+            alertBox.style.display = 'block';
+            alertBox.innerHTML = `❌ <strong>SQL Error:</strong><br>${data.error}`;
+        }
+    } catch (err) {
+        console.error(err);
+        metricsBanner.style.display = 'none';
+        tableCard.style.display = 'none';
+        mutationBox.style.display = 'none';
+        alertBox.style.display = 'block';
+        alertBox.innerHTML = `❌ <strong>Network Error:</strong> Failed to execute query.`;
+    } finally {
+        btns.forEach(btn => {
+            btn.disabled = false;
+            btn.innerHTML = '▶️ RUN SQL QUERY';
+        });
+    }
+}
+
+function filterSchemaCards() {
+    const q = (document.getElementById('schemaSearchInput').value || '').toLowerCase().trim();
+    const cards = document.querySelectorAll('.table-schema-block');
+    
+    cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (!q || text.includes(q)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Allow Ctrl + Enter key combination to execute SQL inside the text area
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('sqlQueryInput');
+    if (textarea) {
+        textarea.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                executeSql();
+            }
+        });
+    }
+    loadPrebuiltQuery('end_to_end_flow');
+});
+</script>
+
+{% endblock %}

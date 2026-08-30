@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Workspace - Foundry ERP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --card-dark: #111827;
+            --border-soft: rgba(255, 255, 255, 0.06);
+            --text-primary: #cbd5e1;
+            --text-secondary: #64748b;
+            --accent-blue: #4f46e5;
+            --accent-gold: #b45309;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 50px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .logo-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: none;
+            opacity: 1;
+        }
+
+        .logo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        .logo-text {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #f8fafc;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 480px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: var(--card-dark);
+            border: 1px solid var(--border-soft);
+            border-radius: 24px;
+            padding: 40px 32px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 280px;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: transparent;
+            transition: background 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card.finishing:hover::before {
+            background: linear-gradient(90deg, #4f46e5, #818cf8);
+        }
+
+        .card.casting:hover::before {
+            background: linear-gradient(90deg, #d97706, #f59e0b);
+        }
+
+        .card.global:hover::before {
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+        }
+
+        .icon-wrapper {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-soft);
+            transition: all 0.3s;
+        }
+
+        .card:hover .icon-wrapper {
+            transform: scale(1.1);
+        }
+
+        .card.finishing:hover .icon-wrapper {
+            background: rgba(79, 70, 229, 0.1);
+            border-color: rgba(79, 70, 229, 0.2);
+        }
+
+        .card.casting:hover .icon-wrapper {
+            background: rgba(217, 119, 6, 0.1);
+            border-color: rgba(217, 119, 6, 0.2);
+        }
+
+        .card.global:hover .icon-wrapper {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 12px;
+        }
+
+        .card-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+
+        .enter-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .card:hover .enter-badge {
+            color: #f8fafc;
+        }
+
+        .card.finishing:hover .enter-badge {
+            color: #818cf8;
+        }
+
+        .card.casting:hover .enter-badge {
+            color: #f59e0b;
+        }
+
+        .card.global:hover .enter-badge {
+            color: #10b981;
+        }
+
+        .footer-action {
+            margin-top: 50px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .logout-link {
+            color: #ef4444;
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .logout-link:hover {
+            opacity: 0.8;
+        }
+
+        .header-info-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(79, 70, 229, 0.18);
+            color: #818cf8;
+            font-size: 13px;
+            font-weight: 700;
+            margin-left: 8px;
+            cursor: help;
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            vertical-align: middle;
+            font-style: normal;
+        }
+        .header-info-badge:hover {
+            background: rgba(99, 102, 241, 0.35);
+            color: #ffffff;
+            transform: scale(1.12);
+            border-color: #818cf8;
+        }
+        [data-tooltip] {
+            position: relative;
+        }
+        [data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%) translateY(4px);
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.45;
+            white-space: normal;
+            width: max-content;
+            max-width: 280px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10000;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            text-align: left;
+        }
+        [data-tooltip]:hover::after {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo-box">
+                    <img src="/static/img/logo.jpg" alt="Logo">
+                </div>
+                <div class="logo-text" style="display: flex; align-items: center;">
+                    Foundry ERP
+                    <span class="header-info-badge" tabindex="0" data-tooltip="Select active company workspace (Om Industries or NC Casting) or launch full Owner Administrative view." aria-label="Select Workspace Info">ℹ️</span>
+                </div>
+            </div>
+            <p class="subtitle">Select your active company workspace below to manage stock levels, worker allocations, and production workflows.</p>
+        </div>
+
+        {% if can_access_global %}
+        <div class="owner-section" style="margin-bottom: 30px; display: flex; justify-content: center;">
+            <form action="{% url 'select_company' %}" method="POST" style="max-width: 380px; width: 100%;">
+                {% csrf_token %}
+                <input type="hidden" name="company_id" value="global">
+                <button type="submit" class="card global" style="background: var(--card-dark); border: 1px solid var(--border-soft); width: 100%; border-radius: 24px; text-align: left; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; min-height: 280px;">
+                    <div>
+                        <div class="icon-wrapper">
+                            👑
+                        </div>
+                        <div class="card-title">Owner Portal</div>
+                        <div class="card-description">
+                            Consolidated administrative view. Access Casting, Machining, Polishing, Sales and Master Data for all entities.
+                        </div>
+                    </div>
+                    <div class="enter-badge">
+                        Enter All Access Mode →
+                    </div>
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="cards-grid" style="max-width: 790px; margin: 0 auto;">
+            {% for company in companies %}
+            <form action="{% url 'select_company' %}" method="POST" style="display: contents;">
+                {% csrf_token %}
+                <input type="hidden" name="company_id" value="{{ company.id }}">
+                <button type="submit" class="card {% if company.id == 2 %}finishing{% else %}casting{% endif %}" style="background: var(--card-dark); border: 1px solid var(--border-soft); width: 100%; border-radius: 24px; text-align: left; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; min-height: 280px;">
+                    <div>
+                        <div class="icon-wrapper">
+                            {% if company.id == 2 %}
+                            🛠
+                            {% else %}
+                            🔥
+                            {% endif %}
+                        </div>
+                        <div class="card-title">{{ company.name }}</div>
+                        <div class="card-description">
+                            {% if company.id == 2 %}
+                            Manage Machining, Polishing, Assembly, Cartons, Packaging and Dispatch.
+                            {% else %}
+                            Manage Casting furnaces, weight entries, heat analysis and pouring logs.
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="enter-badge">
+                        Enter Workspace →
+                    </div>
+                </button>
+            </form>
+            {% endfor %}
+        </div>
+
+        <div class="footer-action">
+            Logged in as <strong style="color: var(--text-primary);">{{ user.email|default:user.username }}</strong>. 
+            Want to leave? 
+            <form id="logout-form" action="{% url 'logout' %}" method="POST" style="display: inline;">
+                {% csrf_token %}
+                <a href="#" onclick="document.getElementById('logout-form').submit(); return false;" class="logout-link">Sign out</a>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

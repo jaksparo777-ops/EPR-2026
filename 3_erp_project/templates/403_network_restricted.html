@@ -1,0 +1,30 @@
+{% extends "layout/base.html" %}
+
+{% block content %}
+<div style="min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div class="glass-card" style="max-width: 520px; width: 100%; padding: 40px; text-align: center; background: rgba(17, 24, 39, 0.88); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 24px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);">
+        <div style="width: 80px; height: 80px; background: rgba(239, 68, 68, 0.15); color: #f87171; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 38px; margin: 0 auto 20px auto; border: 1px solid rgba(239, 68, 68, 0.3);">
+            📡
+        </div>
+        
+        <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 10px 0;">Factory Network Restricted</h1>
+        
+        <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0; line-height: 1.6;">
+            Staff accounts can <strong>only be accessed from devices connected to the Factory Local Wi-Fi</strong> (<code style="color:#818cf8;">192.168.x.x</code>).
+        </p>
+
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; font-size: 12.5px; color: #cbd5e1; margin-bottom: 28px; text-align: left;">
+            <div>📍 <strong>Your Current Connection IP:</strong> <span style="color:#f87171; font-weight:700;">{{ client_ip|default:"External WAN IP" }}</span></div>
+            <div style="margin-top: 6px; font-size: 11.5px; color: #64748b;">
+                If you are a staff operator inside the factory, please disconnect from mobile cellular data (5G) and switch your device to the <strong>Factory Local Wi-Fi</strong>.
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <a href="{% url 'login' %}" class="btn-primary" style="text-decoration: none; padding: 12px 24px; font-size: 14px; font-weight: 700; border-radius: 12px; display: inline-flex; align-items: center; gap: 8px;">
+                🔄 Retry Connection
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

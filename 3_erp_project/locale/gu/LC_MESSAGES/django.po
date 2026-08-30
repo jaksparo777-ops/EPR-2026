@@ -1,0 +1,255 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-29 16:12+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: templates/attendance.html:272
+msgid "Daily Attendance"
+msgstr ""
+
+#: templates/attendance.html:273
+msgid "Record and manage daily shift presence & overtime hours"
+msgstr ""
+
+#: templates/attendance.html:277 templates/casting.html:291
+#: templates/casting.html:373
+msgid "Date"
+msgstr ""
+
+#: templates/attendance.html:278
+msgid "Select Date"
+msgstr ""
+
+#: templates/attendance.html:300
+msgid "Worker"
+msgstr ""
+
+#: templates/attendance.html:301
+msgid "Name"
+msgstr ""
+
+#: templates/attendance.html:302
+msgid "ID"
+msgstr ""
+
+#: templates/attendance.html:303
+msgid "Department"
+msgstr ""
+
+#: templates/attendance.html:304
+msgid "Shift Status"
+msgstr ""
+
+#: templates/attendance.html:305
+msgid "Overtime"
+msgstr ""
+
+#: templates/attendance.html:329
+msgid "Present"
+msgstr ""
+
+#: templates/attendance.html:332
+msgid "Half Day"
+msgstr ""
+
+#: templates/attendance.html:335
+msgid "Absent"
+msgstr ""
+
+#: templates/attendance.html:349
+msgid "hrs"
+msgstr ""
+
+#: templates/attendance.html:354
+msgid "Saved"
+msgstr ""
+
+#: templates/attendance.html:361
+msgid "No active workers registered under this team."
+msgstr ""
+
+#: templates/casting.html:174
+msgid "Casting Operations"
+msgstr ""
+
+#: templates/casting.html:175
+msgid "Manage daily heat entries and monitor casting stock."
+msgstr ""
+
+#: templates/casting.html:182
+msgid "Today's Production Analytics"
+msgstr ""
+
+#: templates/casting.html:183
+msgid "Real-time progress for current date"
+msgstr ""
+
+#: templates/casting.html:187
+msgid "Total Heats:"
+msgstr ""
+
+#: templates/casting.html:191
+msgid "Total Weight:"
+msgstr ""
+
+#: templates/casting.html:192
+msgid "kg"
+msgstr ""
+
+#: templates/casting.html:200
+msgid "Daily Entry"
+msgstr ""
+
+#: templates/casting.html:201
+msgid "All Entries"
+msgstr ""
+
+#: templates/casting.html:202
+msgid "Summary"
+msgstr ""
+
+#: templates/casting.html:211
+msgid "New Heat Entry"
+msgstr ""
+
+#: templates/casting.html:216
+msgid "Copy Last Heat Items"
+msgstr ""
+
+#: templates/casting.html:226
+msgid "Heat Number"
+msgstr ""
+
+#: templates/casting.html:241
+msgid "POURED BY (CASTING TEAM / CASTER)"
+msgstr ""
+
+#: templates/casting.html:243
+msgid "Select Caster"
+msgstr ""
+
+#: templates/casting.html:244
+msgid "INTERNAL STAFF (IN-HOUSE)"
+msgstr ""
+
+#: templates/casting.html:249
+msgid "EXTERNAL JOB WORK UNITS"
+msgstr ""
+
+#: templates/casting.html:263
+msgid "+ ADD ITEM"
+msgstr ""
+
+#: templates/casting.html:267
+msgid "Notes"
+msgstr ""
+
+#: templates/casting.html:268
+msgid "Additional details..."
+msgstr ""
+
+#: templates/casting.html:272
+msgid "Save Entry"
+msgstr ""
+
+#: templates/casting.html:276
+msgid "Cancel Edit"
+msgstr ""
+
+#: templates/casting.html:283
+msgid "Today's Heat Entries"
+msgstr ""
+
+#: templates/casting.html:292 templates/casting.html:305
+msgid "Heat"
+msgstr ""
+
+#: templates/casting.html:293 templates/casting.html:375
+msgid "Item"
+msgstr ""
+
+#: templates/casting.html:294 templates/casting.html:376
+msgid "Client"
+msgstr ""
+
+#: templates/casting.html:295 templates/casting.html:377
+msgid "Pcs"
+msgstr ""
+
+#: templates/casting.html:296 templates/casting.html:378
+msgid "Wt"
+msgstr ""
+
+#: templates/casting.html:297
+msgid "Action"
+msgstr ""
+
+#: templates/casting.html:307
+msgid "Heat Totals"
+msgstr ""
+
+#: templates/casting.html:319 templates/casting.html:390
+msgid "Internal"
+msgstr ""
+
+#: templates/casting.html:339
+msgid "Edit"
+msgstr ""
+
+#: templates/casting.html:342
+msgid "Are you sure?"
+msgstr ""
+
+#: templates/casting.html:343
+msgid "Del"
+msgstr ""
+
+#: templates/casting.html:351 templates/casting.html:401
+msgid "No entries found."
+msgstr ""
+
+#: templates/casting.html:366
+msgid "Full Transaction History"
+msgstr ""
+
+#: templates/casting.html:374
+msgid "Heat No"
+msgstr ""
+
+#: templates/casting.html:415
+msgid "Stock Summary by Item"
+msgstr ""
+
+#: templates/casting.html:422
+msgid "Item Code"
+msgstr ""
+
+#: templates/casting.html:423
+msgid "Item Name"
+msgstr ""
+
+#: templates/casting.html:424
+msgid "Total Pcs"
+msgstr ""
+
+#: templates/casting.html:425
+msgid "Total Weight"
+msgstr ""
+
+#: templates/casting.html:438
+msgid "No data available."
+msgstr ""

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Monthly Job Worker Statements - {{ month_name }}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        
+        :root {
+            --primary: #0f172a;
+            --accent: #3b82f6;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --rejection: #dc2626;
+            --earnings: #16a34a;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            line-height: 1.4;
+            margin: 0;
+            padding: 20px;
+            background: white;
+        }
+
+        .slip-container {
+            box-sizing: border-box;
+            background: white;
+            width: 100%;
+            max-width: 1050px;
+            margin: 0 auto 40px auto;
+            padding: 20px;
+            border-bottom: 2px dashed var(--border);
+        }
+
+        /* 100% PURE SOLID HIGH-CONTRAST B&W PRINT & PDF MODE OVERRIDES */
+        body.pdf-print-mode,
+        body.pdf-print-mode * {
+            --accent: #000000 !important;
+            --primary: #000000 !important;
+            --text-main: #000000 !important;
+            --text-muted: #000000 !important;
+            --border: #000000 !important;
+            --rejection: #000000 !important;
+            --earnings: #000000 !important;
+            color: #000000 !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
+            border-color: #000000 !important;
+            text-shadow: none !important;
+        }
+
+        body.pdf-print-mode .slip-container {
+            width: 194mm !important;
+            height: 280mm !important;
+            max-height: 283mm !important;
+            padding: 3mm 2mm !important;
+            margin: 0 auto 10px auto !important;
+            box-shadow: none !important;
+            border: none !important;
+            box-sizing: border-box !important;
+            page-break-inside: avoid !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            overflow: hidden !important;
+        }
+
+        body.pdf-print-mode .header {
+            padding-bottom: 4px !important;
+            margin-bottom: 6px !important;
+            border-bottom: 2px solid #000000 !important;
+        }
+
+        body.pdf-print-mode .header h1 {
+            font-size: 21px !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+        }
+
+        body.pdf-print-mode .header h2 {
+            font-size: 19px !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+        }
+
+        body.pdf-print-mode .summary-grid {
+            margin-bottom: 6px !important;
+            gap: 6px !important;
+        }
+
+        body.pdf-print-mode .summary-item {
+            padding: 6px 8px !important;
+            border-radius: 4px !important;
+            border: 1.2px solid #000000 !important;
+            background: #ffffff !important;
+        }
+
+        body.pdf-print-mode .summary-label {
+            font-size: 8.5px !important;
+            margin-bottom: 1px !important;
+            color: #000000 !important;
+            font-weight: 800 !important;
+        }
+
+        body.pdf-print-mode .summary-value {
+            font-size: 14px !important;
+            color: #000000 !important;
+            font-weight: 800 !important;
+        }
+
+        body.pdf-print-mode .summary-value.highlight {
+            font-size: 17px !important;
+            color: #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        body.pdf-print-mode table {
+            margin-bottom: 4px !important;
+            border: 1.5px solid #000000 !important;
+        }
+
+        body.pdf-print-mode th {
+            background: #f1f5f9 !important;
+            color: #000000 !important;
+            border-bottom: 2px solid #000000 !important;
+            font-weight: 900 !important;
+            padding: 4.5px 3px !important;
+            font-size: 11.5px !important;
+        }
+
+        body.pdf-print-mode td {
+            padding: 3.6px 3px !important;
+            font-size: 10.8px !important;
+            font-weight: 800 !important;
+            border-bottom: 1px solid #000000 !important;
+            color: #000000 !important;
+        }
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 6mm 8mm;
+            }
+            html, body {
+                width: 210mm;
+                height: 297mm;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: white !important;
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .slip-container {
+                width: 194mm !important;
+                height: 282mm !important;
+                max-height: 284mm !important;
+                padding: 4mm 2mm !important;
+                margin: 0 auto !important;
+                box-shadow: none !important;
+                border: none !important;
+                box-sizing: border-box;
+                page-break-inside: avoid !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                overflow: hidden !important;
+            }
+            .slip-container, .slip-container *, p, span, h1, h2, h3, div, td, th {
+                color: #000000 !important;
+                border-color: #000000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            span[style*="color"], div[style*="color"], td[style*="color"], th[style*="color"] {
+                color: #000000 !important;
+            }
+            .page-break {
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .header {
+                padding-bottom: 4px !important;
+                margin-bottom: 8px !important;
+                border-bottom: 2.2px solid #000000 !important;
+            }
+            .header h1 {
+                font-size: 22px !important;
+                font-weight: 900 !important;
+                color: #000000 !important;
+            }
+            .header h2 {
+                font-size: 20px !important;
+                font-weight: 900 !important;
+                color: #000000 !important;
+            }
+            table {
+                margin-bottom: 6px !important;
+                border: 1.5px solid #000000 !important;
+            }
+            th {
+                background: #f1f5f9 !important;
+                color: #000000 !important;
+                border-bottom: 2px solid #000000 !important;
+                font-weight: 900 !important;
+                padding: 5px 3px !important;
+                font-size: 12px !important;
+            }
+            td {
+                padding: 3.8px 3px !important;
+                font-size: 11px !important;
+                font-weight: 800 !important;
+                border-bottom: 1px solid #000000 !important;
+                color: #000000 !important;
+            }
+            .summary-grid {
+                margin-bottom: 8px !important;
+                gap: 6px !important;
+            }
+            .summary-item {
+                padding: 6px 8px !important;
+                border-radius: 6px !important;
+                border: 1.2px solid #000000 !important;
+                background: #ffffff !important;
+            }
+            .summary-label {
+                font-size: 8.5px !important;
+                margin-bottom: 2px !important;
+                color: #000000 !important;
+                font-weight: 800 !important;
+            }
+            .summary-value {
+                font-size: 14px !important;
+                color: #000000 !important;
+                font-weight: 800 !important;
+            }
+            .summary-value.highlight {
+                font-size: 17px !important;
+                color: #000000 !important;
+                font-weight: 900 !important;
+            }
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .company-info h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .statement-title {
+            text-align: right;
+        }
+
+        .statement-title h2 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .summary-item {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .summary-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .summary-value {
+            font-size: 17px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .summary-value.highlight {
+            font-size: 20px;
+            color: var(--accent);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-align: left;
+            padding: 8px 6px;
+            font-size: 11px;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 6px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .footer {
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .signature-box {
+            border-top: 1px solid var(--text-main);
+            width: 180px;
+            text-align: center;
+            padding-top: 6px;
+            margin-top: 25px;
+        }
+
+        /* Utility Header Styling */
+        .utility-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111827;
+            padding: 15px 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 25px;
+            max-width: 1050px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .btn-utility {
+            background: rgba(255,255,255,0.05);
+            color: #cbd5e1;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-decoration: none;
+            outline: none;
+            font-family: inherit;
+        }
+        .btn-utility:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .btn-utility.back-btn:hover {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        @media screen {
+            body.dark-theme {
+                --text-main: #f1f5f9;
+                --text-muted: #94a3b8;
+                --border: rgba(255,255,255,0.08);
+                --rejection: #f87171;
+                --earnings: #34d399;
+                background: #0b0f19;
+                color: var(--text-main);
+                padding: 30px 15px;
+            }
+            body.dark-theme .slip-container {
+                background: #111827;
+                border: 1px solid rgba(255,255,255,0.05);
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                color: #cbd5e1;
+                border-radius: 16px;
+                padding: 25px;
+            }
+            body.dark-theme .header {
+                border-bottom: 2px solid rgba(255,255,255,0.05);
+            }
+            body.dark-theme .statement-title h2, 
+            body.dark-theme .company-info h1 {
+                color: #ffffff;
+            }
+            body.dark-theme th {
+                background: rgba(255,255,255,0.02);
+                color: #94a3b8;
+                border-bottom: 2px solid rgba(255,255,255,0.05);
+            }
+            body.dark-theme td {
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+                color: #cbd5e1;
+            }
+            body.dark-theme .summary-item {
+                background: rgba(255,255,255,0.01);
+                border: 1px solid rgba(255,255,255,0.05);
+            }
+            body.dark-theme .summary-item[style*="border-color: var(--accent)"] {
+                border-color: var(--accent);
+                background: rgba(59, 130, 246, 0.08);
+            }
+            body.dark-theme .summary-item[style*="border-color: var(--accent)"] .summary-value {
+                color: #3b82f6;
+            }
+        }
+    </style>
+</head>
+<body class="dark-theme">
+
+    <div class="utility-header no-print">
+        <button onclick="handleGoBack()" class="btn-utility back-btn">◀ Back</button>
+        <div style="display: flex; gap: 12px;">
+            <button onclick="downloadCombinedPDF()" class="btn-utility" style="background: var(--accent); color: white; border-color: var(--accent);">💾 Download PDF</button>
+            <button onclick="window.print()" class="btn-utility">🖨 Print All</button>
+        </div>
+    </div>
+
+    <div id="slips-print-container">
+        {% for r in reports %}
+        <div class="slip-container {% if not forloop.last %}page-break{% endif %}">
+            <div class="header">
+                <div class="company-info">
+                    <h1>FOUNDRY ERP</h1>
+                    <p style="margin:5px 0; font-size:12px; color:var(--text-muted);">Monthly Work Settlement Statement {% if r.jw.process %}({{ r.jw.process|title }}){% endif %}</p>
+                </div>
+                <div class="statement-title">
+                    <h2 style="margin: 0; font-size: 24px; color: var(--accent);">{{ r.jw.name }}</h2>
+                    <p style="margin:5px 0; font-weight:600; text-align: right;">
+                        {{ r.month_name }}
+                        {% if r.is_fully_paid %}
+                        <span style="background: #10b981; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-left: 8px; text-transform: uppercase; display: inline-block;">✓ FULLY SETTLED & PAID</span>
+                        {% elif r.balance and r.balance > 0 %}
+                        <span style="background: #ef4444; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-left: 8px; text-transform: uppercase; display: inline-block;">⚠️ DUE: ₹{{ r.balance|floatformat:2 }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px;">
+                <div class="summary-item">
+                    <div class="summary-label">Total Work Done</div>
+                    <div class="summary-value">₹{{ r.total_earned|floatformat:2 }}</div>
+                    {% if r.total_casting_wt > 0 %}
+                    <div style="font-size: 9.5px; color: var(--text-muted); margin-top: 3px; font-weight: 700;">({{ r.total_casting_wt|floatformat:1 }} kg Casting)</div>
+                    {% endif %}
+                </div>
+                {% if r.total_casting_wt > 0 or r.jw.casting_rate_per_kg > 0 %}
+                <div class="summary-item" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3);">
+                    <div class="summary-label" style="color: #34d399;">⚖️ Total Casting Weight</div>
+                    <div class="summary-value" style="color: #34d399;">{{ r.total_casting_wt|floatformat:1 }} kg</div>
+                </div>
+                {% endif %}
+                {% if r.total_paid and r.total_paid > 0 %}
+                <div class="summary-item">
+                    <div class="summary-label">Total Advances/Paid</div>
+                    <div class="summary-value">₹{{ r.total_paid|floatformat:2 }}</div>
+                </div>
+                {% endif %}
+                <div class="summary-item" style="border-color: var(--accent); background: #eff6ff;">
+                    <div class="summary-label">Net Payable Balance</div>
+                    <div class="summary-value highlight">₹{{ r.balance|floatformat:2 }}</div>
+                    {% if r.financial_opening_bal and r.financial_opening_bal != 0 %}
+                    <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; font-weight: 600;">(Incl. ₹{{ r.financial_opening_bal|floatformat:2 }} opening bal.)</div>
+                    {% endif %}
+                </div>
+                {% if r.loan_balance and r.loan_balance > 0 %}
+                <div class="summary-item">
+                    <div class="summary-label">Pending Loan</div>
+                    <div class="summary-value">₹{{ r.loan_balance|floatformat:2 }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- COMPACT 1-PAGE MATRIX GRID REPORT -->
+            <div style="overflow-x: auto; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border);">
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 0;">
+                    <thead>
+                        <tr style="background: #1e293b; color: white;">
+                            <th style="padding: 6px 4px; text-align: center; border: 1px solid var(--border); width: 40px;">DATE</th>
+                            <th style="padding: 6px 4px; text-align: center; border: 1px solid var(--border); width: 45px;">DAY</th>
+                            {% for item in r.matrix_items %}
+                            <th style="padding: 6px 6px; text-align: center; border: 1px solid var(--border); font-weight: 800; font-size: 11px;">{{ item.code }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if r.has_opening_stock %}
+                        <!-- OPENING CARRY FORWARD STOCK ROW (BEFORE DATE 1) -->
+                        <tr style="background: rgba(245, 158, 11, 0.12); font-weight: 800; border-bottom: 2px solid var(--border);">
+                            <td colspan="2" style="padding: 4px 6px; text-align: center; border: 1px solid var(--border); font-size: 9.5px; font-weight: 900; color: #f59e0b; text-transform: uppercase;">OP. STOCK</td>
+                            {% for item in r.matrix_items %}
+                            <td style="padding: 4px 4px; border: 1px solid var(--border); text-align: center; font-size: 11px; font-weight: 900; color: #f59e0b;">
+                                {% if item.opening_bal > 0 %}
+                                {{ item.opening_bal }}
+                                {% else %}
+                                <span style="opacity: 0.25;">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endif %}
+                        {% for day_row in r.matrix_days %}
+                        <tr style="{% if day_row.is_sunday or day_row.is_wednesday %}background: rgba(239, 68, 68, 0.08);{% endif %}">
+                            <td style="padding: 4px; text-align: center; border: 1px solid var(--border); font-weight: 700; font-size: 10px;">{{ day_row.day }}</td>
+                            <td style="padding: 4px; text-align: center; border: 1px solid var(--border); font-size: 10px; color: var(--text-muted);">{{ day_row.day_name }}</td>
+                            {% for cell in day_row.item_qty_list %}
+                            <td style="padding: 4px; text-align: center; border: 1px solid var(--border);">
+                                {% if cell.in_qty > 0 %}
+                                    <div style="font-weight: 800; font-size: 11px; color: var(--text-main);">{{ cell.in_qty }}</div>
+                                    {% if cell.out_qty > 0 %}
+                                        <div style="font-size: 8.5px; color: #3b82f6; font-weight: 700;">Iss: {{ cell.out_qty }}</div>
+                                    {% endif %}
+                                {% elif cell.out_qty > 0 %}
+                                    <div style="font-size: 9.5px; color: #3b82f6; font-weight: 700;">Iss: {{ cell.out_qty }}</div>
+                                {% else %}
+                                    <span style="opacity: 0.15;">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <!-- TOTAL PCS DONE (RECEIVES) -->
+                        <tr style="background: rgba(16, 185, 129, 0.08); font-weight: 800; border-top: 2px solid var(--primary);">
+                            <td colspan="2" style="padding: 5px 6px; border: 1px solid var(--border); text-align: right; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #10b981;">TOTAL RECEIVED:</td>
+                            {% for item in r.matrix_items %}
+                            <td style="padding: 5px 4px; border: 1px solid var(--border); text-align: center; color: #10b981; font-size: 11.5px; font-weight: 800;">{{ item.total_pcs }}</td>
+                            {% endfor %}
+                        </tr>
+                        <!-- TOTAL ISSUED & CLOSING STOCK -->
+                        <tr style="background: rgba(59, 130, 246, 0.05); font-weight: 700;">
+                            <td colspan="2" style="padding: 5px 6px; border: 1px solid var(--border); text-align: right; font-size: 9.5px; color: var(--text-muted); text-transform: uppercase;">ISSUED / CL. STOCK:</td>
+                            {% for item in r.matrix_items %}
+                            <td style="padding: 5px 4px; border: 1px solid var(--border); text-align: center; font-size: 9.5px; color: var(--text-muted);">
+                                <div>Iss: <span style="font-weight:700; color:var(--text-main);">{{ item.total_issued }}</span></div>
+                                <div>Stk: <span style="font-weight:800; color:{% if item.stock_in_hand > 0 %}#f59e0b{% else %}var(--text-main){% endif %};">{{ item.stock_in_hand }}</span></div>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        <!-- TOTAL EARNINGS AMOUNT -->
+                        <tr style="background: rgba(16, 185, 129, 0.12); font-weight: 900; border-bottom: 2px solid var(--primary);">
+                            <td colspan="2" style="padding: 7px 6px; border: 1px solid var(--border); text-align: right; font-size: 10px; color: #10b981; text-transform: uppercase;">AMOUNT (₹):</td>
+                            {% for item in r.matrix_items %}
+                            <td style="padding: 7px 4px; border: 1px solid var(--border); text-align: center; color: #10b981; font-size: 12px; font-weight: 900;">
+                                ₹{{ item.earned|floatformat:2 }}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function downloadCombinedPDF() {
+            const element = document.getElementById('slips-print-container');
+            const month = "{{ month_val }}";
+            const opt = {
+                margin:       [3, 3, 3, 3],
+                filename:     `JobWorker_Statements_Combined_${month}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['css', 'legacy'] }
+            };
+            
+            document.body.classList.remove('dark-theme');
+            document.body.classList.add('pdf-print-mode');
+            
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.body.classList.remove('pdf-print-mode');
+                document.body.classList.add('dark-theme');
+            }).catch(err => {
+                console.error("PDF generation failed:", err);
+                document.body.classList.remove('pdf-print-mode');
+                document.body.classList.add('dark-theme');
+            });
+        }
+
+        function handleGoBack() {
+            window.location.href = "{% url 'labor_ledger' %}?month={{ month_val }}";
+        }
+    </script>
+</body>
+</html>
