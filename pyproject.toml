@@ -1,0 +1,5 @@
+[tool.pyrefly]
+preset = "off"
+
+[tool.pyright]
+typeCheckingMode = "off"

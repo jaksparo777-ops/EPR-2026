@@ -1213,10 +1213,9 @@
         container.innerHTML = '';
 
         let hasResults = false;
+        const sectionScores = results.section_scores || {};
 
-        // A. NAVIGATION RESULTS
-        if (results.navigation && results.navigation.length > 0) {
-            hasResults = true;
+        const renderNavigation = (items, target) => {
             const navSec = document.createElement('div');
             navSec.innerHTML = `<div class="search-section-title">🚀 QUICK PAGES</div>`;
             const list = document.createElement('div');
@@ -1224,7 +1223,7 @@
             list.style.gridTemplateColumns = 'repeat(auto-fit, minmax(220px, 1fr))';
             list.style.gap = '10px';
             
-            results.navigation.forEach(page => {
+            items.forEach(page => {
                 list.innerHTML += `
                     <a href="${page.url}" class="search-nav-item">
                         ${page.title}
@@ -1232,12 +1231,10 @@
                 `;
             });
             navSec.appendChild(list);
-            container.appendChild(navSec);
-        }
+            target.appendChild(navSec);
+        };
 
-        // B. ITEMS / SKU RESULTS WITH PRODUCTION PIPELINE
-        if (results.items && results.items.length > 0) {
-            hasResults = true;
+        const renderItems = (items, target) => {
             const itemSec = document.createElement('div');
             itemSec.innerHTML = `<div class="search-section-title">📦 SKU PRODUCTION LIFECYCLES</div>`;
             const list = document.createElement('div');
@@ -1245,9 +1242,8 @@
             list.style.flexDirection = 'column';
             list.style.gap = '16px';
 
-            results.items.forEach(item => {
+            items.forEach(item => {
                 const isSet = item.item_type === 'SET';
-                const escCode = encodeURIComponent(item.code);
                 
                 // Casting always routes to Company 1 (NC)
                 const castingUrl = `/select-company/?company_id=1&next=${encodeURIComponent('/casting/?tab=entry&item_code=' + item.code)}`;
@@ -1342,12 +1338,10 @@
                 `;
             });
             itemSec.appendChild(list);
-            container.appendChild(itemSec);
-        }
+            target.appendChild(itemSec);
+        };
 
-        // C. ORDERS RESULTS
-        if (results.orders && results.orders.length > 0) {
-            hasResults = true;
+        const renderOrders = (items, target) => {
             const orderSec = document.createElement('div');
             orderSec.innerHTML = `<div class="search-section-title">📋 ACTIVE CUSTOMER ORDERS</div>`;
             const list = document.createElement('div');
@@ -1355,7 +1349,7 @@
             list.style.flexDirection = 'column';
             list.style.gap = '8px';
 
-            results.orders.forEach(order => {
+            items.forEach(order => {
                 let statusColor = '#3b82f6';
                 if (order.status === 'COMPLETED') statusColor = '#10b981';
                 else if (order.status === 'PARTIAL') statusColor = '#f59e0b';
@@ -1374,53 +1368,174 @@
                 `;
             });
             orderSec.appendChild(list);
-            container.appendChild(orderSec);
-        }
+            target.appendChild(orderSec);
+        };
 
-        // D. WORKERS / STAFF RESULTS
-        if (results.workers && results.workers.length > 0) {
-            hasResults = true;
+        const renderWorkers = (items, target) => {
             const workerSec = document.createElement('div');
-            workerSec.innerHTML = `<div class="search-section-title">👥 STAFF & JOB WORKERS</div>`;
+            workerSec.innerHTML = `<div class="search-section-title">👥 STAFF & JOB WORKERS (OPERATIONAL COMMAND)</div>`;
             const list = document.createElement('div');
             list.style.display = 'flex';
             list.style.flexDirection = 'column';
-            list.style.gap = '8px';
+            list.style.gap = '12px';
 
-            results.workers.forEach(w => {
-                const targetId = w.type === 'Internal' ? `w_${w.id}` : `jw_${w.id}`;
-                const reportUrl = w.type === 'Internal' 
+            items.forEach(w => {
+                const targetId = w.type.includes('Internal') ? `w_${w.id}` : `jw_${w.id}`;
+                const reportUrl = w.type.includes('Internal') 
                     ? `/worker/${w.id}/report/` 
                     : `/ledger/job-worker/${w.id}/report/`;
                 
-                const tabParam = w.type === 'Internal' ? 'staff' : 'jw';
-                const ptypeParam = w.type === 'Internal' ? 'SALARY' : 'JOB_WORK';
-                const profileUrl = `/ledger/?action=profile&target_id=${targetId}&tab=${tabParam}`;
-                const paymentUrl = `/ledger/?action=payment&target_id=${targetId}&payment_type=${ptypeParam}&tab=${tabParam}`;
+                const tabParam = w.type.includes('Internal') ? 'staff' : 'jw';
+                const ptypeParam = w.type.includes('Internal') ? 'SALARY' : 'JOB_WORK';
+                const drawerParam = w.type.includes('Internal') ? `worker_profile&worker_id=${w.id}` : `jw_profile&jw_id=${w.id}`;
+                const profileUrl = `/ledger/?action=profile&target_id=${targetId}&drawer=${drawerParam}&tab=${tabParam}`;
+                const paymentUrl = `/ledger/?action=payment&target_id=${targetId}&payment_type=${ptypeParam}&drawer=payment&tab=${tabParam}`;
                 
-                list.innerHTML += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:8px;">
-                        <div>
-                            <strong style="color:var(--accent-blue);">${w.name}</strong>
-                            <span style="margin-left:10px; color:var(--text-secondary); font-size:12.5px;">${w.type} (${w.process || 'General'})</span>
+                // Department action shortcuts:
+                let pipelineHtml = '';
+                if (w.process === 'machining') {
+                    const machOutUrl = `/select-company/?company_id=2&next=${encodeURIComponent('/machining/?direction=machining_out&worker_id=' + targetId)}`;
+                    const machInUrl = `/select-company/?company_id=2&next=${encodeURIComponent('/machining/?direction=machining_in&worker_id=' + targetId)}`;
+                    const outClass = w.perms.can_machining_out ? '' : 'disabled';
+                    const inClass = w.perms.can_machining_in ? '' : 'disabled';
+
+                    pipelineHtml = `
+                        <div class="pipeline-step" style="border-color:rgba(99,102,241,0.35); background:rgba(99,102,241,0.08);">
+                            <span style="font-size:9px; font-weight:800; color:#818cf8;">MACH WIP</span>
+                            <span style="font-size:13px; font-weight:800; color:#818cf8; margin-top:4px;">⏳ ${w.wip_count} pcs</span>
                         </div>
-                        <div style="display:flex; gap:8px;">
-                            <a href="${reportUrl}" class="action-btn" style="text-decoration:none; display:inline-block; background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.2); font-weight:700; padding:4px 8px; font-size:11px; border-radius:6px; cursor:pointer;">
-                                📋 Statement
-                            </a>
-                            <a href="${profileUrl}" class="action-btn" style="text-decoration:none; display:inline-block; background:rgba(59,130,246,0.1); color:#3b82f6; border:1px solid rgba(59,130,246,0.2); font-weight:700; padding:4px 8px; font-size:11px; border-radius:6px; cursor:pointer;">
-                                👤 Profile
-                            </a>
-                            <a href="${paymentUrl}" class="action-btn" style="text-decoration:none; display:inline-block; background:rgba(245,158,11,0.1); color:#f59e0b; border:1px solid rgba(245,158,11,0.2); font-weight:700; padding:4px 8px; font-size:11px; border-radius:6px; cursor:pointer;">
-                                💸 Pay / Loan
-                            </a>
+                        <a href="${machOutUrl}" class="pipeline-step ${outClass}" title="Issue raw castings to ${w.name}">
+                            <span style="font-size:9px; font-weight:800; color:var(--text-secondary);">MACH OUT</span>
+                            <span style="font-size:12px; font-weight:800; color:#60a5fa; margin-top:4px;">📤 Issue</span>
+                        </a>
+                        <a href="${machInUrl}" class="pipeline-step ${inClass}" title="Receive machined stock from ${w.name}">
+                            <span style="font-size:9px; font-weight:800; color:var(--text-secondary);">MACH IN</span>
+                            <span style="font-size:12px; font-weight:800; color:#3b82f6; margin-top:4px;">📥 Inward</span>
+                        </a>
+                    `;
+                } else if (w.process === 'polishing') {
+                    const polOutUrl = `/select-company/?company_id=2&next=${encodeURIComponent('/polishing/?direction=polishing_out&worker_id=' + targetId)}`;
+                    const polInUrl = `/select-company/?company_id=2&next=${encodeURIComponent('/polishing/?direction=polishing_in&worker_id=' + targetId)}`;
+                    const outClass = w.perms.can_polishing_out ? '' : 'disabled';
+                    const inClass = w.perms.can_polishing_in ? '' : 'disabled';
+
+                    pipelineHtml = `
+                        <div class="pipeline-step" style="border-color:rgba(168,85,247,0.35); background:rgba(168,85,247,0.08);">
+                            <span style="font-size:9px; font-weight:800; color:#c084fc;">POL WIP</span>
+                            <span style="font-size:13px; font-weight:800; color:#c084fc; margin-top:4px;">⏳ ${w.wip_count} pcs</span>
+                        </div>
+                        <a href="${polOutUrl}" class="pipeline-step ${outClass}" title="Issue items to ${w.name}">
+                            <span style="font-size:9px; font-weight:800; color:var(--text-secondary);">POL OUT</span>
+                            <span style="font-size:12px; font-weight:800; color:#fbbf24; margin-top:4px;">📤 Issue</span>
+                        </a>
+                        <a href="${polInUrl}" class="pipeline-step ${inClass}" title="Receive polished goods from ${w.name}">
+                            <span style="font-size:9px; font-weight:800; color:var(--text-secondary);">POL IN</span>
+                            <span style="font-size:12px; font-weight:800; color:#8b5cf6; margin-top:4px;">📥 Inward</span>
+                        </a>
+                    `;
+                } else if (w.process === 'casting') {
+                    const castingUrl = `/select-company/?company_id=1&next=${encodeURIComponent('/casting/?tab=entry&worker_id=' + w.id)}`;
+                    const castClass = w.perms.can_casting_entry ? '' : 'disabled';
+                    pipelineHtml = `
+                        <a href="${castingUrl}" class="pipeline-step ${castClass}" title="Record casting log for ${w.name}">
+                            <span style="font-size:9px; font-weight:800; color:var(--text-secondary);">CASTING</span>
+                            <span style="font-size:12px; font-weight:800; color:#f59e0b; margin-top:4px;">🔥 Log Heat</span>
+                        </a>
+                    `;
+                } else {
+                    const attUrl = `/attendance/?highlight=${w.id}`;
+                    pipelineHtml = `
+                        <a href="${attUrl}" class="pipeline-step" title="Attendance register">
+                            <span style="font-size:9px; font-weight:800; color:var(--text-secondary);">ATTENDANCE</span>
+                            <span style="font-size:12px; font-weight:800; color:#10b981; margin-top:4px;">📅 Register</span>
+                        </a>
+                    `;
+                }
+
+                let actionButtonsHtml = '';
+                if (w.perms.can_view_statement) {
+                    actionButtonsHtml += `
+                        <a href="${reportUrl}" class="action-btn" style="text-decoration:none; display:inline-block; background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.25); font-weight:700; padding:5px 10px; font-size:11.5px; border-radius:6px; cursor:pointer;">
+                            📋 Statement
+                        </a>
+                    `;
+                }
+                if (w.perms.can_make_payment) {
+                    actionButtonsHtml += `
+                        <a href="${paymentUrl}" class="action-btn" style="text-decoration:none; display:inline-block; background:rgba(245,158,11,0.1); color:#f59e0b; border:1px solid rgba(245,158,11,0.25); font-weight:700; padding:5px 10px; font-size:11.5px; border-radius:6px; cursor:pointer;">
+                            💸 Pay / Loan
+                        </a>
+                    `;
+                }
+                if (w.perms.can_view_profile) {
+                    actionButtonsHtml += `
+                        <a href="${profileUrl}" class="action-btn" style="text-decoration:none; display:inline-block; background:rgba(59,130,246,0.1); color:#3b82f6; border:1px solid rgba(59,130,246,0.25); font-weight:700; padding:5px 10px; font-size:11.5px; border-radius:6px; cursor:pointer;">
+                            👤 Profile
+                        </a>
+                    `;
+                }
+
+                list.innerHTML += `
+                    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px 16px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <strong style="font-size:15px; color:var(--accent-blue);">${w.name}</strong>
+                                <span style="font-size:11px; font-weight:700; background:rgba(255,255,255,0.06); color:var(--text-secondary); padding:2px 8px; border-radius:6px;">${w.type}</span>
+                                <span style="font-size:11px; font-weight:800; color:#818cf8; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); padding:2px 8px; border-radius:6px; text-transform:uppercase;">${w.process_display}</span>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                ${actionButtonsHtml}
+                            </div>
+                        </div>
+                        
+                        <!-- Connected Process Pipeline -->
+                        <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:2px;">
+                            ${pipelineHtml}
                         </div>
                     </div>
                 `;
             });
             workerSec.appendChild(list);
-            container.appendChild(workerSec);
-        }
+            target.appendChild(workerSec);
+        };
+
+        const sections = [
+            {
+                key: 'workers',
+                score: sectionScores.workers !== undefined ? sectionScores.workers : 99,
+                items: results.workers || [],
+                render: renderWorkers
+            },
+            {
+                key: 'items',
+                score: sectionScores.items !== undefined ? sectionScores.items : 99,
+                items: results.items || [],
+                render: renderItems
+            },
+            {
+                key: 'navigation',
+                score: sectionScores.navigation !== undefined ? sectionScores.navigation : 99,
+                items: results.navigation || [],
+                render: renderNavigation
+            },
+            {
+                key: 'orders',
+                score: sectionScores.orders !== undefined ? sectionScores.orders : 99,
+                items: results.orders || [],
+                render: renderOrders
+            }
+        ];
+
+        // Sort sections by best relevance score (0 = exact match, 1 = prefix startsWith, 2 = word prefix, 3 = substring)
+        sections.sort((a, b) => a.score - b.score);
+
+        // Render each populated section in prioritized order
+        sections.forEach(sec => {
+            if (sec.items && sec.items.length > 0) {
+                hasResults = true;
+                sec.render(sec.items, container);
+            }
+        });
 
         if (!hasResults) {
             container.innerHTML = `
@@ -1663,6 +1778,26 @@
     });
 </script>
 
+<!-- DEVICE IDENTITY PERSISTENCE (DUAL LAYER: COOKIE + LOCALSTORAGE) -->
+<script>
+(function syncDeviceToken() {
+    try {
+        const getCookie = (name) => {
+            const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return m ? decodeURIComponent(m[2]) : null;
+        };
+        const cookieToken = getCookie('device_token');
+        const localToken = localStorage.getItem('erp_device_token');
+
+        if (cookieToken) {
+            localStorage.setItem('erp_device_token', cookieToken);
+        } else if (localToken) {
+            document.cookie = `device_token=${encodeURIComponent(localToken)}; path=/; max-age=31536000; SameSite=Lax`;
+        }
+    } catch(e) {}
+})();
+</script>
+
 <!-- AUTOMATIC HARDWARE MODEL TELEMETRY -->
 <script>
 (function autoDetectExactHardware() {
@@ -1680,6 +1815,8 @@
         }
     } catch(e) {}
 })();
+</script>
+
 <!-- REAL-TIME PAGE HEARTBEAT TELEMETRY -->
 <script>
 (function startActivePageHeartbeat() {
@@ -1693,6 +1830,153 @@
     setInterval(sendHeartbeat, 10000);
 })();
 </script>
+
+{% if request.user.is_authenticated %}
+<!-- INACTIVITY SESSION WARNING MODAL -->
+<div id="inactivityWarningModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); z-index:999999; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#0f172a; border:1px solid rgba(245,158,11,0.4); box-shadow:0 25px 60px rgba(0,0,0,0.8), 0 0 35px rgba(245,158,11,0.15); border-radius:24px; padding:36px 30px; max-width:460px; width:100%; text-align:center; position:relative;">
+        <div style="width:72px; height:72px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:36px; margin:0 auto 18px auto;">
+            ⏱️
+        </div>
+        <h3 style="margin:0 0 8px 0; color:#f8fafc; font-size:22px; font-weight:800; letter-spacing:-0.5px;">Session Timeout Warning</h3>
+        <p style="margin:0 0 20px 0; color:#94a3b8; font-size:13.5px; line-height:1.6;">
+            You have been inactive for <strong style="color:#f1f5f9;" id="inactivityDurationText">60 minutes</strong>.<br>For security, your session will automatically terminate in:
+        </p>
+        <div style="margin:0 auto 24px auto; width:100px; height:100px; border-radius:50%; background:radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%); border:3px solid #f59e0b; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <span id="inactivityCountdownSeconds" style="font-size:38px; font-weight:900; color:#fbbf24; font-family:monospace; line-height:1;">60</span>
+            <span style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:1px; margin-top:2px;">Seconds</span>
+        </div>
+        <div style="display:flex; gap:12px; justify-content:center;">
+            <button type="button" onclick="inactivitySignOutNow()" style="flex:1; background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid rgba(255,255,255,0.12); padding:13px 16px; border-radius:12px; font-weight:700; font-size:13.5px; cursor:pointer; transition:all 0.2s;">
+                Sign Out Now
+            </button>
+            <button type="button" onclick="stayLoggedIn()" style="flex:1.4; background:linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color:white; border:1px solid rgba(99,102,241,0.5); box-shadow:0 4px 15px rgba(79,70,229,0.4); padding:13px 16px; border-radius:12px; font-weight:800; font-size:13.5px; cursor:pointer; transition:all 0.2s;">
+                ✨ Stay Logged In
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function initInactivityManager() {
+    const timeoutMinutes = {{ request.user.session_timeout_minutes|default:60 }};
+    const logoutMode = "{{ request.user.timeout_logout_mode|default:'POPUP_WARNING' }}";
+    
+    // Total idle duration in milliseconds
+    const totalTimeoutMs = Math.max(60, timeoutMinutes * 60) * 1000;
+    const warningLeadSeconds = (totalTimeoutMs > 90000) ? 60 : Math.max(10, Math.floor(timeoutMinutes * 60 * 0.3));
+    const warningTriggerMs = Math.max(10000, totalTimeoutMs - (warningLeadSeconds * 1000));
+    
+    let lastActivityTime = Date.now();
+    let isWarningShowing = false;
+    let countdownInterval = null;
+    let secondsLeft = warningLeadSeconds;
+    
+    function resetActivity() {
+        if (!isWarningShowing) {
+            lastActivityTime = Date.now();
+        }
+    }
+    
+    // Listen to physical user interactions
+    let throttleTimer = null;
+    function onUserInteraction() {
+        if (!throttleTimer) {
+            throttleTimer = setTimeout(() => {
+                resetActivity();
+                throttleTimer = null;
+            }, 1000);
+        }
+    }
+    
+    ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'].forEach(evt => {
+        window.addEventListener(evt, onUserInteraction, { passive: true });
+    });
+    
+    // Poll idle time every second
+    setInterval(() => {
+        const idleMs = Date.now() - lastActivityTime;
+        
+        if (logoutMode === 'INSTANT_LOGOUT') {
+            if (idleMs >= totalTimeoutMs) {
+                performLogout();
+            }
+        } else {
+            if (!isWarningShowing && idleMs >= warningTriggerMs) {
+                showWarningModal();
+            }
+        }
+    }, 1000);
+    
+    function showWarningModal() {
+        isWarningShowing = true;
+        secondsLeft = Math.max(5, Math.ceil((totalTimeoutMs - (Date.now() - lastActivityTime)) / 1000));
+        
+        const modal = document.getElementById('inactivityWarningModal');
+        const countdownEl = document.getElementById('inactivityCountdownSeconds');
+        const durationText = document.getElementById('inactivityDurationText');
+        
+        if (durationText) durationText.textContent = `${timeoutMinutes} minute${timeoutMinutes > 1 ? 's' : ''}`;
+        if (countdownEl) countdownEl.textContent = secondsLeft;
+        if (modal) modal.style.display = 'flex';
+        
+        clearInterval(countdownInterval);
+        countdownInterval = setInterval(() => {
+            secondsLeft--;
+            if (countdownEl) countdownEl.textContent = Math.max(0, secondsLeft);
+            if (secondsLeft <= 0) {
+                clearInterval(countdownInterval);
+                performLogout();
+            }
+        }, 1000);
+    }
+    
+    window.stayLoggedIn = async function() {
+        clearInterval(countdownInterval);
+        isWarningShowing = false;
+        lastActivityTime = Date.now();
+        
+        const modal = document.getElementById('inactivityWarningModal');
+        if (modal) modal.style.display = 'none';
+        
+        try {
+            await fetch('/api/session/keep-alive/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            });
+        } catch(e) {
+            console.warn('Keep alive ping error:', e);
+        }
+    };
+    
+    window.inactivitySignOutNow = function() {
+        performLogout();
+    };
+    
+    function performLogout() {
+        const csrf = '{{ csrf_token }}';
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{% url 'logout' %}";
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrf;
+        form.appendChild(csrfInput);
+        const nextInput = document.createElement('input');
+        nextInput.type = 'hidden';
+        nextInput.name = 'next';
+        nextInput.value = '/login/?reason=timeout';
+        form.appendChild(nextInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+})();
+</script>
+{% endif %}
 
 </body>
 

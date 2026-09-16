@@ -477,47 +477,123 @@
         }
         .mark-all-btn {
             height: 32px !important;
+        .mark-all-btn {
+            height: 32px !important;
             padding: 0 10px !important;
             font-size: 11px !important;
         }
     }
+
+    /* MONTHLY ATTENDANCE SHEET MATRIX STYLES */
+    .attendance-cell {
+        cursor: pointer !important;
+        user-select: none !important;
+        transition: all 0.1s ease;
+    }
+    .attendance-cell:hover {
+        background: rgba(59, 130, 246, 0.2) !important;
+        outline: 1.5px solid #3b82f6 !important;
+        outline-offset: -1.5px !important;
+    }
+    .attendance-cell:active {
+        transform: scale(0.95);
+    }
+    .attendance-cell.active-editing {
+        background: rgba(59, 130, 246, 0.25) !important;
+        box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.6);
+    }
+
+    .attendance-cell.success-pulse {
+        animation: successPulseKeyframe 0.5s ease-out;
+    }
+    @keyframes successPulseKeyframe {
+        0% { background: rgba(16, 185, 129, 0.4) !important; }
+        100% { background: transparent; }
+    }
+
+    .attendance-cell.error-pulse {
+        animation: errorPulseKeyframe 0.5s ease-out;
+    }
+    @keyframes errorPulseKeyframe {
+        0% { background: rgba(239, 68, 68, 0.4) !important; }
+        100% { background: transparent; }
+    }
+
+    .tab-nav-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 800;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .tab-nav-btn.active {
+        background: var(--accent-blue) !important;
+        color: white !important;
+        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+    }
+    .tab-nav-btn:not(.active) {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-soft);
+    }
+    .tab-nav-btn:not(.active):hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+    }
 </style>
 
 <div class="attendance-container">
-    
-    <!-- HEADER -->
-    <div class="header-section">
-        <div style="width: 100%;">
-            <h1 style="font-size:26px; margin:0; display:flex; align-items:center;">
-                Daily Attendance
-                <span class="header-info-badge" tabindex="0" data-tooltip="Mark daily worker presence (Present, Half Day, Absent), log overtime hours, and view company team rosters." data-tooltip-pos="right" aria-label="Daily Attendance Info">ℹ️</span>
-            </h1>
-            <p style="margin:2px 0 0 0; color:var(--text-secondary); font-size:12px;">Shift presence & overtime tracking</p>
-        </div>
-        
-        <!-- SAME ROW FOR DATE & MARK ALL PRESENT BUTTON -->
-        <div class="controls-row">
-            <div class="datepicker-container" style="flex: 1;">
-                <label for="attendance-date">DATE:</label>
-                <input type="text" id="attendance-date" placeholder="Select Date">
-            </div>
 
-            <div id="attendance-status-badge" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 12px; font-size: 12px; font-weight: 700; background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); height: 38px; white-space: nowrap;">
-                <span>🟡 Pending / Not Saved Yet</span>
-            </div>
-
-            <button class="mark-all-btn" onclick="markAllPresent()">
-                ✓ Mark All Present
-            </button>
-        </div>
+    <!-- TOP SECTION TAB NAVIGATION -->
+    <div style="display:flex; gap:12px; margin-bottom:20px; border-bottom:1px solid var(--border-soft); padding-bottom:14px; flex-wrap:wrap;">
+        <button type="button" id="tab-btn-daily" class="tab-nav-btn {% if active_tab == 'daily' or not active_tab %}active{% endif %}" onclick="switchAttendanceTab('daily')">
+            📋 Today's Attendance
+        </button>
+        <button type="button" id="tab-btn-sheet" class="tab-nav-btn {% if active_tab == 'sheet' %}active{% endif %}" onclick="switchAttendanceTab('sheet')">
+            📅 Monthly Attendance Sheet
+        </button>
     </div>
 
-    <!-- COMPANY SELECTOR TABS -->
-    {% if not request.company %}
-    <div class="small-tabs" style="margin-bottom:12px; display:inline-flex; align-items:center; flex-wrap:wrap; gap:6px;">
-        <button id="team-btn-c1" class="team-btn {% if active_team == 'c1' %}active{% endif %}" onclick="switchTeam('c1')">
-            🛠 {{ company1.name|default:"Finishing Team" }}
-        </button>
+    <!-- TAB 1: DAILY ATTENDANCE SECTION -->
+    <div id="section-daily" style="display:{% if active_tab == 'daily' or not active_tab %}block{% else %}none{% endif %};">
+        <!-- HEADER -->
+        <div class="header-section">
+            <div style="width: 100%;">
+                <h1 style="font-size:26px; margin:0; display:flex; align-items:center;">
+                    Daily Attendance
+                    <span class="header-info-badge" tabindex="0" data-tooltip="Mark daily worker presence (Present, Half Day, Absent), log overtime hours, and view company team rosters." data-tooltip-pos="right" aria-label="Daily Attendance Info">ℹ️</span>
+                </h1>
+                <p style="margin:2px 0 0 0; color:var(--text-secondary); font-size:12px;">Shift presence & overtime tracking</p>
+            </div>
+            
+            <!-- SAME ROW FOR DATE & MARK ALL PRESENT BUTTON -->
+            <div class="controls-row">
+                <div class="datepicker-container" style="flex: 1;">
+                    <label for="attendance-date">DATE:</label>
+                    <input type="text" id="attendance-date" placeholder="Select Date">
+                </div>
+
+                <div id="attendance-status-badge" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 12px; font-size: 12px; font-weight: 700; background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); height: 38px; white-space: nowrap;">
+                    <span>🟡 Pending / Not Saved Yet</span>
+                </div>
+
+                <button class="mark-all-btn" onclick="markAllPresent()">
+                    ✓ Mark All Present
+                </button>
+            </div>
+        </div>
+
+        <!-- COMPANY SELECTOR TABS -->
+        {% if not request.company %}
+        <div class="small-tabs" style="margin-bottom:12px; display:inline-flex; align-items:center; flex-wrap:wrap; gap:6px;">
+            <button id="team-btn-c1" class="team-btn {% if active_team == 'c1' %}active{% endif %}" onclick="switchTeam('c1')">
+                🛠 {{ company1.name|default:"Finishing Team" }}
+            </button>
         <button id="team-btn-c2" class="team-btn {% if active_team == 'c2' %}active{% endif %}" onclick="switchTeam('c2')">
             🔥 {{ company2.name|default:"Casting Team" }}
         </button>
@@ -659,6 +735,158 @@
             {% endfor %}
         </div>
 
+    </div>
+    </div> <!-- END SECTION DAILY -->
+
+    <!-- TAB 2: MONTHLY ATTENDANCE SHEET SECTION -->
+    <div id="section-sheet" style="display:{% if active_tab == 'sheet' %}block{% else %}none{% endif %};">
+        <div class="card" style="background:var(--card-dark); border:1px solid var(--border-soft); border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2); margin-bottom:20px;">
+            <!-- MONTH SELECTOR HEADER -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+                <div>
+                    <h2 style="font-size:20px; font-weight:800; color:white; margin:0; display:flex; align-items:center; gap:8px;">
+                        <span>📅 {{ month_name }} Attendance Sheet</span>
+                        {% if is_current_month %}
+                        <span style="font-size:11px; font-weight:800; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); padding:2px 8px; border-radius:6px;">
+                            Current Month
+                        </span>
+                        {% endif %}
+                    </h2>
+                    <p style="margin:4px 0 0 0; color:var(--text-secondary); font-size:12px;">
+                        Full 31-day shift calendar matrix & in-place interactive tracking
+                    </p>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <label style="font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase;">Select Month:</label>
+                    <select id="sheetMonthSelect" onchange="switchSheetMonth(this.value)" style="padding:8px 14px; background:#090d16; border:1px solid var(--border-soft); border-radius:10px; color:white; font-weight:700; font-size:13px; cursor:pointer;">
+                        {% for m in available_months %}
+                        <option value="{{ m.val }}" {% if m.val == month_val %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- TABLE MATRIX -->
+            <div style="overflow-x:auto; border-radius:12px; border:1px solid var(--border-soft);">
+                <table style="border-collapse:collapse; min-width:1300px; width:100%;">
+                    <thead>
+                        <tr style="background:rgba(255,255,255,0.02); position:sticky; top:0; z-index:10;">
+                            <th style="position:sticky; left:0; background:var(--card-dark); z-index:11; min-width:180px; padding:16px 20px; border-right:2px solid var(--border-soft); text-align:left; font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-weight:800; letter-spacing:0.5px;">Staff Member</th>
+                            {% for d in days_range %}
+                            <th style="text-align:center; padding:10px 6px; font-size:11px; min-width:36px; border-right:1px solid rgba(255,255,255,0.05); color:var(--text-secondary); font-weight:800;">{{ d }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in attendance_matrix %}
+                        <tr style="border-bottom:1px solid var(--border-soft);">
+                            <td style="position:sticky; left:0; background:var(--card-dark); z-index:5; padding:12px 18px; font-weight:bold; border-right:2px solid var(--border-soft); color:var(--accent-blue);">
+                                <div style="font-weight:800; color:white; font-size:13.5px;">{{ row.worker.name }}</div>
+                                <div style="font-size:10px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-top:2px;">{{ row.worker.get_process_display }}</div>
+                            </td>
+                            {% for day in row.days %}
+                            <td class="attendance-cell"
+                                data-worker-id="{{ row.worker.id }}"
+                                data-worker-name="{{ row.worker.name }}"
+                                data-date="{{ day.date_str }}"
+                                data-day="{{ day.day }}"
+                                data-status="{% if day.status %}{{ day.status }}{% else %}NONE{% endif %}"
+                                data-ot="{{ day.ot }}"
+                                {% if day.holiday_name %}
+                                title="{{ day.holiday_name }} ({% if day.is_paid_holiday %}Paid{% else %}Unpaid{% endif %}) - Click: Cycle | 2-Click: Absent | 3-Click: Half Day | Right-Click: Details/OT"
+                                style="text-align:center; padding:8px 4px; font-size:15px; border-right:1px solid rgba(255,255,255,0.05); position:relative; background:rgba(245, 158, 11, 0.12); box-shadow:inset 0 0 4px rgba(245, 158, 11, 0.2); user-select:none; -webkit-user-select:none; cursor:pointer;"
+                                {% else %}
+                                title="Click: Present/Cycle | 2-Click: Absent | 3-Click: Half Day | Right-Click: Details/OT | Keys: P, A, H, Y, 1-9"
+                                style="text-align:center; padding:8px 4px; font-size:15px; border-right:1px solid rgba(255,255,255,0.05); position:relative; user-select:none; -webkit-user-select:none; cursor:pointer;"
+                                {% endif %}
+                                onclick="handleAttendanceCellClick(this, event)"
+                                oncontextmenu="handleAttendanceContextMenu(this, event)"
+                                onmouseenter="setHoveredCell(this)"
+                                onmouseleave="clearHoveredCell(this)">
+                                <div class="cell-status-container" style="pointer-events:none;">
+                                    {% if day.status == 'PRESENT' %}
+                                    <span style="color:#10b981; font-weight:800;">✓</span>
+                                    {% elif day.status == 'HALF_DAY' %}
+                                    <span style="color:#f59e0b; font-weight:800;">=</span>
+                                    {% elif day.status == 'ABSENT' %}
+                                    <span style="color:#ef4444; font-weight:800;">✕</span>
+                                    {% elif day.status == 'HOLIDAY' %}
+                                    <span style="color:#fb923c; font-weight:800;" title="{{ day.holiday_name }}">H</span>
+                                    {% else %}
+                                    <span style="color:var(--text-secondary); opacity:0.25;">·</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="cell-ot-indicator" style="position:absolute; top:2px; right:2px; width:5px; height:5px; background:var(--accent-blue); border-radius:50%; {% if day.ot == 0 %}display:none;{% endif %}" title="OT: {{ day.ot }}h"></div>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SHORTCUTS / LEGEND BAR -->
+            <div style="margin-top:16px; display:flex; gap:16px; font-size:12px; color:var(--text-secondary); justify-content:center; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:6px;"><span style="color:#10b981; font-weight:bold;">✓</span> 1-Click / P = Present</div>
+                <div style="display:flex; align-items:center; gap:6px;"><span style="color:#ef4444; font-weight:bold;">✕</span> 2-Clicks / A = Absent</div>
+                <div style="display:flex; align-items:center; gap:6px;"><span style="color:#f59e0b; font-weight:bold;">=</span> 3-Clicks / H = Half Day</div>
+                <div style="display:flex; align-items:center; gap:6px;"><span style="color:#fb923c; font-weight:bold;">H</span> Y = Holiday</div>
+                <div style="display:flex; align-items:center; gap:6px;"><div style="width:6px; height:6px; background:var(--accent-blue); border-radius:50%;"></div> Right-Click / 1-9 = Overtime</div>
+                <div style="color:var(--accent-blue); font-weight:700;">⚡ Instant In-Place Auto-Save</div>
+            </div>
+        </div>
+    </div> <!-- END SECTION SHEET -->
+
+</div>
+
+<!-- ATTENDANCE CELL EDIT MODAL -->
+<div id="attendanceCellModalBackdrop" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); z-index:100020;" onclick="closeAttendanceCellModal()"></div>
+
+<div id="attendanceCellModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:92%; max-width:420px; background:#111827; border:1px solid rgba(255,255,255,0.15); border-radius:18px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.8); z-index:100021; padding:24px; color:#ffffff; font-family:inherit;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px;">
+        <div>
+            <h3 id="attModalWorkerName" style="margin:0; font-size:20px; font-weight:900; color:#60a5fa;">Worker Name</h3>
+            <p id="attModalDateText" style="margin:4px 0 0 0; font-size:13px; color:#94a3b8; font-weight:600;">Date: 15 Aug 2026</p>
+        </div>
+        <button type="button" onclick="closeAttendanceCellModal()" style="background:rgba(255,255,255,0.1); border:none; color:#cbd5e1; font-size:16px; font-weight:bold; width:32px; height:32px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+    </div>
+
+    <!-- Status Picker Buttons -->
+    <label style="display:block; font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">Select Attendance Status (1-Click Apply)</label>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;">
+        <button type="button" onclick="setAttendanceModalStatus('PRESENT')" class="att-status-btn" data-status="PRESENT" style="display:flex; align-items:center; gap:8px; padding:12px 14px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:1.5px solid rgba(16,185,129,0.3); background:rgba(16,185,129,0.15); color:#34d399; transition:all 0.15s;">
+            <span style="font-size:16px;">✓</span> Present (Full)
+        </button>
+        <button type="button" onclick="setAttendanceModalStatus('HALF_DAY')" class="att-status-btn" data-status="HALF_DAY" style="display:flex; align-items:center; gap:8px; padding:12px 14px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:1.5px solid rgba(245,158,11,0.3); background:rgba(245,158,11,0.15); color:#fbbf24; transition:all 0.15s;">
+            <span style="font-size:16px;">=</span> Half Day (0.5)
+        </button>
+        <button type="button" onclick="setAttendanceModalStatus('ABSENT')" class="att-status-btn" data-status="ABSENT" style="display:flex; align-items:center; gap:8px; padding:12px 14px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:1.5px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.15); color:#f87171; transition:all 0.15s;">
+            <span style="font-size:16px;">✕</span> Absent
+        </button>
+        <button type="button" onclick="setAttendanceModalStatus('HOLIDAY')" class="att-status-btn" data-status="HOLIDAY" style="display:flex; align-items:center; gap:8px; padding:12px 14px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:1.5px solid rgba(251,146,60,0.3); background:rgba(251,146,60,0.15); color:#fb923c; transition:all 0.15s;">
+            <span style="font-size:16px;">🏷️</span> Holiday
+        </button>
+    </div>
+
+    <!-- Overtime Section -->
+    <label style="display:block; font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">Overtime (OT) Hours</label>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px;">
+        <input type="number" id="attModalOtInput" step="0.5" min="0" max="24" value="0" placeholder="0.0" style="width:85px; padding:10px; background:#1f2937; border:1.5px solid rgba(255,255,255,0.15); border-radius:10px; color:#ffffff; font-size:15px; font-weight:bold; text-align:center;">
+        <button type="button" onclick="adjustModalOt(1)" style="padding:8px 10px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer;">+1h</button>
+        <button type="button" onclick="adjustModalOt(2)" style="padding:8px 10px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer;">+2h</button>
+        <button type="button" onclick="adjustModalOt(4)" style="padding:8px 10px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer;">+4h</button>
+        <button type="button" onclick="document.getElementById('attModalOtInput').value='0';" style="padding:8px 10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#94a3b8; border-radius:8px; font-size:11px; cursor:pointer;">0h</button>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.08); padding-top:16px;">
+        <button type="button" onclick="setAttendanceModalStatus('NONE')" style="padding:10px 14px; background:transparent; border:1px solid rgba(239,68,68,0.3); color:#ef4444; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">🗑️ Clear Entry</button>
+        <div style="display:flex; gap:8px;">
+            <button type="button" onclick="closeAttendanceCellModal()" style="padding:10px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#cbd5e1; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer;">Cancel</button>
+            <button type="button" onclick="saveAttendanceModalData()" id="attModalSaveBtn" style="padding:10px 20px; background:#2563eb; border:none; color:white; border-radius:10px; font-size:13px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.4);">Save Changes</button>
+        </div>
     </div>
 </div>
 
@@ -938,5 +1166,336 @@
             }
         }
     }
+
+    // ==========================================
+    // TAB SWITCHING (0ms Instant Client-Side)
+    // ==========================================
+    function switchAttendanceTab(tab) {
+        const dailySec = document.getElementById('section-daily');
+        const sheetSec = document.getElementById('section-sheet');
+        const dailyBtn = document.getElementById('tab-btn-daily');
+        const sheetBtn = document.getElementById('tab-btn-sheet');
+
+        if (tab === 'sheet') {
+            if (dailySec) dailySec.style.display = 'none';
+            if (sheetSec) sheetSec.style.display = 'block';
+            if (dailyBtn) dailyBtn.classList.remove('active');
+            if (sheetBtn) sheetBtn.classList.add('active');
+        } else {
+            if (dailySec) dailySec.style.display = 'block';
+            if (sheetSec) sheetSec.style.display = 'none';
+            if (dailyBtn) dailyBtn.classList.add('active');
+            if (sheetBtn) sheetBtn.classList.remove('active');
+        }
+
+        try {
+            sessionStorage.setItem('attendance_active_tab', tab);
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tab);
+            window.history.replaceState({}, '', url);
+        } catch (e) {}
+    }
+    window.switchAttendanceTab = switchAttendanceTab;
+
+    function switchSheetMonth(monthVal) {
+        const url = new URL(window.location);
+        url.searchParams.set('tab', 'sheet');
+        url.searchParams.set('month', monthVal);
+        window.location.href = url.toString();
+    }
+    window.switchSheetMonth = switchSheetMonth;
+
+    // ==========================================
+    // MONTHLY SHEET MATRIX INTERACTION ENGINE
+    // ==========================================
+    let hoveredCell = null;
+    let currentModalCell = null;
+    let currentSelectedStatus = 'PRESENT';
+    const cellClickCounts = {};
+    const cellClickTimers = {};
+
+    function setHoveredCell(cell) {
+        hoveredCell = cell;
+    }
+    window.setHoveredCell = setHoveredCell;
+
+    function clearHoveredCell(cell) {
+        if (hoveredCell === cell) hoveredCell = null;
+    }
+    window.clearHoveredCell = clearHoveredCell;
+
+    document.addEventListener('mouseover', function(e) {
+        const cell = e.target.closest('.attendance-cell');
+        if (cell) {
+            hoveredCell = cell;
+        }
+    });
+
+    function updateCellUI(cell, status, ot) {
+        cell.setAttribute('data-status', status);
+        cell.setAttribute('data-ot', ot);
+
+        const statusContainer = cell.querySelector('.cell-status-container');
+        if (statusContainer) {
+            if (status === 'PRESENT') {
+                statusContainer.innerHTML = '<span style="color:#10b981; font-weight:800;">✓</span>';
+            } else if (status === 'HALF_DAY') {
+                statusContainer.innerHTML = '<span style="color:#f59e0b; font-weight:800;">=</span>';
+            } else if (status === 'ABSENT') {
+                statusContainer.innerHTML = '<span style="color:#ef4444; font-weight:800;">✕</span>';
+            } else if (status === 'HOLIDAY') {
+                statusContainer.innerHTML = '<span style="color:#fb923c; font-weight:800;">H</span>';
+            } else {
+                statusContainer.innerHTML = '<span style="color:var(--text-secondary); opacity:0.25;">·</span>';
+            }
+        }
+
+        const otIndicator = cell.querySelector('.cell-ot-indicator');
+        if (otIndicator) {
+            const otVal = parseFloat(ot || 0);
+            if (otVal > 0) {
+                otIndicator.style.display = 'block';
+                otIndicator.title = `OT: ${otVal}h`;
+            } else {
+                otIndicator.style.display = 'none';
+            }
+        }
+    }
+
+    function handleAttendanceCellClick(cell, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        const cellKey = cell.getAttribute('data-worker-id') + '_' + cell.getAttribute('data-date');
+        cellClickCounts[cellKey] = (cellClickCounts[cellKey] || 0) + 1;
+        
+        if (cellClickTimers[cellKey]) {
+            clearTimeout(cellClickTimers[cellKey]);
+        }
+
+        cellClickTimers[cellKey] = setTimeout(async () => {
+            const clicks = cellClickCounts[cellKey] || 1;
+            cellClickCounts[cellKey] = 0;
+            delete cellClickTimers[cellKey];
+
+            const workerId = cell.getAttribute('data-worker-id');
+            const date = cell.getAttribute('data-date');
+            const currentStatus = cell.getAttribute('data-status') || 'NONE';
+            const ot = cell.getAttribute('data-ot') || '0';
+
+            let newStatus = 'PRESENT';
+            if (clicks === 1) {
+                if (currentStatus === 'NONE' || !currentStatus) newStatus = 'PRESENT';
+                else if (currentStatus === 'PRESENT') newStatus = 'HALF_DAY';
+                else if (currentStatus === 'HALF_DAY') newStatus = 'ABSENT';
+                else if (currentStatus === 'ABSENT') newStatus = 'NONE';
+                else newStatus = 'PRESENT';
+            } else if (clicks === 2) {
+                newStatus = 'ABSENT';
+            } else if (clicks >= 3) {
+                newStatus = 'HALF_DAY';
+            }
+
+            updateCellUI(cell, newStatus, ot);
+            cell.classList.remove('success-pulse', 'error-pulse');
+            const updated = await saveAttendanceState(workerId, newStatus, date, ot);
+            if (updated) {
+                cell.classList.add('success-pulse');
+            } else {
+                cell.classList.add('error-pulse');
+            }
+        }, 260);
+    }
+    window.handleAttendanceCellClick = handleAttendanceCellClick;
+
+    function handleAttendanceContextMenu(cell, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        openAttendanceCellModal(cell, event);
+        return false;
+    }
+    window.handleAttendanceContextMenu = handleAttendanceContextMenu;
+
+    function openAttendanceCellModal(cell, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        currentModalCell = cell;
+        const workerId = cell.getAttribute('data-worker-id');
+        const workerName = cell.getAttribute('data-worker-name') || 'Staff Member';
+        const date = cell.getAttribute('data-date');
+        const day = cell.getAttribute('data-day');
+        const status = cell.getAttribute('data-status') || 'NONE';
+        const ot = parseFloat(cell.getAttribute('data-ot') || '0');
+
+        const nameEl = document.getElementById('attModalWorkerName');
+        const dateEl = document.getElementById('attModalDateText');
+        const otEl = document.getElementById('attModalOtInput');
+        const backdrop = document.getElementById('attendanceCellModalBackdrop');
+        const modal = document.getElementById('attendanceCellModal');
+
+        if (nameEl) nameEl.textContent = workerName;
+        if (dateEl) dateEl.textContent = `Date: Day ${day} (${date})`;
+        if (otEl) otEl.value = ot > 0 ? ot : '0';
+
+        currentSelectedStatus = (status === 'NONE' || !status) ? 'PRESENT' : status;
+        highlightModalStatusButton(currentSelectedStatus);
+
+        if (backdrop) backdrop.style.display = 'block';
+        if (modal) modal.style.display = 'block';
+    }
+    window.openAttendanceCellModal = openAttendanceCellModal;
+
+    function closeAttendanceCellModal() {
+        const backdrop = document.getElementById('attendanceCellModalBackdrop');
+        const modal = document.getElementById('attendanceCellModal');
+        if (backdrop) backdrop.style.display = 'none';
+        if (modal) modal.style.display = 'none';
+        currentModalCell = null;
+    }
+    window.closeAttendanceCellModal = closeAttendanceCellModal;
+
+    function highlightModalStatusButton(status) {
+        document.querySelectorAll('.att-status-btn').forEach(btn => {
+            if (btn.getAttribute('data-status') === status) {
+                btn.style.boxShadow = '0 0 0 2px #60a5fa, inset 0 0 8px rgba(96,165,250,0.3)';
+                btn.style.transform = 'scale(1.02)';
+            } else {
+                btn.style.boxShadow = 'none';
+                btn.style.transform = 'none';
+            }
+        });
+    }
+    window.highlightModalStatusButton = highlightModalStatusButton;
+
+    function setAttendanceModalStatus(status) {
+        currentSelectedStatus = status;
+        highlightModalStatusButton(status);
+        saveAttendanceModalData();
+    }
+    window.setAttendanceModalStatus = setAttendanceModalStatus;
+
+    function adjustModalOt(addHours) {
+        const input = document.getElementById('attModalOtInput');
+        if (!input) return;
+        const current = parseFloat(input.value || '0');
+        input.value = Math.max(0, current + addHours);
+    }
+    window.adjustModalOt = adjustModalOt;
+
+    async function saveAttendanceModalData() {
+        if (!currentModalCell) return;
+        const cell = currentModalCell;
+        const workerId = cell.getAttribute('data-worker-id');
+        const date = cell.getAttribute('data-date');
+        const otInput = document.getElementById('attModalOtInput');
+        const ot = parseFloat(otInput ? otInput.value : '0') || 0;
+        const status = currentSelectedStatus;
+
+        closeAttendanceCellModal();
+
+        updateCellUI(cell, status, ot);
+        cell.classList.remove('success-pulse', 'error-pulse');
+        const updated = await saveAttendanceState(workerId, status, date, ot);
+        if (updated) {
+            cell.classList.add('success-pulse');
+        } else {
+            cell.classList.add('error-pulse');
+            alert('Failed to save attendance for ' + date);
+        }
+    }
+    window.saveAttendanceModalData = saveAttendanceModalData;
+
+    // Keyboard Hotkey Listener
+    document.addEventListener('keydown', async function(event) {
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT')) {
+            return;
+        }
+
+        const cell = hoveredCell || document.querySelector('.attendance-cell:hover');
+        if (!cell) return;
+
+        const key = event.key.toLowerCase();
+
+        if (key === 'o' || key === 'enter' || key === ' ') {
+            event.preventDefault();
+            openAttendanceCellModal(cell, event);
+            return;
+        }
+
+        let newStatus = null;
+        let setOt = null;
+
+        if (key === 'p') newStatus = 'PRESENT';
+        else if (key === 'a') newStatus = 'ABSENT';
+        else if (key === 'h') newStatus = 'HALF_DAY';
+        else if (key === 'y') newStatus = 'HOLIDAY';
+        else if (key === 'c' || key === '0' || event.key === 'Backspace' || event.key === 'Delete') {
+            newStatus = 'NONE';
+            setOt = 0;
+        }
+        else if (['1','2','3','4','5','6','7','8','9'].includes(key)) {
+            setOt = parseFloat(key);
+            const curStatus = cell.getAttribute('data-status');
+            newStatus = (curStatus && curStatus !== 'NONE') ? curStatus : 'PRESENT';
+        }
+
+        if (newStatus !== null || setOt !== null) {
+            event.preventDefault();
+            const workerId = cell.getAttribute('data-worker-id');
+            const date = cell.getAttribute('data-date');
+            const finalStatus = newStatus !== null ? newStatus : (cell.getAttribute('data-status') || 'PRESENT');
+            const finalOt = setOt !== null ? setOt : (cell.getAttribute('data-ot') || '0');
+
+            updateCellUI(cell, finalStatus, finalOt);
+            cell.classList.remove('success-pulse', 'error-pulse');
+            try {
+                const updated = await saveAttendanceState(workerId, finalStatus, date, finalOt);
+                if (updated) {
+                    cell.classList.add('success-pulse');
+                } else {
+                    cell.classList.add('error-pulse');
+                }
+            } catch (err) {
+                console.error(err);
+                cell.classList.add('error-pulse');
+            }
+        }
+    });
+
+    async function saveAttendanceState(workerId, status, date, otHours) {
+        const formData = new FormData();
+        formData.append('worker_id', workerId);
+        formData.append('status', status);
+        formData.append('date', date);
+        formData.append('ot_hours', otHours);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        try {
+            const response = await fetch('{% url "mark_attendance" %}', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            return data.status === 'success';
+        } catch (e) {
+            console.error(e);
+            return false;
+        }
+    }
+    window.saveAttendanceState = saveAttendanceState;
+
+    // Restore active tab on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab') || sessionStorage.getItem('attendance_active_tab') || 'daily';
+        if (activeTab === 'sheet') {
+            switchAttendanceTab('sheet');
+        }
+    });
 </script>
 {% endblock %}

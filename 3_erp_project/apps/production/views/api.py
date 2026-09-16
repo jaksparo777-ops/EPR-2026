@@ -57,13 +57,13 @@ def get_item_workers(request, item_id):
     process_filter = request.GET.get('process')
     
     # Retrieve all allocations matching this item code (cross-company)
-    allocations = list(ItemWorkerAllocation.objects.filter(item__code=item.code).select_related('item', 'worker', 'job_worker'))
+    allocations = list(ItemWorkerAllocation.objects.filter(item__code=item.code).select_related('item', 'worker'))
     
     # Also inherit parent set allocations if this item code is a component of any parent set under the same company
     from apps.master_data.models import ItemComposition
     parent_compositions = ItemComposition.objects.filter(component_item__code=item.code, parent_item__company=item.company)
     for comp in parent_compositions:
-        parent_allocs = ItemWorkerAllocation.objects.filter(item__code=comp.parent_item.code).select_related('item', 'worker', 'job_worker')
+        parent_allocs = ItemWorkerAllocation.objects.filter(item__code=comp.parent_item.code).select_related('item', 'worker')
         allocations.extend(list(parent_allocs))
     
     performers = []
@@ -609,26 +609,19 @@ def add_worker_allocation(request):
             if not item_id or rate is None or rate == '':
                 continue
                 
+            raw_w_id = worker_id_str
+            if str(raw_w_id).startswith("jw_"):
+                raw_w_id = raw_w_id[3:]
+            elif str(raw_w_id).startswith("w_"):
+                raw_w_id = raw_w_id[2:]
+                
             item = Item.objects.get(id=item_id)
-            
-            if worker_id_str.startswith('w_'):
-                internal_id = worker_id_str.replace('w_', '')
-                existing = ItemWorkerAllocation.objects.filter(item=item, worker_id=internal_id).first()
-                if existing:
-                    existing.rate_per_piece = rate
-                    existing.save()
-                else:
-                    ItemWorkerAllocation.objects.create(item=item, worker_id=internal_id, rate_per_piece=rate)
-                saved_count += 1
-            elif worker_id_str.startswith('jw_'):
-                jw_id = worker_id_str.replace('jw_', '')
-                existing = ItemWorkerAllocation.objects.filter(item=item, job_worker_id=jw_id).first()
-                if existing:
-                    existing.rate_per_piece = rate
-                    existing.save()
-                else:
-                    ItemWorkerAllocation.objects.create(item=item, job_worker_id=jw_id, rate_per_piece=rate)
-                saved_count += 1
+            ItemWorkerAllocation.objects.update_or_create(
+                item=item,
+                worker_id=raw_w_id,
+                defaults={'rate_per_piece': float(rate)}
+            )
+            saved_count += 1
 
         return JsonResponse({'status': 'success', 'saved_count': saved_count})
     except Exception as e:
@@ -643,96 +636,145 @@ def edit_matrix_cell(request):
     try:
         from datetime import datetime
         from django.utils import timezone
+        from django.db import transaction
+
         jw_id = request.POST.get('job_worker_id')
-        date_str = request.POST.get('date') # YYYY-MM-DD
-        item_id = request.POST.get('item_id')
-        new_qty_str = request.POST.get('new_qty')
-        reason_code = request.POST.get('reason_code', 'typo') # 'typo', 'rejection', 'return_wip'
+        action = request.POST.get('action', 'save') # 'save' or 'delete'
+
+        # Dates (support both new and legacy parameter names)
+        orig_date_str = request.POST.get('original_date') or request.POST.get('date')
+        new_date_str = request.POST.get('new_date') or orig_date_str
+
+        # Items (support both new and legacy parameter names)
+        orig_item_id = request.POST.get('original_item_id') or request.POST.get('item_id')
+        new_item_id = request.POST.get('new_item_id') or orig_item_id
+
+        # Quantities
+        new_in_qty_str = request.POST.get('new_in_qty') or request.POST.get('new_qty', '0')
+        new_out_qty_str = request.POST.get('new_out_qty', '0')
+        new_rejection_qty_str = request.POST.get('new_rejection_qty', '0')
         
-        if not jw_id or not date_str or not item_id or new_qty_str is None:
-            return JsonResponse({'error': 'Missing required fields.'}, status=400)
-            
-        new_qty = int(float(new_qty_str))
-        if new_qty < 0:
-            return JsonResponse({'error': 'Quantity cannot be negative.'}, status=400)
-            
-        entry_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        date_start = timezone.make_aware(datetime.combine(entry_date, datetime.min.time()))
-        date_end = timezone.make_aware(datetime.combine(entry_date, datetime.max.time()))
+        reason_code = request.POST.get('reason_code', 'typo')
+        notes = request.POST.get('notes', '').strip() or f"Owner manual entry/adjustment ({reason_code})"
+        
+        if not jw_id or not orig_date_str or not orig_item_id:
+            return JsonResponse({'error': 'Missing required identification fields (worker, date, or item).'}, status=400)
 
         jw = Worker.objects.get(id=jw_id, worker_type=WorkerType.JOB_WORKER)
-        item = Item.objects.get(id=item_id)
-        
-        # Determine likely receive transaction type based on worker process
-        default_tx_type = TransactionType.POLISHING_IN
-        if jw.process == 'machining':
-            default_tx_type = TransactionType.MACHINING_IN
-        elif jw.process == 'casting':
-            default_tx_type = TransactionType.CASTING_ENTRY
-        elif jw.process == 'packaging':
-            default_tx_type = TransactionType.PACKAGING_IN
+        orig_item = Item.objects.get(id=orig_item_id)
+        new_item = Item.objects.get(id=new_item_id) if new_item_id else orig_item
 
-        # Find receive transaction(s) for this worker, item, date range
+        orig_entry_date = datetime.strptime(orig_date_str, '%Y-%m-%d').date()
+        orig_date_start = timezone.make_aware(datetime.combine(orig_entry_date, datetime.min.time()))
+        orig_date_end = timezone.make_aware(datetime.combine(orig_entry_date, datetime.max.time()))
+
+        new_entry_date = datetime.strptime(new_date_str, '%Y-%m-%d').date()
+        new_date_start = timezone.make_aware(datetime.combine(new_entry_date, datetime.min.time()))
+
+        # Determine transaction types based on worker process
+        if jw.process == 'machining':
+            default_in_type = TransactionType.MACHINING_IN
+            default_out_type = TransactionType.MACHINING_OUT
+        elif jw.process == 'casting':
+            default_in_type = TransactionType.CASTING_ENTRY
+            default_out_type = TransactionType.CASTING_ENTRY
+        elif jw.process == 'packaging':
+            default_in_type = TransactionType.PACKAGING_IN
+            default_out_type = TransactionType.POLISHING_OUT
+        else: # Polishing / default
+            default_in_type = TransactionType.POLISHING_IN
+            default_out_type = TransactionType.POLISHING_OUT
+
         receive_types = [
             TransactionType.MACHINING_IN,
             TransactionType.POLISHING_IN,
             TransactionType.PACKAGING_IN,
             TransactionType.CASTING_ENTRY
         ]
-        
-        txs = StockTransaction.objects.filter(
-            worker=jw,
-            item=item,
-            created_at__range=(date_start, date_end),
-            transaction_type__in=receive_types
-        )
-        
-        old_qty = sum(t.quantity or 0 for t in txs)
-        delta = new_qty - old_qty
-        
-        if txs.exists():
-            primary_tx = txs.first()
-            primary_tx.quantity = new_qty
-            primary_tx.notes = f"Owner adjusted from {old_qty} to {new_qty} (Reason: {reason_code})"
-            
-            # Handle difference based on reason code
-            if delta < 0:
-                diff = abs(delta)
-                if reason_code == 'rejection':
-                    primary_tx.rejection_quantity = (primary_tx.rejection_quantity or 0) + diff
-                elif reason_code in ['typo', 'return_wip']:
-                    # Adjust corresponding issue transactions so worker stock-in-hand balance reduces cleanly
-                    issue_txs = StockTransaction.objects.filter(
-                        worker=jw,
-                        item=item,
-                        transaction_type__endswith='_out'
-                    ).order_by('-created_at')
-                    
-                    rem = diff
-                    for itx in issue_txs:
-                        if rem <= 0:
-                            break
-                        if itx.quantity >= rem:
-                            itx.quantity -= rem
-                            rem = 0
-                            itx.save()
-                        else:
-                            rem -= itx.quantity
-                            itx.quantity = 0
-                            itx.save()
-            primary_tx.save()
-            txs.exclude(id=primary_tx.id).delete()
-        else:
-            primary_tx = StockTransaction.objects.create(
+        issue_types = [
+            TransactionType.MACHINING_OUT,
+            TransactionType.POLISHING_OUT
+        ]
+
+        with transaction.atomic():
+            # Find existing receive & issue transactions for original worker, item, date range
+            existing_in_txs = StockTransaction.objects.filter(
                 worker=jw,
-                item=item,
-                created_at=date_start,
-                quantity=new_qty,
-                transaction_type=default_tx_type,
-                notes=f"Owner manual entry ({reason_code})"
+                item=orig_item,
+                created_at__range=(orig_date_start, orig_date_end),
+                transaction_type__in=receive_types
             )
-            
-        return JsonResponse({'status': 'success', 'old_qty': old_qty, 'new_qty': new_qty, 'delta': delta})
+            existing_out_txs = StockTransaction.objects.filter(
+                worker=jw,
+                item=orig_item,
+                created_at__range=(orig_date_start, orig_date_end),
+                transaction_type__in=issue_types
+            )
+
+            if action == 'delete':
+                deleted_in = existing_in_txs.count()
+                deleted_out = existing_out_txs.count()
+                existing_in_txs.delete()
+                existing_out_txs.delete()
+                return JsonResponse({
+                    'status': 'success',
+                    'message': f'Deleted entry for {orig_item.code} on {orig_date_str} ({deleted_in} in, {deleted_out} out records removed).'
+                })
+
+            new_in_qty = max(0, int(float(new_in_qty_str or 0)))
+            new_out_qty = max(0, int(float(new_out_qty_str or 0)))
+            new_rejection_qty = max(0, int(float(new_rejection_qty_str or 0)))
+
+            # 1. Update or create Issued (Outward) Transaction
+            if new_out_qty > 0:
+                if existing_out_txs.exists():
+                    p_out = existing_out_txs.first()
+                    p_out.quantity = new_out_qty
+                    p_out.item = new_item
+                    p_out.notes = f"Owner update: {notes}"
+                    p_out.save()
+                    StockTransaction.objects.filter(id=p_out.id).update(created_at=new_date_start)
+                    existing_out_txs.exclude(id=p_out.id).delete()
+                else:
+                    p_out = StockTransaction.objects.create(
+                        worker=jw,
+                        item=new_item,
+                        quantity=new_out_qty,
+                        transaction_type=default_out_type,
+                        notes=f"Owner entry: {notes}"
+                    )
+                    StockTransaction.objects.filter(id=p_out.id).update(created_at=new_date_start)
+            else:
+                existing_out_txs.delete()
+
+            # 2. Update or create Received (Inward) Transaction
+            if new_in_qty > 0 or new_rejection_qty > 0:
+                if existing_in_txs.exists():
+                    p_in = existing_in_txs.first()
+                    p_in.quantity = new_in_qty
+                    p_in.rejection_quantity = new_rejection_qty
+                    p_in.item = new_item
+                    p_in.notes = f"Owner update: {notes}"
+                    p_in.save()
+                    StockTransaction.objects.filter(id=p_in.id).update(created_at=new_date_start)
+                    existing_in_txs.exclude(id=p_in.id).delete()
+                else:
+                    p_in = StockTransaction.objects.create(
+                        worker=jw,
+                        item=new_item,
+                        quantity=new_in_qty,
+                        rejection_quantity=new_rejection_qty,
+                        transaction_type=default_in_type,
+                        notes=f"Owner entry: {notes}"
+                    )
+                    StockTransaction.objects.filter(id=p_in.id).update(created_at=new_date_start)
+            else:
+                existing_in_txs.delete()
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Updated entry for {new_item.code} on {new_date_str} (In: {new_in_qty}, Out: {new_out_qty}, Rej: {new_rejection_qty}).'
+        })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -1445,6 +1487,7 @@ def get_notifications(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+
 @login_required
 @require_POST
 def mark_notification_read(request):
@@ -1477,3 +1520,103 @@ def mark_notification_read(request):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@staff_member_required
+@require_POST
+def adjust_job_worker_stock(request):
+    """
+    Allows Owner/Superuser to reconcile or zero out Job Worker stock-in-hand for any item.
+    """
+    if not (request.user.is_superuser or request.user.is_staff):
+        return JsonResponse({'error': 'Permission denied. Only Owner/Admin can adjust stock.'}, status=403)
+        
+    try:
+        from django.utils import timezone
+        from datetime import datetime
+
+        jw_id = request.POST.get('job_worker_id')
+        item_id = request.POST.get('item_id')
+        mode = request.POST.get('adjustment_mode', 'SET_ZERO')  # 'SET_ZERO', 'SET_EXACT'
+        target_qty_str = request.POST.get('quantity', '0')
+        reason = request.POST.get('reason', 'Stock reconciliation by Owner').strip()
+        date_str = request.POST.get('date')
+
+        if not jw_id or not item_id:
+            return JsonResponse({'error': 'Job Worker and Item are required.'}, status=400)
+
+        jw = Worker.objects.get(id=jw_id, worker_type=WorkerType.JOB_WORKER)
+        item = Item.objects.get(id=item_id)
+
+        all_tx = StockTransaction.objects.filter(worker=jw, item=item)
+        issued = sum(t.quantity or 0 for t in all_tx.filter(transaction_type__endswith='_out'))
+        received = sum(t.quantity or 0 for t in all_tx.filter(transaction_type__endswith='_in'))
+        rejected = sum(t.rejection_quantity or 0 for t in all_tx.filter(transaction_type__endswith='_in'))
+        current_stock = issued - received - rejected
+
+        if date_str:
+            try:
+                adj_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                adj_dt = timezone.make_aware(datetime.combine(adj_date, datetime.now().time()))
+            except Exception:
+                adj_dt = timezone.now()
+        else:
+            adj_dt = timezone.now()
+
+        out_tx_type = TransactionType.POLISHING_OUT if jw.process == 'polishing' else TransactionType.MACHINING_OUT
+        in_tx_type = TransactionType.POLISHING_IN if jw.process == 'polishing' else TransactionType.MACHINING_IN
+
+        if mode == 'SET_ZERO':
+            diff = current_stock
+            if diff < 0:
+                adj_qty = abs(diff)
+                tx = StockTransaction.objects.create(
+                    item=item,
+                    worker=jw,
+                    transaction_type=out_tx_type,
+                    quantity=adj_qty,
+                    notes=f"Owner stock adjustment: Zeroed out negative stock (-{adj_qty} -> 0). Reason: {reason}"
+                )
+                StockTransaction.objects.filter(pk=tx.pk).update(created_at=adj_dt)
+            elif diff > 0:
+                adj_qty = diff
+                tx = StockTransaction.objects.create(
+                    item=item,
+                    worker=jw,
+                    transaction_type=in_tx_type,
+                    quantity=adj_qty,
+                    notes=f"Owner stock adjustment: Cleared stale leftover stock (+{adj_qty} -> 0). Reason: {reason}"
+                )
+                StockTransaction.objects.filter(pk=tx.pk).update(created_at=adj_dt)
+        elif mode == 'SET_EXACT':
+            target_qty = int(float(target_qty_str))
+            diff = target_qty - current_stock
+            if diff > 0:
+                tx = StockTransaction.objects.create(
+                    item=item,
+                    worker=jw,
+                    transaction_type=out_tx_type,
+                    quantity=diff,
+                    notes=f"Owner stock adjustment: Set stock to {target_qty} (Added {diff} issue). Reason: {reason}"
+                )
+                StockTransaction.objects.filter(pk=tx.pk).update(created_at=adj_dt)
+            elif diff < 0:
+                adj_qty = abs(diff)
+                tx = StockTransaction.objects.create(
+                    item=item,
+                    worker=jw,
+                    transaction_type=in_tx_type,
+                    quantity=adj_qty,
+                    notes=f"Owner stock adjustment: Set stock to {target_qty} (Deducted {adj_qty}). Reason: {reason}"
+                )
+                StockTransaction.objects.filter(pk=tx.pk).update(created_at=adj_dt)
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Stock for {item.code} successfully adjusted.',
+            'previous_stock': current_stock,
+            'new_stock': 0 if mode == 'SET_ZERO' else int(float(target_qty_str))
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+

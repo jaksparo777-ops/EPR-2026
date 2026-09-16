@@ -16,7 +16,7 @@ from .views.master import (
 from .views.import_export_hub import (
     master_bulk_import, download_template, export_current_data,
     export_database_backup, import_database_backup, factory_reset_database,
-    save_maintenance_settings, dry_run_audit, purge_selective_data
+    save_maintenance_settings, archive_and_purge_historical_data, clear_test_operational_data
 )
 from .views.logistics import (
     dashboard, casting_stock, machined_stock, polished_stock,
@@ -28,7 +28,7 @@ from .views.api import (
     add_worker_allocation, update_worker_allocation_rate, delete_worker_allocation, edit_matrix_cell,
     mark_attendance, mark_all_attendance, record_labor_payment, delete_labor_payment, edit_labor_payment, delete_stock_transaction_api, bulk_delete_stock_transactions_api,
     get_attendance_for_date, get_warehouse_stock, get_all_warehouse_stock, adjust_stock, get_notifications, mark_notification_read,
-    get_recipient_dues_api
+    get_recipient_dues_api, adjust_job_worker_stock
 )
 from .views.hr_ledger import (
     labor_ledger, job_worker_monthly_report, worker_monthly_report,
@@ -60,13 +60,13 @@ urlpatterns = [
     path('master-data/bulk-import/template/<str:template_type>/', login_required(download_template), name='download_template'),
     path('master-data/bulk-import/export/<str:template_type>/', login_required(export_current_data), name='export_current_data'),
     
-    # Database Maintenance System
+    # Database Maintenance & Data Protection System
     path('master-data/bulk-import/backup/export/', login_required(export_database_backup), name='export_database_backup'),
     path('master-data/bulk-import/backup/import/', login_required(import_database_backup), name='import_database_backup'),
+    path('master-data/bulk-import/maintenance/archive-purge/', login_required(archive_and_purge_historical_data), name='archive_and_purge_historical_data'),
+    path('master-data/bulk-import/maintenance/clear-operational/', login_required(clear_test_operational_data), name='clear_test_operational_data'),
     path('master-data/bulk-import/maintenance/reset/', login_required(factory_reset_database), name='factory_reset_database'),
-    path('master-data/bulk-import/maintenance/purge-selective/', login_required(purge_selective_data), name='purge_selective_data'),
     path('master-data/bulk-import/maintenance/save-settings/', login_required(save_maintenance_settings), name='save_maintenance_settings'),
-    path('master-data/bulk-import/maintenance/dry-run/', login_required(dry_run_audit), name='dry_run_audit'),
     
     path('casting-stock/', login_required(casting_stock), name='casting_stock'),
     path('machined-stock/', login_required(machined_stock), name='machined_stock'),
@@ -109,6 +109,7 @@ urlpatterns = [
     path('api/stock/get-all-qty/', login_required(get_all_warehouse_stock), name='get_all_warehouse_stock'),
     path('api/stock/adjust/', login_required(adjust_stock), name='adjust_stock'),
     path('api/job-worker/report/edit-cell/', login_required(edit_matrix_cell), name='edit_matrix_cell'),
+    path('api/job-worker/adjust-stock/', login_required(adjust_job_worker_stock), name='adjust_job_worker_stock'),
     
     # Ledger & Reports
     path('api/ledger/toggle-lock/', login_required(toggle_settlement_lock), name='toggle_settlement_lock'),

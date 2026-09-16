@@ -230,42 +230,34 @@ def master_data(request):
             address="Plot A-1, Metal Casting Zone, Industrial Area",
             gst_number="24AAAAA1111A1Z1",
             phone="+91 98765 43210",
-            letterhead_title="C1 CASTING FOUNDRY - Quality Castings Since 2010",
-            processes="CASTING,PACKAGING,DISPATCH"
+            letterhead_title="C1 CASTING FOUNDRY - Quality Castings Since 2010"
         )
         LegalEntity.objects.create(
             name="C2 Finishing Processor",
             address="Plot B-4, Machine Tools Sector, Phase 2",
             gst_number="24BBBBB2222B2Z2",
             phone="+91 87654 32109",
-            letterhead_title="C2 FINISHING PROCESSORS - Precision Engineering",
-            processes="MACHINING,POLISHING"
+            letterhead_title="C2 FINISHING PROCESSORS - Precision Engineering"
         )
         LegalEntity.objects.create(
             name="C3 Jobwork Supplier",
             address="Plot C-12, Ancillary Hub, Sector 4",
             gst_number="24CCCCC3333C3Z3",
             phone="+91 76543 21098",
-            letterhead_title="C3 JOBWORK SERVICES - Industrial Vendor & Jobwork",
-            processes="MACHINING,POLISHING"
+            letterhead_title="C3 JOBWORK SERVICES - Industrial Vendor & Jobwork"
         )
         companies = LegalEntity.objects.all().order_by('name')
 
-    active_company_id = request.GET.get('active_company')
-    if active_company_id is not None:
-        if active_company_id == 'global':
-            request.session['active_company_id'] = 'global'
-        else:
-            request.session['active_company_id'] = active_company_id
-    
-    session_company_id = request.session.get('active_company_id')
+    active_company_id = request.GET.get('active_company') or request.session.get('active_company_id')
     
     active_company = None
-    if session_company_id and session_company_id != 'global':
-        active_company = LegalEntity.objects.filter(id=session_company_id).first()
+    if active_company_id:
+        active_company = LegalEntity.objects.filter(id=active_company_id).first()
         
-    if session_company_id is None and companies.exists():
+    if not active_company and companies.exists():
         active_company = companies.first()
+        
+    if active_company:
         request.session['active_company_id'] = active_company.id
 
     active_tab = request.GET.get("tab", "items")
@@ -303,20 +295,9 @@ def master_data(request):
             form = ItemForm(data, instance=edit_item)
             if form.is_valid():
                 item = form.save(commit=False)
+                if active_company and not item.company:
+                    item.company = active_company
                 item.save()
-                
-                # Update Organizational Scope
-                is_global = request.POST.get('scope_global') == 'true' or 'scope_global' in request.POST
-                if is_global:
-                    item.companies.clear()
-                else:
-                    scope_companies = request.POST.getlist('scope_companies')
-                    if scope_companies:
-                        item.companies.set(scope_companies)
-                    elif active_company:
-                        item.companies.set([active_company])
-                    else:
-                        item.companies.clear()
                 
                 if item.item_type != 'SET':
                     ItemWorkerAllocation.objects.filter(item=item).delete()
@@ -382,21 +363,9 @@ def master_data(request):
             form = ClientForm(request.POST, instance=instance)
             if form.is_valid():
                 client = form.save(commit=False)
+                if active_company and not client.company:
+                    client.company = active_company
                 client.save()
-                
-                # Update Organizational Scope
-                is_global = request.POST.get('scope_global') == 'true' or 'scope_global' in request.POST
-                if is_global:
-                    client.companies.clear()
-                else:
-                    scope_companies = request.POST.getlist('scope_companies')
-                    if scope_companies:
-                        client.companies.set(scope_companies)
-                    elif active_company:
-                        client.companies.set([active_company])
-                    else:
-                        client.companies.clear()
-                
                 messages.success(request, f"Client {'updated' if edit_client else 'created'} successfully.")
                 return redirect(f"{reverse('master_data')}?tab=clients")
             else:
@@ -641,7 +610,6 @@ def master_data(request):
                 company.gst_number = request.POST.get('company_gst', '').strip() or None
                 company.phone = request.POST.get('company_phone', '').strip() or None
                 company.letterhead_title = request.POST.get('company_letterhead', '').strip() or None
-                company.processes = request.POST.get('company_processes', '').strip()
                 company.save()
                 messages.success(request, f"Company '{company.name}' {action} successfully.")
             except Exception as e:
@@ -652,9 +620,7 @@ def master_data(request):
     # Scope all queries by active company
     all_items = Item.objects.all().prefetch_related('worker_allocations__worker', 'worker_allocations__job_worker')
     if active_company:
-        all_items = all_items.filter(Q(companies=active_company) | Q(companies__isnull=True)).distinct()
-    else:
-        all_items = all_items.filter(companies__isnull=True).distinct()
+        all_items = all_items.filter(Q(company=active_company) | Q(company__isnull=True))
         
     client_filter_id = request.GET.get('client_filter')
     items_to_display = all_items
@@ -675,9 +641,7 @@ def master_data(request):
 
     client_list = Client.objects.all()
     if active_company:
-        client_list = client_list.filter(Q(companies=active_company) | Q(companies__isnull=True)).distinct()
-    else:
-        client_list = client_list.filter(companies__isnull=True).distinct()
+        client_list = client_list.filter(Q(company=active_company) | Q(company__isnull=True))
         
     client_list = client_list.annotate(
         item_count=Count('item')
@@ -709,8 +673,8 @@ def master_data(request):
         "active_client_filter": client_filter_id,
         "categories": Category.objects.all().order_by('name'),
         "materials": Material.objects.all().order_by('name'),
-        "deleted_items": Item.all_objects.filter(is_deleted=True).filter(Q(companies=active_company) | Q(companies__isnull=True)).distinct() if active_company else Item.all_objects.filter(is_deleted=True, companies__isnull=True).distinct(),
-        "deleted_clients": Client.all_objects.filter(is_deleted=True).filter(Q(companies=active_company) | Q(companies__isnull=True)).distinct() if active_company else Client.all_objects.filter(is_deleted=True, companies__isnull=True).distinct(),
+        "deleted_items": Item.all_objects.filter(is_deleted=True, company=active_company) if active_company else Item.all_objects.filter(is_deleted=True),
+        "deleted_clients": Client.all_objects.filter(is_deleted=True, company=active_company) if active_company else Client.all_objects.filter(is_deleted=True),
         "deleted_workers": Worker.all_objects.filter(is_deleted=True),
         "deleted_job_workers": JobWorker.all_objects.filter(is_deleted=True),
     }

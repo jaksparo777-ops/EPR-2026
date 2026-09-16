@@ -20,6 +20,10 @@ class CustomUser(AbstractUser):
         ('CUSTOM', 'Custom Role Matrix'),
     ]
 
+    class TimeoutLogoutMode(models.TextChoices):
+        POPUP_WARNING = "POPUP_WARNING", "Friendly Warning (60s Countdown)"
+        INSTANT_LOGOUT = "INSTANT_LOGOUT", "Instant Logout"
+
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='CUSTOM')
     company = models.ForeignKey(
         LegalEntity, 
@@ -40,6 +44,16 @@ class CustomUser(AbstractUser):
     is_global_access = models.BooleanField(
         default=False, 
         help_text="True if granted Global / All Access (Owner Portal)."
+    )
+    session_timeout_minutes = models.PositiveIntegerField(
+        default=60,
+        help_text="Session inactivity timeout in minutes (default: 60)"
+    )
+    timeout_logout_mode = models.CharField(
+        max_length=20,
+        choices=TimeoutLogoutMode.choices,
+        default=TimeoutLogoutMode.POPUP_WARNING,
+        help_text="Inactivity logout behavior (popup countdown vs instant logout)"
     )
 
     class Meta:
@@ -386,4 +400,73 @@ class MonthlySettlementLock(models.Model):
     def __str__(self):
         status = "LOCKED" if self.is_locked else "UNLOCKED"
         return f"{self.worker.name} - {self.month_str} ({status})"
+
+
+class AdminRecoveryConfig(models.Model):
+    """
+    Stores the securely hashed Master Recovery Key for emergency Admin password resets.
+    """
+    key_hash = models.CharField(max_length=255, blank=True, default='', help_text="Hashed Master Recovery Key")
+    key_hint = models.CharField(max_length=60, blank=True, null=True, help_text="Hint for admin (e.g. Ends with ...)")
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    failed_attempts = models.PositiveIntegerField(default=0)
+    last_failed_at = models.DateTimeField(null=True, blank=True)
+    last_security_alerts_cleared_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Admin Recovery Configuration"
+
+    @classmethod
+    def get_config(cls):
+        obj, _ = cls.objects.get_or_create(id=1)
+        return obj
+
+    def set_key(self, plain_key, hint=None, user=None):
+        from django.contrib.auth.hashers import make_password
+        pk = plain_key.strip()
+        self.key_hash = make_password(pk)
+        if hint is not None and hint.strip():
+            self.key_hint = hint.strip()
+        else:
+            self.key_hint = f"Ends with ...{pk[-4:]}" if len(pk) >= 4 else "Active"
+        self.failed_attempts = 0
+        self.last_failed_at = None
+        self.is_active = True
+        if user:
+            self.updated_by = user
+        self.save()
+
+    def check_key(self, plain_key):
+        from django.contrib.auth.hashers import check_password
+        if not self.key_hash or not self.is_active:
+            return False
+        return check_password(plain_key.strip(), self.key_hash)
+
+    def is_rate_limited(self):
+        if self.failed_attempts >= 3 and self.last_failed_at:
+            from datetime import timedelta
+            lockout_time = self.last_failed_at + timedelta(minutes=30)
+            if timezone.now() < lockout_time:
+                remaining_secs = int((lockout_time - timezone.now()).total_seconds())
+                remaining_mins = max(1, (remaining_secs + 59) // 60)
+                return True, remaining_mins
+            else:
+                # Reset lock after lockout expired
+                self.failed_attempts = 0
+                self.last_failed_at = None
+                self.save(update_fields=['failed_attempts', 'last_failed_at'])
+        return False, 0
+
+    def record_failed_attempt(self):
+        self.failed_attempts += 1
+        self.last_failed_at = timezone.now()
+        self.save(update_fields=['failed_attempts', 'last_failed_at'])
+
+    def record_successful_reset(self):
+        self.failed_attempts = 0
+        self.last_failed_at = None
+        self.save(update_fields=['failed_attempts', 'last_failed_at'])
+
 

@@ -62,9 +62,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.authentication.middleware.SessionInactivityMiddleware',
+    'apps.authentication.middleware.DeviceSecurityMiddleware',
     'apps.authentication.middleware.CompanyScopeMiddleware',
     'apps.authentication.middleware.PermissionEnforcementMiddleware',
-    'apps.authentication.middleware.DeviceSecurityMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -100,6 +101,7 @@ if USE_POSTGRES:
             'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
             'HOST': os.environ.get('DB_HOST', 'localhost'),
             'PORT': os.environ.get('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 600,
         }
     }
 else:
@@ -107,8 +109,22 @@ else:
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
+            'CONN_MAX_AGE': 600,
+            'OPTIONS': {
+                'timeout': 20,
+                'init_command': 'PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA cache_size=-64000; PRAGMA busy_timeout=5000;',
+                'transaction_mode': 'IMMEDIATE',
+            }
         }
     }
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'erp-locmem-cache',
+        'TIMEOUT': 300,
+    }
+}
 
 
 # Password validation

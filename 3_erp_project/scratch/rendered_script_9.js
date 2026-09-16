@@ -58,22 +58,20 @@
     }
 
     const allStaffMembers = [
-        /* dj */
-        { id: ""django_var"", name: ""django_var"" },
-        /* dj */
+        
     ];
 
     const allJobWorkers = [
-        /* dj */
-        { id: ""django_var"", name: ""django_var"" },
-        /* dj */
+        
+        { id: "22", name: "Ratan" },
+        
     ];
 
     async function compileBulkPDFs(items, isJobWorker) {
         const modal = document.getElementById('bulkDownloadModal');
         const progressText = document.getElementById('bulkProgressText');
         const progressBar = document.getElementById('bulkProgressBar');
-        const currentMonth = ""django_var"";
+        const currentMonth = "2026-09";
 
         if (!items || items.length === 0) {
             alert("No entries to download.");
@@ -169,13 +167,27 @@
 
     function openReportModal() {
         if (!currentProfileWorkerId) return;
-        const currentMonth = ""django_var"";
+        const currentMonth = drawerCurrentMonth || "2026-09";
         const iframe = document.getElementById('inlineStatementIframe');
         iframe.src = `/ledger/job-worker/${currentProfileWorkerId}/report/?month=${currentMonth}`;
         if (typeof closeJobWorkerProfile === 'function') {
             closeJobWorkerProfile();
         }
         document.getElementById('inlineStatementModal').style.display = 'flex';
+    }
+
+    function printJobWorkerSlip(jwId, monthVal = null) {
+        const id = jwId || currentProfileWorkerId;
+        if (!id) return;
+        const month = monthVal || drawerCurrentMonth || "2026-09";
+        window.open(`/ledger/job-worker/${id}/report/?month=${month}&autoprint=1`, '_blank');
+    }
+
+    function printStaffSlip(wId, monthVal = null) {
+        const id = wId || currentInternalWorkerId;
+        if (!id) return;
+        const month = monthVal || drawerWorkerCurrentMonth || "2026-09";
+        window.open(`/ledger/worker/${id}/report/?month=${month}&autoprint=1`, '_blank');
     }
 
     function closeReportModal() {
@@ -189,13 +201,16 @@
         
         fetch(`/api/payment/${paymentId}/delete/`, {
             method: 'POST',
-            headers: {'X-CSRFToken': '"django_var"'}
+            headers: {'X-CSRFToken': 'aKGgTULBNK8ZxFZOF2uaNnV6nlMOUSKWbsMgoz965ANXpw6PnOgkXBpYdZAaHBLG'}
         })
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
+                window.ledgerNeedsRefresh = true;
                 if (currentProfileWorkerId) {
                     loadJobWorkerProfileLedger();
+                } else if (currentInternalWorkerId) {
+                    loadWorkerProfileLedger();
                 } else {
                     location.reload();
                 }
@@ -210,13 +225,16 @@
         
         fetch(`/api/stock-transaction/${txId}/delete/`, {
             method: 'POST',
-            headers: {'X-CSRFToken': '"django_var"'}
+            headers: {'X-CSRFToken': 'aKGgTULBNK8ZxFZOF2uaNnV6nlMOUSKWbsMgoz965ANXpw6PnOgkXBpYdZAaHBLG'}
         })
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
+                window.ledgerNeedsRefresh = true;
                 if (currentProfileWorkerId) {
                     loadJobWorkerProfileLedger();
+                } else if (currentInternalWorkerId) {
+                    loadWorkerProfileLedger();
                 } else {
                     location.reload();
                 }
@@ -271,14 +289,17 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': '"django_var"'
+                    'X-CSRFToken': 'aKGgTULBNK8ZxFZOF2uaNnV6nlMOUSKWbsMgoz965ANXpw6PnOgkXBpYdZAaHBLG'
                 },
                 body: JSON.stringify({ items: items })
             });
             const data = await response.json();
             if (data.status === 'success') {
+                window.ledgerNeedsRefresh = true;
                 if (currentProfileWorkerId) {
                     loadJobWorkerProfileLedger();
+                } else if (currentInternalWorkerId) {
+                    loadWorkerProfileLedger();
                 } else {
                     location.reload();
                 }
@@ -324,7 +345,7 @@
         fetch(`/api/payment/${id}/edit/`, {
             method: 'POST',
             body: formData,
-            headers: {'X-CSRFToken': '"django_var"'}
+            headers: {'X-CSRFToken': 'aKGgTULBNK8ZxFZOF2uaNnV6nlMOUSKWbsMgoz965ANXpw6PnOgkXBpYdZAaHBLG'}
         })
         .then(r => r.json())
         .then(data => {
@@ -332,6 +353,8 @@
                 closeEditPaymentModal();
                 if (currentProfileWorkerId) {
                     loadJobWorkerProfileLedger();
+                } else if (currentInternalWorkerId) {
+                    loadWorkerProfileLedger();
                 } else {
                     location.reload();
                 }
@@ -347,6 +370,13 @@
         const savedTab = params.get('tab') || sessionStorage.getItem('ledger_active_tab');
         if (savedTab && ['staff', 'jw', 'sheet'].includes(savedTab)) {
             showSection(savedTab);
+        }
+
+        const drawerParam = params.get('drawer');
+        if (drawerParam === 'attendance') {
+            setTimeout(openAttendanceDrawer, 300);
+        } else if (drawerParam === 'payment') {
+            setTimeout(openPaymentDrawer, 300);
         }
 
         const action = params.get('action');
@@ -393,6 +423,14 @@
                 }
             }, 400);
         }
+
+        try {
+            const savedScroll = sessionStorage.getItem('ledger_scroll_pos');
+            if (savedScroll) {
+                sessionStorage.removeItem('ledger_scroll_pos');
+                window.scrollTo({ top: parseInt(savedScroll), behavior: 'instant' });
+            }
+        } catch(e) {}
     }
 
     if (document.readyState === 'loading') {

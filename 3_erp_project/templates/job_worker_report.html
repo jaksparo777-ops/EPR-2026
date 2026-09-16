@@ -43,7 +43,7 @@
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 0;
+                margin: 4mm 5mm !important;
             }
 
             body {
@@ -64,204 +64,143 @@
             }
 
             .slip-container {
-                width: 100%;
-                padding: 4mm 6mm !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 auto !important;
                 box-sizing: border-box;
-            }
-            .slip-container, .slip-container *, p, span, h1, h2, h3, div, td, th {
-                color: #000000 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
+                border: none !important;
+                box-shadow: none !important;
             }
 
             .header {
-                padding-bottom: 4px !important;
-                margin-bottom: 6px !important;
-                border-bottom: 2px solid #000000 !important;
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                padding-bottom: 3px !important;
+                margin-bottom: 4px !important;
+                border-bottom: 2px solid #334155 !important;
             }
             .header h1 {
-                font-size: 18px !important;
-                font-weight: 800 !important;
+                font-size: 16px !important;
+                font-weight: 900 !important;
                 color: #000000 !important;
+                margin: 0 !important;
             }
-            .header h2 {
-                font-size: 15px !important;
-                font-weight: 800 !important;
-                color: #000000 !important;
-            }
-            .section-title {
-                font-size: 11px !important;
-                margin-bottom: 8px !important;
-                border-left: 4px solid #000000 !important;
-                padding-left: 8px !important;
-                font-weight: 800 !important;
-                color: #000000 !important;
-            }
-            table {
-                margin-bottom: 12px !important;
-                border: 1.2px solid #000000 !important;
-            }
-            th {
-                background: #e2e8f0 !important;
-                color: #000000 !important;
-                border-bottom: 2px solid #000000 !important;
-                font-weight: 800 !important;
-            }
-            td {
-                padding: 6px 8px !important;
+            .header p {
+                margin: 1px 0 0 0 !important;
                 font-size: 10px !important;
-                border-bottom: 1px solid #000000 !important;
-                color: #000000 !important;
+                color: #334155 !important;
             }
-            .qty-in {
-                color: #000000 !important;
-                font-weight: 700 !important;
+            .statement-title div {
+                font-size: 13px !important;
+                font-weight: 800 !important;
             }
-            .qty-out {
-                color: #000000 !important;
-                font-weight: 700 !important;
-            }
-            .earned-amount {
-                color: #000000 !important;
-                font-weight: 900 !important;
-            }
-            .paid, .paid span {
-                color: #000000 !important;
-                font-weight: 900 !important;
-            }
+
             .summary-grid {
-                margin-bottom: 0 !important;
-                gap: 8px !important;
+                display: grid !important;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+                gap: 5px !important;
+                margin-top: 3px !important;
+                margin-bottom: 5px !important;
             }
             .summary-item {
-                padding: 8px !important;
-                border-radius: 6px !important;
-                border: 1.2px solid #000000 !important;
+                padding: 3px 6px !important;
+                border-radius: 4px !important;
+                border: 1.5px solid #475569 !important;
                 background: #f8fafc !important;
-            }
-            .summary-item[style*="border-color: var(--accent)"] {
-                border-color: #000000 !important;
-                background: #eff6ff !important;
             }
             .summary-label {
                 font-size: 8px !important;
-                margin-bottom: 2px !important;
-                color: #000000 !important;
+                margin-bottom: 1px !important;
                 font-weight: 800 !important;
+                color: #334155 !important;
             }
             .summary-value {
-                font-size: 13px !important;
+                font-size: 12px !important;
+                font-weight: 900 !important;
                 color: #000000 !important;
-                font-weight: 800 !important;
             }
             .summary-value.highlight {
-                font-size: 16px !important;
-                color: #000000 !important;
-                font-weight: 900 !important;
+                font-size: 13px !important;
             }
-            .footer {
-                margin-top: 15px !important;
-                font-size: 10px !important;
-                color: #000000 !important;
-            }
-            .signature-box {
-                border-top: 1.5px solid #000000 !important;
-                width: 160px !important;
-                margin-top: 20px !important;
-                padding-top: 6px !important;
-                font-size: 10px !important;
-                font-weight: 800 !important;
-                color: #000000 !important;
-            }
-            td div[style*="border-top"] {
-                border-top: 1.5px solid #000000 !important;
+
+            #matrix-report-view > div {
+                margin-bottom: 0 !important;
+                border: none !important;
+                border-radius: 0 !important;
             }
             #matrix-report-view table {
                 width: 100% !important;
                 border-collapse: collapse !important;
-                border: 1.5px solid #000000 !important;
-                margin-bottom: 6px !important;
+                border: 1.5px solid #334155 !important;
+                margin-bottom: 0 !important;
+                page-break-inside: avoid !important;
             }
             #matrix-report-view th {
-                padding: 4px 3px !important;
-                font-size: 10.5px !important;
+                padding: 2.5px 2px !important;
+                font-size: 9.5px !important;
                 font-weight: 900 !important;
                 background: #e2e8f0 !important;
                 color: #000000 !important;
-                border: 1px solid #000000 !important;
-                line-height: 1.15 !important;
+                border: 1px solid #475569 !important;
+                line-height: 1.1 !important;
+                text-align: center !important;
             }
-            #matrix-report-view td {
-                padding: 3px 3px !important;
+            #matrix-report-view tbody td {
+                padding: 1.5px 2px !important;
                 font-size: 10px !important;
                 font-weight: 800 !important;
-                border: 1px solid #000000 !important;
+                border: 1px solid #64748b !important;
                 color: #000000 !important;
-                line-height: 1.15 !important;
+                line-height: 1.1 !important;
+                height: 16px !important;
+                text-align: center !important;
             }
-            #matrix-report-view td div {
+            #matrix-report-view tbody td div {
                 font-size: 10px !important;
                 font-weight: 800 !important;
-                line-height: 1.15 !important;
+                color: #000000 !important;
+                line-height: 1.1 !important;
                 margin: 0 !important;
             }
-            #matrix-report-view td span {
-                font-size: 9px !important;
-                font-weight: 800 !important;
-            }
-            #matrix-report-view .summary-grid {
-                margin-top: 6px !important;
-                margin-bottom: 8px !important;
-                gap: 6px !important;
-            }
-            #matrix-report-view .summary-item {
-                padding: 5px 8px !important;
-            }
-            #matrix-report-view .summary-label {
+            #matrix-report-view tbody td span {
                 font-size: 8.5px !important;
-                margin-bottom: 2px !important;
+                font-weight: 700 !important;
+            }
+            #matrix-report-view tfoot tr,
+            #matrix-report-view tfoot td,
+            #matrix-report-view tfoot td * {
+                color: #000000 !important;
                 font-weight: 900 !important;
             }
-            #matrix-report-view .summary-value {
-                font-size: 14px !important;
-                font-weight: 900 !important;
+            #matrix-report-view tfoot td {
+                padding: 3px 2px !important;
+                font-size: 10px !important;
+                line-height: 1.1 !important;
+                border: 1.5px solid #334155 !important;
+                text-align: center !important;
+                background: #e2e8f0 !important;
             }
-            #matrix-report-view .summary-value.highlight {
-                font-size: 16px !important;
-                font-weight: 900 !important;
+            #matrix-report-view tfoot td div {
+                font-size: 8.5px !important;
+                line-height: 1.1 !important;
+            }
+            #matrix-report-view tr[style*="background"] {
+                background: #f8fafc !important;
             }
             .tooltip-content, .tooltip-trigger .tooltip-content {
                 display: none !important;
             }
-            }
+        }
 
-        /* High-Contrast B&W 1-Page Full-Page PDF Generation Mode */
+        /* High-Contrast Full-Page PDF Generation Mode */
         body.pdf-print-mode {
-            --primary: #000000 !important;
-            --accent: #000000 !important;
+            --primary: #0f172a !important;
+            --accent: #2563eb !important;
             --text-main: #000000 !important;
-            --text-muted: #000000 !important;
-            --border: #000000 !important;
+            --text-muted: #334155 !important;
+            --border: #475569 !important;
             background: #ffffff !important;
-            color: #000000 !important;
-        }
-
-        body.pdf-print-mode *,
-        body.pdf-print-mode *::before,
-        body.pdf-print-mode *::after {
-            color: #000000 !important;
-            border-color: #000000 !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-
-        body.pdf-print-mode span[style*="color"],
-        body.pdf-print-mode div[style*="color"],
-        body.pdf-print-mode td[style*="color"],
-        body.pdf-print-mode p[style*="color"],
-        body.pdf-print-mode h1[style*="color"],
-        body.pdf-print-mode h2[style*="color"],
-        body.pdf-print-mode a[style*="color"] {
             color: #000000 !important;
         }
 
@@ -276,126 +215,145 @@
         body.pdf-print-mode .slip-container {
             width: 100% !important;
             max-width: 100% !important;
-            max-height: 282mm !important;
-            padding: 4mm 6mm !important;
+            padding: 3mm 4mm !important;
             box-sizing: border-box !important;
             background: #ffffff !important;
-            overflow: hidden !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            border: none !important;
         }
 
         body.pdf-print-mode .header {
-            padding-bottom: 6px !important;
-            margin-bottom: 8px !important;
-            border-bottom: 2px solid #000000 !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            padding-bottom: 3px !important;
+            margin-bottom: 4px !important;
+            border-bottom: 2px solid #334155 !important;
         }
 
         body.pdf-print-mode .header h1 {
-            font-size: 22px !important;
+            font-size: 16px !important;
             font-weight: 900 !important;
             color: #000000 !important;
+            margin: 0 !important;
         }
 
-        body.pdf-print-mode .header h2 {
-            font-size: 18px !important;
-            font-weight: 900 !important;
-            color: #000000 !important;
-        }
-
-        body.pdf-print-mode .section-title {
-            font-size: 11px !important;
-            margin-bottom: 6px !important;
-            border-left: 4px solid #000000 !important;
-            padding-left: 6px !important;
-            font-weight: 900 !important;
-            color: #000000 !important;
+        body.pdf-print-mode .header p {
+            margin: 1px 0 0 0 !important;
+            font-size: 10px !important;
+            color: #334155 !important;
         }
 
         body.pdf-print-mode .summary-grid {
-            margin-top: 6px !important;
-            margin-bottom: 10px !important;
-            gap: 8px !important;
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+            margin-top: 3px !important;
+            margin-bottom: 5px !important;
+            gap: 5px !important;
         }
 
         body.pdf-print-mode .summary-item {
-            padding: 6px 10px !important;
+            padding: 3px 6px !important;
             border-radius: 4px !important;
-            border: 1.2px solid #000000 !important;
+            border: 1.5px solid #475569 !important;
             background: #f8fafc !important;
         }
 
         body.pdf-print-mode .summary-label {
-            font-size: 8.5px !important;
-            margin-bottom: 2px !important;
-            font-weight: 900 !important;
+            font-size: 8px !important;
+            margin-bottom: 1px !important;
+            font-weight: 800 !important;
             text-transform: uppercase !important;
-            color: #000000 !important;
+            color: #334155 !important;
         }
 
         body.pdf-print-mode .summary-value {
-            font-size: 15px !important;
+            font-size: 12px !important;
             font-weight: 900 !important;
             color: #000000 !important;
         }
 
         body.pdf-print-mode .summary-value.highlight {
-            font-size: 17px !important;
+            font-size: 13px !important;
             font-weight: 900 !important;
             color: #000000 !important;
         }
 
         /* Matrix Table Full Page PDF Styling */
+        body.pdf-print-mode #matrix-report-view > div {
+            margin-bottom: 0 !important;
+            border: none !important;
+            border-radius: 0 !important;
+        }
+
         body.pdf-print-mode #matrix-report-view table {
             width: 100% !important;
             border-collapse: collapse !important;
-            border: 1.5px solid #000000 !important;
-            margin-bottom: 4px !important;
+            border: 1.5px solid #334155 !important;
+            margin-bottom: 0 !important;
+            page-break-inside: avoid !important;
         }
 
         body.pdf-print-mode #matrix-report-view th {
-            padding: 4.5px 3px !important;
-            font-size: 12px !important;
+            padding: 2.5px 2px !important;
+            font-size: 9.5px !important;
             font-weight: 900 !important;
             background: #e2e8f0 !important;
             color: #000000 !important;
-            border: 1px solid #000000 !important;
+            border: 1px solid #475569 !important;
             line-height: 1.1 !important;
             text-align: center !important;
         }
 
-        body.pdf-print-mode #matrix-report-view td {
-            padding: 3.8px 3px !important;
-            font-size: 11px !important;
+        body.pdf-print-mode #matrix-report-view tbody td {
+            padding: 1.5px 2px !important;
+            font-size: 10px !important;
             font-weight: 800 !important;
-            border: 1px solid #000000 !important;
+            border: 1px solid #64748b !important;
             color: #000000 !important;
-            line-height: 1.15 !important;
+            line-height: 1.1 !important;
+            height: 16px !important;
             text-align: center !important;
         }
 
-        body.pdf-print-mode #matrix-report-view td div {
-            font-size: 11.5px !important;
-            font-weight: 900 !important;
+        body.pdf-print-mode #matrix-report-view tbody td div {
+            font-size: 10px !important;
+            font-weight: 800 !important;
             color: #000000 !important;
             line-height: 1.1 !important;
             margin: 0 !important;
         }
 
-        body.pdf-print-mode #matrix-report-view td span {
-            font-size: 10px !important;
+        body.pdf-print-mode #matrix-report-view tbody td span {
+            font-size: 8.5px !important;
+            font-weight: 700 !important;
             color: #000000 !important;
-            font-weight: 800 !important;
+        }
+
+        body.pdf-print-mode #matrix-report-view tfoot tr,
+        body.pdf-print-mode #matrix-report-view tfoot td,
+        body.pdf-print-mode #matrix-report-view tfoot td * {
+            color: #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        body.pdf-print-mode #matrix-report-view tfoot td {
+            padding: 3px 2px !important;
+            font-size: 10px !important;
+            line-height: 1.1 !important;
+            border: 1.5px solid #334155 !important;
+            text-align: center !important;
+            background: #e2e8f0 !important;
+        }
+
+        body.pdf-print-mode #matrix-report-view tfoot td div {
+            font-size: 8.5px !important;
+            line-height: 1.1 !important;
         }
 
         body.pdf-print-mode #matrix-report-view tr[style*="background"] {
-            background: #f1f5f9 !important;
-        }
-
-        body.pdf-print-mode #matrix-report-view tr[style*="background: rgba(245, 158, 11, 0.12)"] {
-            background: #fef3c7 !important;
-        }
-        body.pdf-print-mode #matrix-report-view tr[style*="background: rgba(245, 158, 11, 0.12)"] td {
-            color: #000000 !important;
-            font-weight: 900 !important;
+            background: #f8fafc !important;
         }
 
         body.pdf-print-mode .tooltip-content,
@@ -683,6 +641,11 @@
                 <button type="button" class="btn-utility" id="btn-matrix-mode" onclick="setReportFormat('matrix')" style="background: var(--accent); color: white;">📊 1-Page Matrix Grid</button>
                 <button type="button" class="btn-utility" id="btn-detailed-mode" onclick="setReportFormat('detailed')">📜 Detailed Audit</button>
             </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Unit View:</label>
+                <button type="button" class="btn-utility" id="btn-unit-lots" onclick="toggleMatrixUnitDisplay('lots')" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800;">📦 Lots View</button>
+                <button type="button" class="btn-utility" id="btn-unit-pcs" onclick="toggleMatrixUnitDisplay('pcs')" style="background: rgba(255, 255, 255, 0.05); color: #cbd5e1; font-weight: 700;">🔢 Pcs View</button>
+            </div>
             <div style="display: flex; align-items: center; gap: 8px;">
                 <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Statement Mode:</label>
                 <select id="statement-mode-selector" onchange="changeStatementMode(this.value)" style="font-size: 14px; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); background: #0d1117; color: white; font-family: inherit; font-weight: bold; cursor: pointer; outline: none;">
@@ -697,6 +660,7 @@
             </div>
         </div>
         <div style="display: flex; gap: 12px; align-items: center;">
+            <button onclick="openStockReconcileModal()" class="btn-utility no-print" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 800; cursor: pointer;">⚡ Adjust / Clear Stock</button>
             {% if balance and balance > 0 %}
             <button onclick="triggerReportSettlementPayment()" class="btn-utility no-print" style="background: #3b82f6; color: white; border-color: #3b82f6; font-weight: bold; cursor: pointer;">💰 Pay Settlement (₹{{ balance|floatformat:0 }})</button>
             {% endif %}
@@ -707,76 +671,85 @@
 
     <div class="slip-container">
         <div class="header">
-            <div class="company-info">
-                <h1>FOUNDRY ERP</h1>
-                <p style="margin:5px 0; font-size:12px; color:var(--text-muted);">Monthly Work Settlement Statement {% if jw.process %}({{ jw.process|title }}){% endif %}</p>
-            </div>
-            <div class="statement-title">
-                <div style="display: flex; align-items: center; gap: 12px; justify-content: flex-end; margin-top: 5px;" class="no-print">
-                    {% if prev_jw_id %}
-                    <a href="{% url 'job_worker_report' prev_jw_id %}?month={{ month_val }}" class="nav-arrow" style="text-decoration: none; font-size: 24px; color: var(--text-muted); line-height: 1; user-select: none;">◀</a>
-                    {% endif %}
-                    <div style="position: relative; display: inline-block; text-align: left;">
-                        <h2 id="jw-name-trigger" style="margin: 0; font-size: 24px; color: var(--accent); cursor: pointer; border-bottom: 2px dashed var(--accent); display: flex; align-items: center; gap: 6px; user-select: none;">
-                            {{ jw.name }} <span style="font-size: 14px; opacity: 0.7;">▼</span>
-                        </h2>
-                        <!-- Search Dropdown overlay -->
-                        <div id="jw-select-dropdown" style="display: none; position: absolute; top: 100%; right: 0; background: #111827; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 9999; min-width: 250px; max-height: 300px; overflow-y: auto; margin-top: 5px; padding: 5px 0;">
-                            <div style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; background: #111827; z-index: 1;">
-                                <input type="text" id="jw-search-input" placeholder="Search unit..." style="width: 100%; padding: 6px 10px; font-size: 13px; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; outline: none; box-sizing: border-box; background: #1e293b; color: white;">
-                            </div>
-                            <div id="jw-options-list">
-                                {% for j in all_jws %}
-                                <a href="{% url 'job_worker_report' j.id %}?month={{ month_val }}" style="display: block; padding: 10px 15px; font-size: 14px; color: {% if j.id == jw.id %}#ffffff{% else %}#cbd5e1{% endif %}; text-decoration: none; transition: background 0.2s; font-weight: {% if j.id == jw.id %}bold{% else %}normal{% endif %}; background: {% if j.id == jw.id %}#3b82f6{% else %}transparent{% endif %};" onmouseover="if('{{ j.id }}' !== '{{ jw.id }}') this.style.background='#1e293b'" onmouseout="if('{{ j.id }}' !== '{{ jw.id }}') this.style.background='transparent'" data-name="{{ j.name|lower }}">
-                                    {{ j.name }} {% if j.process %}({{ j.process }}){% endif %}
-                                </a>
-                                {% endfor %}
+            <div class="worker-header-info">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="no-print" style="display: flex; align-items: center; gap: 8px;">
+                        {% if prev_jw_id %}
+                        <a href="{% url 'job_worker_report' prev_jw_id %}?month={{ month_val }}" class="nav-arrow" style="text-decoration: none; font-size: 20px; color: var(--text-muted); line-height: 1; user-select: none;">◀</a>
+                        {% endif %}
+                        <div style="position: relative; display: inline-block; text-align: left;">
+                            <h1 id="jw-name-trigger" style="margin: 0; font-size: 22px; font-weight: 900; color: var(--accent); cursor: pointer; border-bottom: 2px dashed var(--accent); display: flex; align-items: center; gap: 6px; user-select: none;">
+                                {{ jw.name }} <span style="font-size: 14px; opacity: 0.7;">▼</span>
+                            </h1>
+                            <!-- Search Dropdown overlay -->
+                            <div id="jw-select-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: #111827; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 9999; min-width: 250px; max-height: 300px; overflow-y: auto; margin-top: 5px; padding: 5px 0;">
+                                <div style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; background: #111827; z-index: 1;">
+                                    <input type="text" id="jw-search-input" placeholder="Search unit..." style="width: 100%; padding: 6px 10px; font-size: 13px; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; outline: none; box-sizing: border-box; background: #1e293b; color: white;">
+                                </div>
+                                <div id="jw-options-list">
+                                    {% for j in all_jws %}
+                                    <a href="{% url 'job_worker_report' j.id %}?month={{ month_val }}" style="display: block; padding: 10px 15px; font-size: 14px; color: {% if j.id == jw.id %}#ffffff{% else %}#cbd5e1{% endif %}; text-decoration: none; transition: background 0.2s; font-weight: {% if j.id == jw.id %}bold{% else %}normal{% endif %}; background: {% if j.id == jw.id %}#3b82f6{% else %}transparent{% endif %};" onmouseover="if('{{ j.id }}' !== '{{ jw.id }}') this.style.background='#1e293b'" onmouseout="if('{{ j.id }}' !== '{{ jw.id }}') this.style.background='transparent'" data-name="{{ j.name|lower }}">
+                                        {{ j.name }} {% if j.process %}({{ j.process }}){% endif %}
+                                    </a>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
+                        {% if next_jw_id %}
+                        <a href="{% url 'job_worker_report' next_jw_id %}?month={{ month_val }}" class="nav-arrow" style="text-decoration: none; font-size: 20px; color: var(--text-muted); line-height: 1; user-select: none;">▶</a>
+                        {% endif %}
                     </div>
-                    {% if next_jw_id %}
-                    <a href="{% url 'job_worker_report' next_jw_id %}?month={{ month_val }}" class="nav-arrow" style="text-decoration: none; font-size: 24px; color: var(--text-muted); line-height: 1; user-select: none;">▶</a>
-                    {% endif %}
+                    <h1 class="print-only" style="display: none; margin: 0; font-size: 20px; font-weight: 900; color: #000000;">{{ jw.name }}</h1>
                 </div>
-                <h2 class="print-only" style="display: none; margin: 0; font-size: 24px; color: var(--accent);">{{ jw.name }}</h2>
-                <p style="margin:5px 0; font-weight:600; text-align: right;">
-                    {{ month_name }}
-                    {% if is_fully_paid %}
-                    <span style="background: #10b981; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-left: 8px; text-transform: uppercase; display: inline-block;">✓ FULLY SETTLED & PAID</span>
-                    {% elif balance and balance > 0 %}
-                    <span style="background: #ef4444; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-left: 8px; text-transform: uppercase; display: inline-block;">⚠️ DUE: ₹{{ balance|floatformat:2 }}</span>
-                    {% endif %}
-                </p>
+                <p style="margin: 2px 0 0 0; font-size: 11.5px; color: var(--text-muted); font-weight: 600;">Monthly Work Settlement Statement {% if jw.process %}({{ jw.process|title }}){% endif %}</p>
+            </div>
+            <div class="statement-title" style="text-align: right;">
+                <div style="font-size: 16px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                    <span>{{ month_name }}</span>
+                </div>
             </div>
         </div>
 
         <div class="summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px;">
-            <div class="summary-item">
-                <div class="summary-label">Total Work Done</div>
-                <div class="summary-value">₹{{ total_earned|floatformat:2 }}</div>
-                {% if total_casting_wt > 0 %}
-                <div style="font-size: 9.5px; color: var(--text-muted); margin-top: 3px; font-weight: 700;">({{ total_casting_wt|floatformat:1 }} kg Casting)</div>
-                {% endif %}
-            </div>
-            {% if total_casting_wt > 0 or jw.casting_rate_per_kg > 0 %}
+            <!-- CARD 1: TOTAL CASTING WEIGHT (WITHOUT RATE) -->
+            {% if total_casting_wt > 0 or jw.process == 'casting' %}
             <div class="summary-item" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3);">
                 <div class="summary-label" style="color: #34d399;">⚖️ Total Casting Weight</div>
                 <div class="summary-value" style="color: #34d399;">{{ total_casting_wt|floatformat:1 }} kg</div>
             </div>
             {% endif %}
+
+            <!-- CARD 2: TOTAL WORK DONE -->
+            <div class="summary-item">
+                <div class="summary-label">Total Work Done</div>
+                <div class="summary-value">₹{{ total_earned|floatformat:2 }}</div>
+            </div>
+
+            <!-- CARD 3: TOTAL ADVANCES/PAID (ONLY APPEARS IF ADVANCE > 0) -->
             {% if total_paid and total_paid > 0 %}
             <div class="summary-item">
                 <div class="summary-label">Total Advances/Paid</div>
                 <div class="summary-value">₹{{ total_paid|floatformat:2 }}</div>
+                <div style="font-size: 9px; color: var(--text-muted); margin-top: 3px; font-weight: 700; line-height: 1.2;">
+                    {% for p in payments %}
+                        {% if p.payment_type != 'LOAN_REPAYMENT' and p.payment_type != 'NEW_LOAN' %}
+                            {{ p.date|date:"d M" }}: ₹{{ p.amount|floatformat:0 }}{% if not forloop.last %} • {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
             </div>
             {% endif %}
+
+            <!-- CARD 4: NET PAYABLE BALANCE -->
             <div class="summary-item" style="border-color: var(--accent); background: #eff6ff;">
                 <div class="summary-label">Net Payable Balance</div>
                 <div class="summary-value highlight">₹{{ balance|floatformat:2 }}</div>
                 {% if financial_opening_bal and financial_opening_bal != 0 %}
-                <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; font-weight: 600;">(Incl. ₹{{ financial_opening_bal|floatformat:2 }} opening bal.)</div>
+                <div style="font-size: 10px; color: var(--text-secondary); margin-top: 3px; font-weight: 600;">(Incl. ₹{{ financial_opening_bal|floatformat:2 }} opening bal.)</div>
                 {% endif %}
             </div>
+
+            <!-- CARD 5: PENDING LOAN (IF APPLICABLE) -->
             {% if loan_balance and loan_balance > 0 %}
             <div class="summary-item">
                 <div class="summary-label">Pending Loan</div>
@@ -788,13 +761,51 @@
         <!-- COMPACT 1-PAGE MATRIX GRID REPORT (IDEA 1: WORK DONE GRID + STOCK BAR) -->
         <div id="matrix-report-view">
             <div style="overflow-x: auto; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                {% if jw.process == 'casting' or total_casting_wt > 0 and not matrix_items %}
+                <!-- CASTING DAILY WEIGHT STATEMENT TABLE (1-PAGE A4 FORMAT) -->
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 0;">
+                    <thead>
+                        <tr style="background: #1e293b; color: white;">
+                            <th style="padding: 5px 4px; text-align: center; border: 1px solid var(--border); width: 60px;">DATE</th>
+                            <th style="padding: 5px 4px; text-align: center; border: 1px solid var(--border); width: 75px;">DAY</th>
+                            <th style="padding: 5px 8px; text-align: center; border: 1px solid var(--border); font-weight: 800;">DAILY CASTING SCALE WEIGHT (KG)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day_row in matrix_days %}
+                        <tr style="{% if day_row.is_sunday or day_row.is_wednesday %}background: rgba(239, 68, 68, 0.06);{% endif %}">
+                            <td style="padding: 3px 4px; text-align: center; border: 1px solid var(--border); font-weight: 700; font-size: 10px;">{{ day_row.day }}</td>
+                            <td style="padding: 3px 4px; text-align: center; border: 1px solid var(--border); font-size: 10px; color: var(--text-muted);">{{ day_row.day_name }}</td>
+                            <td style="padding: 3px 8px; text-align: center; border: 1px solid var(--border); font-weight: 800; font-size: 11px;">
+                                {% if day_row.casting_weight > 0 %}
+                                <strong style="color: var(--text-main);">{{ day_row.casting_weight|floatformat:1 }} kg</strong>
+                                {% else %}
+                                <span style="opacity: 0.2;">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: rgba(15, 23, 42, 0.05); font-weight: 900; border-top: 2px solid var(--border);">
+                            <td colspan="2" style="padding: 5px 6px; border: 1px solid var(--border); text-align: right; font-size: 10px; font-weight: 900; text-transform: uppercase; color: var(--text-main);">TOTAL WEIGHT:</td>
+                            <td style="padding: 5px 8px; border: 1px solid var(--border); text-align: center; color: var(--text-main); font-size: 12px; font-weight: 900;">{{ total_casting_wt|floatformat:1 }} kg</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                {% else %}
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 0;">
                     <thead>
                         <tr style="background: #1e293b; color: white;">
                             <th style="padding: 6px 4px; text-align: center; border: 1px solid var(--border); width: 40px;">DATE</th>
                             <th style="padding: 6px 4px; text-align: center; border: 1px solid var(--border); width: 45px;">DAY</th>
                             {% for item in matrix_items %}
-                            <th style="padding: 6px 6px; text-align: center; border: 1px solid var(--border); font-weight: 800; font-size: 11px;">{{ item.code }}</th>
+                            <th style="padding: 6px 6px; text-align: center; border: 1px solid var(--border); font-weight: 800; font-size: 11px;">
+                                {{ item.code }}
+                                {% if item.lot_size and item.lot_size > 1 %}
+                                <div style="font-size: 8.5px; font-weight: 600; color: #94a3b8; opacity: 0.85;">({{ item.lot_size }}/lot)</div>
+                                {% endif %}
+                            </th>
                             {% endfor %}
                         </tr>
                     </thead>
@@ -806,7 +817,7 @@
                             {% for item in matrix_items %}
                             <td style="padding: 4px 4px; border: 1px solid var(--border); text-align: center; font-size: 11px; font-weight: 900; color: #f59e0b;">
                                 {% if item.opening_bal > 0 %}
-                                {{ item.opening_bal }}
+                                <span class="matrix-total-op" data-qty="{{ item.opening_bal }}" data-lot-size="{{ item.lot_size }}">{{ item.opening_bal }}</span>
                                 {% else %}
                                 <span style="opacity: 0.25;">-</span>
                                 {% endif %}
@@ -821,18 +832,18 @@
                             {% for cell in day_row.item_qty_list %}
                             <td style="padding: 4px; text-align: center; border: 1px solid var(--border); {% if user.is_superuser or user.is_staff %}cursor: pointer; transition: background 0.15s;{% endif %}"
                                 {% if user.is_superuser or user.is_staff %}
-                                onclick="openOwnerCellEditModal('{{ day_row.date_str }}', '{{ day_row.day }} {{ month_name }}', '{{ cell.item_id }}', '{{ cell.code }}', {{ cell.in_qty }}, '{{ jw.id }}', '{{ jw.name|escapejs }}')"
-                                title="Owner Click: Adjust Entry / Handle Stock"
+                                onclick="openOwnerMasterEditModal('{{ day_row.date_str }}', '{{ cell.item_id }}', '{{ cell.code }}', {{ cell.in_qty }}, {{ cell.out_qty }}, '{{ jw.id }}', '{{ jw.name|escapejs }}', '{{ jw.process|default:''|escapejs }}')"
+                                title="Click to Master Edit: Date, Item, Issue Qty, Receive Qty, Scrap or Delete"
                                 onmouseover="this.style.background='rgba(59, 130, 246, 0.2)'"
                                 onmouseout="this.style.background='transparent'"
                                 {% endif %}>
                                 {% if cell.in_qty > 0 %}
-                                    <div style="font-weight: 800; font-size: 11px; color: var(--text-main);">{{ cell.in_qty }}</div>
+                                    <div class="matrix-val-in" data-qty="{{ cell.in_qty }}" data-lot-size="{{ cell.lot_size }}" style="font-weight: 800; font-size: 11px; color: var(--text-main);">{{ cell.in_qty }}</div>
                                     {% if cell.out_qty > 0 %}
-                                        <div style="font-size: 8.5px; color: #3b82f6; font-weight: 700;">Iss: {{ cell.out_qty }}</div>
+                                        <div class="matrix-val-out" data-qty="{{ cell.out_qty }}" data-lot-size="{{ cell.lot_size }}" style="font-size: 8.5px; color: #3b82f6; font-weight: 700;">Iss: {{ cell.out_qty }}</div>
                                     {% endif %}
                                 {% elif cell.out_qty > 0 %}
-                                    <div style="font-size: 9.5px; color: #3b82f6; font-weight: 700;">Iss: {{ cell.out_qty }}</div>
+                                    <div class="matrix-val-out" data-qty="{{ cell.out_qty }}" data-lot-size="{{ cell.lot_size }}" style="font-size: 9.5px; color: #3b82f6; font-weight: 700;">Iss: {{ cell.out_qty }}</div>
                                 {% else %}
                                     <span style="opacity: 0.15;">-</span>
                                 {% endif %}
@@ -843,10 +854,10 @@
                     </tbody>
                     <tfoot>
                         <!-- TOTAL PCS DONE (RECEIVES) -->
-                        <tr style="background: rgba(16, 185, 129, 0.08); font-weight: 800; border-top: 2px solid var(--primary);">
-                            <td colspan="2" style="padding: 5px 6px; border: 1px solid var(--border); text-align: right; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #10b981;">TOTAL RECEIVED:</td>
+                        <tr style="background: rgba(15, 23, 42, 0.04); font-weight: 900; border-top: 2px solid var(--border);">
+                            <td colspan="2" style="padding: 5px 6px; border: 1px solid var(--border); text-align: right; font-size: 10px; font-weight: 900; text-transform: uppercase; color: var(--text-main);">TOTAL RECEIVED:</td>
                             {% for item in matrix_items %}
-                            <td style="padding: 5px 4px; border: 1px solid var(--border); text-align: center; color: #10b981; font-size: 11.5px; font-weight: 800;">{{ item.total_pcs }}</td>
+                            <td class="matrix-total-received" data-qty="{{ item.total_pcs }}" data-lot-size="{{ item.lot_size }}" style="padding: 5px 4px; border: 1px solid var(--border); text-align: center; color: var(--text-main); font-size: 11.5px; font-weight: 900;">{{ item.total_pcs }}</td>
                             {% endfor %}
                         </tr>
                         <!-- TOTAL ISSUED & CLOSING STOCK -->
@@ -854,16 +865,16 @@
                             <td colspan="2" style="padding: 5px 6px; border: 1px solid var(--border); text-align: right; font-size: 9.5px; color: var(--text-muted); text-transform: uppercase;">ISSUED / CL. STOCK:</td>
                             {% for item in matrix_items %}
                             <td style="padding: 5px 4px; border: 1px solid var(--border); text-align: center; font-size: 9.5px; color: var(--text-muted);">
-                                <div>Iss: <span style="font-weight:700; color:var(--text-main);">{{ item.total_issued }}</span></div>
-                                <div>Stk: <span style="font-weight:800; color:{% if item.stock_in_hand > 0 %}#f59e0b{% else %}var(--text-main){% endif %};">{{ item.stock_in_hand }}</span></div>
+                                <div>Iss: <span class="matrix-total-issued" data-qty="{{ item.total_issued }}" data-lot-size="{{ item.lot_size }}" style="font-weight:700; color:var(--text-main);">{{ item.total_issued }}</span></div>
+                                <div>Stk: <span class="matrix-total-stock" data-qty="{{ item.stock_in_hand }}" data-lot-size="{{ item.lot_size }}" style="font-weight:800; color:{% if item.stock_in_hand > 0 %}#f59e0b{% else %}var(--text-main){% endif %};">{{ item.stock_in_hand }}</span></div>
                             </td>
                             {% endfor %}
                         </tr>
                         <!-- TOTAL EARNINGS AMOUNT -->
-                        <tr style="background: rgba(16, 185, 129, 0.12); font-weight: 900; border-bottom: 2px solid var(--primary);">
-                            <td colspan="2" style="padding: 7px 6px; border: 1px solid var(--border); text-align: right; font-size: 10px; color: #10b981; text-transform: uppercase;">AMOUNT (₹):</td>
+                        <tr style="background: rgba(15, 23, 42, 0.06); font-weight: 900; border-bottom: 2px solid var(--border);">
+                            <td colspan="2" style="padding: 7px 6px; border: 1px solid var(--border); text-align: right; font-size: 10px; color: var(--text-main); text-transform: uppercase;">AMOUNT (₹):</td>
                             {% for item in matrix_items %}
-                            <td class="tooltip-trigger" style="padding: 7px 4px; border: 1px solid var(--border); text-align: center; color: #10b981; font-size: 12px; font-weight: 900;">
+                            <td class="tooltip-trigger" style="padding: 7px 4px; border: 1px solid var(--border); text-align: center; color: var(--text-main); font-size: 12px; font-weight: 900;">
                                 ₹{{ item.earned|floatformat:2 }}
                                 {% if item.rate > 0 %}
                                 <div class="tooltip-content no-print" style="font-weight: normal; font-size: 11px;">
@@ -875,6 +886,7 @@
                         </tr>
                     </tfoot>
                 </table>
+                {% endif %}
             </div>
         </div>
 
@@ -1285,98 +1297,286 @@
         </div> <!-- end #detailed-report-view -->
     </div>
 
-    <!-- OWNER DIRECT CELL ADJUSTMENT MODAL -->
-    <div id="ownerCellEditModal" class="modal-backdrop" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:99999; justify-content:center; align-items:center;">
-        <div style="background:#111827; border:1px solid rgba(255,255,255,0.15); width:460px; max-width:92%; border-radius:16px; padding:24px; box-shadow:0 20px 50px rgba(0,0,0,0.8); font-family:inherit; color:white;">
+    <!-- MASTER PRODUCTION ENTRY & PIPELINE SYNC MODAL -->
+    <div id="masterEntryModal" class="modal-backdrop" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:99999; justify-content:center; align-items:center;">
+        <div style="background:#111827; border:1px solid rgba(255,255,255,0.18); width:540px; max-width:94%; border-radius:16px; padding:22px 26px; box-shadow:0 25px 60px rgba(0,0,0,0.9); font-family:inherit; color:white;">
+            
+            <!-- Header -->
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:12px; margin-bottom:16px;">
                 <h3 style="margin:0; font-size:16px; font-weight:800; color:#3b82f6; display:flex; align-items:center; gap:8px;">
-                    ✏️ Owner Stock & Entry Adjustment
+                    ✏️ Master Production Entry Editor
                 </h3>
-                <button type="button" onclick="closeOwnerCellModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; padding:0;">✕</button>
+                <button type="button" onclick="closeMasterEntryModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; padding:0;">✕</button>
             </div>
 
-            <!-- Summary Meta -->
-            <div style="background:rgba(255,255,255,0.03); padding:12px 14px; border-radius:10px; margin-bottom:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:12px; border:1px solid rgba(255,255,255,0.05);">
-                <div><span style="color:#94a3b8;">Worker:</span> <strong id="modal-owner-worker-name" style="color:white;">-</strong></div>
-                <div><span style="color:#94a3b8;">Item:</span> <strong id="modal-owner-item-code" style="color:#60a5fa;">-</strong></div>
-                <div><span style="color:#94a3b8;">Date:</span> <strong id="modal-owner-date-fmt" style="color:white;">-</strong></div>
-                <div><span style="color:#94a3b8;">Current Qty:</span> <strong id="modal-owner-current-qty" style="color:#10b981;">0 pcs</strong></div>
+            <!-- Worker Banner -->
+            <div style="background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); padding:10px 14px; border-radius:10px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; font-size:12.5px;">
+                <div>
+                    <span style="color:#94a3b8;">Worker:</span> <strong id="modal-master-worker-name" style="color:#ffffff; font-weight:800;">-</strong>
+                    <span id="modal-master-worker-process" style="margin-left:6px; font-size:11px; padding:2px 6px; background:rgba(255,255,255,0.08); border-radius:4px; color:#cbd5e1;">-</span>
+                </div>
+                <div style="font-size:11.5px; color:#94a3b8;">
+                    Cell: <span id="modal-master-orig-badge" style="color:#60a5fa; font-weight:700;">-</span>
+                </div>
             </div>
 
-            <!-- Qty Input -->
-            <div style="margin-bottom:16px;">
-                <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:6px;">New Received Quantity (Pcs):</label>
-                <input type="number" id="owner-modal-new-qty" min="0" step="1" style="width:100%; padding:10px 14px; background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.15); border-radius:8px; font-size:16px; font-weight:bold; box-sizing:border-box; outline:none;">
+            <!-- Date & Item Row -->
+            <div style="display:grid; grid-template-columns: 1fr 1.3fr; gap:12px; margin-bottom:14px;">
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:5px;">📅 Entry Date:</label>
+                    <input type="date" id="master-modal-date" style="width:100%; padding:9px 12px; background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.15); border-radius:8px; font-size:13px; font-weight:bold; outline:none; box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:11.5px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:5px;">📦 Item Code:</label>
+                    <select id="master-modal-item" onchange="handleMasterItemChange()" style="width:100%; padding:9px 10px; background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.15); border-radius:8px; font-size:13px; font-weight:bold; outline:none; box-sizing:border-box;">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
             </div>
 
-            <!-- Stock Reason Selector -->
-            <div id="owner-stock-reason-box" style="margin-bottom:20px;">
-                <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:8px;">What to do with the quantity difference?</label>
-                <div style="display:flex; flex-direction:column; gap:8px; background:rgba(0,0,0,0.3); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:#f8fafc;">
-                        <input type="radio" name="owner_reason" value="typo" checked style="accent-color:#3b82f6;">
-                        <span><strong>1. Entry Correction (Typo)</strong> — Simply fix operator entry error</span>
+            <!-- Quantities Row (Issued, Received, Rejection) -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:14px;">
+                <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.06);">
+                    <label style="font-size:11px; font-weight:700; color:#60a5fa; display:block; margin-bottom:4px;">📤 Issued (Out)</label>
+                    <input type="number" id="master-modal-out-qty" min="0" step="1" value="0" style="width:100%; padding:8px 10px; background:#0f172a; color:white; border:1px solid rgba(59,130,246,0.3); border-radius:6px; font-size:15px; font-weight:900; box-sizing:border-box; outline:none;">
+                    <span style="font-size:9.5px; color:#94a3b8; margin-top:3px; display:block;">Given to worker</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.06);">
+                    <label style="font-size:11px; font-weight:700; color:#34d399; display:block; margin-bottom:4px;">📥 Received (In)</label>
+                    <input type="number" id="master-modal-in-qty" min="0" step="1" value="0" oninput="recalcMasterRatePreview()" style="width:100%; padding:8px 10px; background:#0f172a; color:white; border:1px solid rgba(52,211,153,0.3); border-radius:6px; font-size:15px; font-weight:900; box-sizing:border-box; outline:none;">
+                    <span style="font-size:9.5px; color:#94a3b8; margin-top:3px; display:block;">Finished pieces</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.06);">
+                    <label style="font-size:11px; font-weight:700; color:#f87171; display:block; margin-bottom:4px;">🗑️ Scrap / Rej.</label>
+                    <input type="number" id="master-modal-rej-qty" min="0" step="1" value="0" style="width:100%; padding:8px 10px; background:#0f172a; color:white; border:1px solid rgba(239,68,68,0.3); border-radius:6px; font-size:15px; font-weight:900; box-sizing:border-box; outline:none;">
+                    <span style="font-size:9.5px; color:#94a3b8; margin-top:3px; display:block;">Deduct & log scrap</span>
+                </div>
+            </div>
+
+            <!-- Rate & Earnings Live Preview Strip -->
+            <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); padding:8px 12px; border-radius:8px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+                <span style="color:#a7f3d0;">Allocated Piece Rate: <strong id="master-preview-rate" style="color:white;">₹0.00</strong></span>
+                <span style="color:#a7f3d0;">Entry Total Wage: <strong id="master-preview-total" style="color:#34d399; font-size:13.5px; font-weight:900;">₹0.00</strong></span>
+            </div>
+
+            <!-- Notes / Reason -->
+            <div style="margin-bottom:18px;">
+                <label style="font-size:11.5px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:4px;">Audit Note / Reason for Change:</label>
+                <input type="text" id="master-modal-notes" value="Owner Entry Correction / Pipeline Sync" style="width:100%; padding:8px 12px; background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.15); border-radius:8px; font-size:12.5px; box-sizing:border-box; outline:none;">
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <button type="button" id="btn-master-delete" onclick="submitMasterEntryDelete()" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.4); padding:9px 16px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12.5px; transition:all 0.2s;">
+                    🗑️ Delete Entry
+                </button>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" onclick="closeMasterEntryModal()" style="background:rgba(255,255,255,0.05); color:#94a3b8; border:1px solid rgba(255,255,255,0.1); padding:9px 16px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12.5px;">Cancel</button>
+                    <button type="button" onclick="submitMasterEntrySave()" style="background:#3b82f6; color:white; border:none; padding:9px 22px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12.5px; box-shadow:0 4px 14px rgba(59,130,246,0.35);">💾 Save & Sync All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OWNER STOCK RECONCILE / CLEAR STALE STOCK MODAL -->
+    <div id="stockReconcileModal" class="modal-backdrop" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:99999; justify-content:center; align-items:center;">
+        <div style="background:#111827; border:1px solid rgba(255,255,255,0.15); width:480px; max-width:94%; border-radius:16px; padding:24px; box-shadow:0 20px 50px rgba(0,0,0,0.9); font-family:inherit; color:white;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:12px; margin-bottom:16px;">
+                <h3 style="margin:0; font-size:16px; font-weight:800; color:#f59e0b; display:flex; align-items:center; gap:8px;">
+                    ⚡ Reconcile / Clear Worker Stock
+                </h3>
+                <button type="button" onclick="closeStockReconcileModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; padding:0;">✕</button>
+            </div>
+
+            <!-- Worker Info -->
+            <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); padding:10px 14px; border-radius:10px; margin-bottom:16px; font-size:12.5px; color:#fef3c7;">
+                Worker: <strong style="color:#ffffff;">{{ jw.name }}</strong> {% if jw.process %}({{ jw.process|title }}){% endif %}
+            </div>
+
+            <!-- Item Select -->
+            <div style="margin-bottom:14px;">
+                <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:6px;">Select Item to Reconcile:</label>
+                <select id="reconcile-item-select" onchange="handleReconcileItemChange()" style="width:100%; padding:10px 12px; background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.15); border-radius:8px; font-size:14px; font-weight:bold; outline:none;">
+                    {% for entry in item_ledger %}
+                    <option value="{{ entry.item.id }}" data-code="{{ entry.item.code }}" data-name="{{ entry.item.name }}" data-stock="{{ entry.balance }}">
+                        {{ entry.item.code }} - {{ entry.item.name }} (Stock: {{ entry.balance }} pcs)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Current Stock Display -->
+            <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:10px 14px; border-radius:8px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:12px; color:#94a3b8;">Current Calculated Stock:</span>
+                <strong id="reconcile-current-stock-badge" style="font-size:14px; font-weight:900; color:#f59e0b;">0 pcs</strong>
+            </div>
+
+            <!-- Action Mode Radio -->
+            <div style="margin-bottom:14px;">
+                <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:6px;">Adjustment Action:</label>
+                <div style="display:flex; flex-direction:column; gap:8px; background:rgba(0,0,0,0.3); padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:#f8fafc;">
+                        <input type="radio" name="reconcile_mode" value="SET_ZERO" checked onchange="toggleReconcileExactInput(false)" style="accent-color:#10b981;">
+                        <span><strong>Zero Out Stock to 0</strong> (Clear Stale / Negative Balance)</span>
                     </label>
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:#f8fafc;">
-                        <input type="radio" name="owner_reason" value="rejection" style="accent-color:#ef4444;">
-                        <span><strong>2. Quality Rejection (Scrap)</strong> — Deduct pay & log as scrap metal</span>
-                    </label>
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:#f8fafc;">
-                        <input type="radio" name="owner_reason" value="return_wip" style="accent-color:#10b981;">
-                        <span><strong>3. Return to WIP / Casting</strong> — Credit worker & return stock to pool</span>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:#f8fafc;">
+                        <input type="radio" name="reconcile_mode" value="SET_EXACT" onchange="toggleReconcileExactInput(true)" style="accent-color:#3b82f6;">
+                        <span><strong>Set Exact Stock Count</strong> (Specify exact physical pieces)</span>
                     </label>
                 </div>
             </div>
 
+            <!-- Exact Qty Input (Hidden by default) -->
+            <div id="reconcile-exact-qty-box" style="display:none; margin-bottom:14px;">
+                <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:6px;">Exact Physical Stock (Pcs):</label>
+                <input type="number" id="reconcile-exact-qty" min="0" value="0" style="width:100%; padding:9px 12px; background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.15); border-radius:8px; font-size:14px; font-weight:bold; box-sizing:border-box; outline:none;">
+            </div>
+
+            <!-- Reason Input -->
+            <div style="margin-bottom:18px;">
+                <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:6px;">Reason / Notes:</label>
+                <input type="text" id="reconcile-reason" value="Physical Stock Audit / Clear Stale Stock" style="width:100%; padding:9px 12px; background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.15); border-radius:8px; font-size:13px; box-sizing:border-box; outline:none;">
+            </div>
+
             <!-- Actions -->
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button type="button" onclick="closeOwnerCellModal()" style="background:rgba(255,255,255,0.05); color:#94a3b8; border:1px solid rgba(255,255,255,0.1); padding:9px 18px; border-radius:8px; cursor:pointer; font-weight:bold;">Cancel</button>
-                <button type="button" onclick="submitOwnerCellAdjustment()" style="background:#3b82f6; color:white; border:none; padding:9px 22px; border-radius:8px; cursor:pointer; font-weight:bold; box-shadow:0 4px 12px rgba(59,130,246,0.3);">💾 Save Adjustment</button>
+                <button type="button" onclick="closeStockReconcileModal()" style="background:rgba(255,255,255,0.05); color:#94a3b8; border:1px solid rgba(255,255,255,0.1); padding:9px 18px; border-radius:8px; cursor:pointer; font-weight:bold;">Cancel</button>
+                <button type="button" onclick="submitStockReconcile()" style="background:#f59e0b; color:#000000; border:none; padding:9px 22px; border-radius:8px; cursor:pointer; font-weight:900; box-shadow:0 4px 14px rgba(245,158,11,0.35);">⚡ Apply Adjustment</button>
             </div>
         </div>
     </div>
 
     <script>
-        let currentOwnerCellContext = {};
+        let masterContext = {};
+        const jwAvailableItems = [
+            {% for entry in item_ledger %}
+            {
+                id: {{ entry.item.id }},
+                code: "{{ entry.item.code|escapejs }}",
+                name: "{{ entry.item.name|escapejs }}",
+                rate: {{ entry.rate|default:0.0 }}
+            },
+            {% endfor %}
+        ];
 
-        function openOwnerCellEditModal(dateStr, dateFmt, itemId, itemCode, currentQty, jwId, jwName) {
-            currentOwnerCellContext = { dateStr, itemId, currentQty, jwId };
-            document.getElementById('modal-owner-worker-name').innerText = jwName;
-            document.getElementById('modal-owner-item-code').innerText = itemCode;
-            document.getElementById('modal-owner-date-fmt').innerText = dateFmt;
-            document.getElementById('modal-owner-current-qty').innerText = currentQty + ' pcs';
-            
-            document.getElementById('owner-modal-new-qty').value = currentQty;
-            
-            const radios = document.getElementsByName('owner_reason');
-            if (radios.length > 0) radios[0].checked = true;
-            
-            document.getElementById('ownerCellEditModal').style.display = 'flex';
+        // Include any other active company items if not already present
+        const companyItemsMap = {};
+        jwAvailableItems.forEach(i => companyItemsMap[i.id] = true);
+        {% if all_company_items %}
+        {% for it in all_company_items %}
+        if (!companyItemsMap[{{ it.id }}]) {
+            jwAvailableItems.push({
+                id: {{ it.id }},
+                code: "{{ it.code|escapejs }}",
+                name: "{{ it.name|escapejs }}",
+                rate: 0.0
+            });
+            companyItemsMap[{{ it.id }}] = true;
         }
+        {% endfor %}
+        {% endif %}
 
-        function closeOwnerCellModal() {
-            document.getElementById('ownerCellEditModal').style.display = 'none';
-        }
+        function openOwnerMasterEditModal(dateStr, itemId, itemCode, inQty, outQty, jwId, jwName, jwProcess) {
+            masterContext = {
+                origDate: dateStr,
+                origItemId: itemId,
+                origItemCode: itemCode,
+                origInQty: inQty,
+                origOutQty: outQty,
+                jwId: jwId,
+                jwName: jwName,
+                jwProcess: jwProcess
+            };
 
-        async function submitOwnerCellAdjustment() {
-            const newQtyInput = document.getElementById('owner-modal-new-qty');
-            const newQty = newQtyInput ? newQtyInput.value : '';
-            if (newQty === '' || isNaN(newQty) || parseFloat(newQty) < 0) {
-                return alert('⚠️ Please enter a valid non-negative quantity!');
+            document.getElementById('modal-master-worker-name').innerText = jwName;
+            document.getElementById('modal-master-worker-process').innerText = jwProcess ? (jwProcess.charAt(0).toUpperCase() + jwProcess.slice(1)) : 'Job Worker';
+            document.getElementById('modal-master-orig-badge').innerText = `${itemCode} (${dateStr})`;
+
+            document.getElementById('master-modal-date').value = dateStr;
+            document.getElementById('master-modal-out-qty').value = outQty || 0;
+            document.getElementById('master-modal-in-qty').value = inQty || 0;
+            document.getElementById('master-modal-rej-qty').value = 0;
+            document.getElementById('master-modal-notes').value = 'Owner Entry Correction / Pipeline Sync';
+
+            // Populate Item Selector
+            const itemSel = document.getElementById('master-modal-item');
+            itemSel.innerHTML = '';
+            let itemFound = false;
+            jwAvailableItems.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.text = `${item.code} - ${item.name} (₹${item.rate.toFixed(2)}/pc)`;
+                opt.setAttribute('data-rate', item.rate);
+                opt.setAttribute('data-code', item.code);
+                if (String(item.id) === String(itemId)) {
+                    opt.selected = true;
+                    itemFound = true;
+                }
+                itemSel.appendChild(opt);
+            });
+
+            if (!itemFound && itemId) {
+                const fallbackOpt = document.createElement('option');
+                fallbackOpt.value = itemId;
+                fallbackOpt.text = `${itemCode} (₹0.00/pc)`;
+                fallbackOpt.setAttribute('data-rate', '0');
+                fallbackOpt.selected = true;
+                itemSel.appendChild(fallbackOpt);
             }
 
-            let reasonCode = 'typo';
-            const radios = document.getElementsByName('owner_reason');
-            for (let r of radios) {
-                if (r.checked) reasonCode = r.value;
+            const delBtn = document.getElementById('btn-master-delete');
+            if (delBtn) {
+                delBtn.style.display = (inQty > 0 || outQty > 0) ? 'inline-block' : 'none';
             }
+
+            recalcMasterRatePreview();
+            document.getElementById('masterEntryModal').style.display = 'flex';
+        }
+
+        function closeMasterEntryModal() {
+            document.getElementById('masterEntryModal').style.display = 'none';
+        }
+
+        function handleMasterItemChange() {
+            recalcMasterRatePreview();
+        }
+
+        function recalcMasterRatePreview() {
+            const itemSel = document.getElementById('master-modal-item');
+            let rate = 0.0;
+            if (itemSel && itemSel.selectedOptions[0]) {
+                rate = parseFloat(itemSel.selectedOptions[0].getAttribute('data-rate')) || 0.0;
+            }
+            const inQty = parseFloat(document.getElementById('master-modal-in-qty').value) || 0.0;
+            const totalWage = inQty * rate;
+
+            document.getElementById('master-preview-rate').innerText = `₹${rate.toFixed(2)}`;
+            document.getElementById('master-preview-total').innerText = `₹${totalWage.toFixed(2)}`;
+        }
+
+        async function submitMasterEntrySave() {
+            const newDate = document.getElementById('master-modal-date').value;
+            const itemSel = document.getElementById('master-modal-item');
+            const newItemId = itemSel ? itemSel.value : '';
+            const newOutQty = document.getElementById('master-modal-out-qty').value;
+            const newInQty = document.getElementById('master-modal-in-qty').value;
+            const newRejQty = document.getElementById('master-modal-rej-qty').value;
+            const notes = document.getElementById('master-modal-notes').value;
+
+            if (!newDate) return alert('⚠️ Please choose a valid date!');
+            if (!newItemId) return alert('⚠️ Please choose an item!');
 
             const fd = new FormData();
-            fd.append('job_worker_id', currentOwnerCellContext.jwId);
-            fd.append('date', currentOwnerCellContext.dateStr);
-            fd.append('item_id', currentOwnerCellContext.itemId);
-            fd.append('new_qty', newQty);
-            fd.append('reason_code', reasonCode);
+            fd.append('action', 'save');
+            fd.append('job_worker_id', masterContext.jwId);
+            fd.append('original_date', masterContext.origDate);
+            fd.append('original_item_id', masterContext.origItemId);
+            fd.append('new_date', newDate);
+            fd.append('new_item_id', newItemId);
+            fd.append('new_out_qty', newOutQty || '0');
+            fd.append('new_in_qty', newInQty || '0');
+            fd.append('new_rejection_qty', newRejQty || '0');
+            fd.append('notes', notes);
 
             try {
                 const res = await fetch('{% url "edit_matrix_cell" %}', {
@@ -1386,7 +1586,7 @@
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
-                    closeOwnerCellModal();
+                    closeMasterEntryModal();
                     window.location.reload();
                 } else {
                     alert('⚠️ ' + (data.error || 'Failed to update entry'));
@@ -1395,6 +1595,154 @@
                 console.error(err);
                 alert('⚠️ Network error updating entry');
             }
+        }
+
+        async function submitMasterEntryDelete() {
+            if (!confirm(`⚠️ Are you sure you want to completely delete production records for ${masterContext.origItemCode} on ${masterContext.origDate}?\n\nThis will remove both Issue and Receive entries from the database and adjust stock levels.`)) {
+                return;
+            }
+
+            const fd = new FormData();
+            fd.append('action', 'delete');
+            fd.append('job_worker_id', masterContext.jwId);
+            fd.append('original_date', masterContext.origDate);
+            fd.append('original_item_id', masterContext.origItemId);
+
+            try {
+                const res = await fetch('{% url "edit_matrix_cell" %}', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {'X-CSRFToken': '{{ csrf_token }}'}
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    closeMasterEntryModal();
+                    window.location.reload();
+                } else {
+                    alert('⚠️ ' + (data.error || 'Failed to delete entry'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('⚠️ Network error deleting entry');
+            }
+        }
+
+        function formatQtyByUnit(qty, lotSize, mode, isIssue = false) {
+            const q = parseInt(qty, 10) || 0;
+            const lSize = parseInt(lotSize, 10) || 1;
+            
+            if (q === 0) return isIssue ? 'Iss: 0' : '0';
+            
+            if (mode === 'pcs' || lSize <= 1) {
+                return isIssue ? `Iss: ${q}` : `${q}`;
+            }
+            
+            // Lots mode
+            const fullLots = Math.floor(q / lSize);
+            const remainder = q % lSize;
+            let label = '';
+            
+            if (fullLots > 0 && remainder === 0) {
+                label = fullLots === 1 ? '1 Lot' : `${fullLots} Lots`;
+            } else if (fullLots > 0 && remainder > 0) {
+                label = fullLots === 1 ? `1 Lot + ${remainder}` : `${fullLots} Lots + ${remainder}`;
+            } else {
+                label = `${remainder} pcs`;
+            }
+            
+            return isIssue ? `Iss: ${label}` : label;
+        }
+
+        function formatFooterTotal(qty, lotSize, mode, prefix = '') {
+            const q = parseInt(qty, 10) || 0;
+            const lSize = parseInt(lotSize, 10) || 1;
+            
+            if (mode === 'pcs' || lSize <= 1 || q === 0) {
+                return prefix ? `${prefix}${q}` : `${q}`;
+            }
+            
+            const fullLots = Math.floor(q / lSize);
+            const remainder = q % lSize;
+            let lotStr = '';
+            if (fullLots > 0 && remainder === 0) {
+                lotStr = fullLots === 1 ? '1 Lot' : `${fullLots} Lots`;
+            } else if (fullLots > 0 && remainder > 0) {
+                lotStr = fullLots === 1 ? `1L + ${remainder}` : `${fullLots}L + ${remainder}`;
+            } else {
+                lotStr = `${remainder} pcs`;
+            }
+            
+            return prefix ? `${prefix}${lotStr} (${q})` : `${lotStr} (${q})`;
+        }
+
+        function toggleMatrixUnitDisplay(mode) {
+            const btnLots = document.getElementById('btn-unit-lots');
+            const btnPcs = document.getElementById('btn-unit-pcs');
+
+            if (mode === 'lots') {
+                if (btnLots) {
+                    btnLots.style.background = 'rgba(16, 185, 129, 0.2)';
+                    btnLots.style.color = '#34d399';
+                    btnLots.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+                }
+                if (btnPcs) {
+                    btnPcs.style.background = 'rgba(255, 255, 255, 0.05)';
+                    btnPcs.style.color = '#cbd5e1';
+                    btnPcs.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                }
+            } else {
+                if (btnPcs) {
+                    btnPcs.style.background = 'rgba(59, 130, 246, 0.2)';
+                    btnPcs.style.color = '#60a5fa';
+                    btnPcs.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                }
+                if (btnLots) {
+                    btnLots.style.background = 'rgba(255, 255, 255, 0.05)';
+                    btnLots.style.color = '#cbd5e1';
+                    btnLots.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                }
+            }
+
+            // Update Received cells
+            document.querySelectorAll('.matrix-val-in').forEach(el => {
+                const q = el.getAttribute('data-qty');
+                const l = el.getAttribute('data-lot-size');
+                el.innerText = formatQtyByUnit(q, l, mode, false);
+            });
+
+            // Update Issue cells
+            document.querySelectorAll('.matrix-val-out').forEach(el => {
+                const q = el.getAttribute('data-qty');
+                const l = el.getAttribute('data-lot-size');
+                el.innerText = formatQtyByUnit(q, l, mode, true);
+            });
+
+            // Update Footer Totals
+            document.querySelectorAll('.matrix-total-received').forEach(el => {
+                const q = el.getAttribute('data-qty');
+                const l = el.getAttribute('data-lot-size');
+                el.innerText = formatFooterTotal(q, l, mode);
+            });
+
+            document.querySelectorAll('.matrix-total-issued').forEach(el => {
+                const q = el.getAttribute('data-qty');
+                const l = el.getAttribute('data-lot-size');
+                el.innerText = formatFooterTotal(q, l, mode);
+            });
+
+            document.querySelectorAll('.matrix-total-stock').forEach(el => {
+                const q = el.getAttribute('data-qty');
+                const l = el.getAttribute('data-lot-size');
+                el.innerText = formatFooterTotal(q, l, mode);
+            });
+
+            document.querySelectorAll('.matrix-total-op').forEach(el => {
+                const q = el.getAttribute('data-qty');
+                const l = el.getAttribute('data-lot-size');
+                el.innerText = formatFooterTotal(q, l, mode);
+            });
+
+            localStorage.setItem('matrix_unit_mode', mode);
         }
 
         function setReportFormat(mode) {
@@ -1429,6 +1777,10 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Apply saved or default Unit Display mode (default to Lots)
+            const savedUnitMode = localStorage.getItem('matrix_unit_mode') || 'lots';
+            toggleMatrixUnitDisplay(savedUnitMode);
+
             const trigger = document.getElementById('jw-name-trigger');
             const dropdown = document.getElementById('jw-select-dropdown');
             const searchInput = document.getElementById('jw-search-input');
@@ -1477,8 +1829,7 @@
                 filename:     `JobWorker_Statement_${jwName}_${month}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, logging: false },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: 'avoid-all' }
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
             
             // Enable high contrast B&W 1-page PDF mode
@@ -1543,6 +1894,15 @@
             } else {
                 window.location.href = `/ledger/?action=payment&target_id=jw_{{ jw.id }}&amount={{ balance|default:0|floatformat:0 }}&payment_type=JOB_WORK&notes={{ month_name|urlencode }}%20Job%20Work%20Settlement&tab=jw`;
             }
+        }
+
+        // Auto print trigger when opened with ?autoprint=1
+        if (new URLSearchParams(window.location.search).get('autoprint') === '1') {
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    window.print();
+                }, 400);
+            });
         }
     </script>
 </body>

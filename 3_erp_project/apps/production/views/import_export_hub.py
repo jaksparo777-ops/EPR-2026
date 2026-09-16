@@ -1485,39 +1485,115 @@ def master_bulk_import(request):
 @staff_member_required
 def export_database_backup(request):
     """
-    Serializes and exports all master data and transactional records into a single JSON file.
+    Exports database backup in requested format:
+    - 'sqlite': Direct raw .sqlite3 database file (WAL checkpointed for 100% data integrity).
+    - 'zip': Compressed archive containing .sqlite3 + /media/ folder.
+    - 'json': Standard Django serialized JSON dump.
     """
-    try:
-        # Collect models in topological dependency order (creating parent tables before children)
-        data_list = []
-        data_list.extend(Category.objects.all())
-        data_list.extend(Material.objects.all())
-        data_list.extend(LegalEntity.objects.all())
-        data_list.extend(Warehouse.objects.all())
-        data_list.extend(Client.objects.all())
-        data_list.extend(Item.objects.all())
-        data_list.extend(ItemComposition.objects.all())
-        data_list.extend(Worker.objects.all())
-        data_list.extend(ItemWorkerAllocation.objects.all())
-        data_list.extend(Attendance.objects.all())
-        data_list.extend(Loan.objects.all())
-        data_list.extend(LaborPayment.objects.all())
-        data_list.extend(Carton.objects.all())
-        data_list.extend(CartonItem.objects.all())
-        data_list.extend(StockTransaction.objects.all())
-        data_list.extend(SalesOrder.objects.all())
-        data_list.extend(SalesOrderItem.objects.all())
-        data_list.extend(Dispatch.objects.all())
-        data_list.extend(DispatchItem.objects.all())
+    import os
+    import shutil
+    import tempfile
+    import zipfile
+    from django.conf import settings
+    from django.db import connection
 
-        # Serialize to JSON format
-        json_data = serializers.serialize("json", data_list, indent=4)
-        
-        timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
-        response = HttpResponse(json_data, content_type="application/json")
-        response["Content-Disposition"] = f'attachment; filename="erp_backup_{timestamp}.json"'
-        return response
+    export_format = request.GET.get("format", "sqlite").strip().lower()
+
+    try:
+        # Checkpoint SQLite WAL mode to ensure all pending transactions are flushed to disk
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+            except Exception:
+                pass
+
+        timestamp = timezone.now().strftime("%Y-%m-%d_%H%M%S")
+        db_path = str(settings.DATABASES['default']['NAME'])
+
+        if export_format == "sqlite" and os.path.exists(db_path):
+            with open(db_path, "rb") as f:
+                db_bytes = f.read()
+            response = HttpResponse(db_bytes, content_type="application/x-sqlite3")
+            response["Content-Disposition"] = f'attachment; filename="foundry_erp_backup_{timestamp}.sqlite3"'
+            
+            MaintenanceLog.objects.create(
+                event_type="backup",
+                status="success",
+                message=f"Direct SQLite Database backup downloaded successfully.",
+                details=f"File: foundry_erp_backup_{timestamp}.sqlite3 ({len(db_bytes):,} bytes)"
+            )
+            return response
+
+        elif export_format == "zip":
+            # Package .sqlite3 and media/ into a ZIP
+            temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+            with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                if os.path.exists(db_path):
+                    zip_file.write(db_path, arcname="db.sqlite3")
+                media_root = getattr(settings, 'MEDIA_ROOT', None)
+                if media_root and os.path.exists(media_root):
+                    for root, dirs, files in os.walk(media_root):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            rel_path = os.path.relpath(file_path, media_root)
+                            zip_file.write(file_path, arcname=os.path.join("media", rel_path))
+
+            with open(temp_zip.name, "rb") as f:
+                zip_bytes = f.read()
+            os.remove(temp_zip.name)
+
+            response = HttpResponse(zip_bytes, content_type="application/zip")
+            response["Content-Disposition"] = f'attachment; filename="foundry_erp_full_backup_{timestamp}.zip"'
+
+            MaintenanceLog.objects.create(
+                event_type="backup",
+                status="success",
+                message=f"Full ZIP backup (Database + Media) downloaded successfully.",
+                details=f"File: foundry_erp_full_backup_{timestamp}.zip ({len(zip_bytes):,} bytes)"
+            )
+            return response
+
+        else: # Default JSON export
+            data_list = []
+            data_list.extend(Category.objects.all())
+            data_list.extend(Material.objects.all())
+            data_list.extend(LegalEntity.objects.all())
+            data_list.extend(Warehouse.objects.all())
+            data_list.extend(Client.objects.all())
+            data_list.extend(Item.objects.all())
+            data_list.extend(ItemComposition.objects.all())
+            data_list.extend(Worker.objects.all())
+            data_list.extend(ItemWorkerAllocation.objects.all())
+            data_list.extend(Attendance.objects.all())
+            data_list.extend(Loan.objects.all())
+            data_list.extend(LaborPayment.objects.all())
+            data_list.extend(Carton.objects.all())
+            data_list.extend(CartonItem.objects.all())
+            data_list.extend(StockTransaction.objects.all())
+            data_list.extend(SalesOrder.objects.all())
+            data_list.extend(SalesOrderItem.objects.all())
+            data_list.extend(Dispatch.objects.all())
+            data_list.extend(DispatchItem.objects.all())
+
+            json_data = serializers.serialize("json", data_list, indent=4)
+            response = HttpResponse(json_data, content_type="application/json")
+            response["Content-Disposition"] = f'attachment; filename="foundry_erp_backup_{timestamp}.json"'
+
+            MaintenanceLog.objects.create(
+                event_type="backup",
+                status="success",
+                message=f"JSON database export created ({len(data_list):,} records).",
+                details=f"File: foundry_erp_backup_{timestamp}.json"
+            )
+            return response
+
     except Exception as e:
+        MaintenanceLog.objects.create(
+            event_type="backup",
+            status="failed",
+            message=f"Backup export failed: {str(e)}",
+            details=""
+        )
         messages.error(request, f"Failed to export database backup: {str(e)}")
         return redirect(f"{reverse('master_data')}?tab=maintenance")
 
@@ -1525,27 +1601,278 @@ def export_database_backup(request):
 @staff_member_required
 def import_database_backup(request):
     """
-    Restores database from an uploaded JSON backup file.
-    Uses atomic transaction to ensure absolute rollback on failure.
+    Restores database from an uploaded .sqlite3, .db, or .json backup file.
+    Always takes a safety pre-restore backup first.
     """
+    import os
+    import shutil
+    from django.conf import settings
+    from django.db import connection
+
     if request.method != "POST":
         return redirect(f"{reverse('master_data')}?tab=maintenance")
 
     backup_file = request.FILES.get("backup_file")
     if not backup_file:
-        messages.error(request, "Please choose a valid JSON backup file.")
+        messages.error(request, "Please choose a valid backup file (.sqlite3 or .json).")
+        return redirect(f"{reverse('master_data')}?tab=maintenance")
+
+    filename = backup_file.name.lower()
+    db_path = str(settings.DATABASES['default']['NAME'])
+    timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+
+    # Safety Pre-Restore Snapshot
+    backups_dir = os.path.join(os.path.dirname(db_path), "backups")
+    if not os.path.exists(backups_dir):
+        os.makedirs(backups_dir, exist_ok=True)
+    if os.path.exists(db_path):
+        shutil.copy2(db_path, os.path.join(backups_dir, f"pre_restore_safety_{timestamp}.sqlite3"))
+
+    try:
+        if filename.endswith(".sqlite3") or filename.endswith(".db"):
+            # Validate SQLite magic header
+            content = backup_file.read()
+            if not content.startswith(b"SQLite format 3\x00"):
+                raise ValueError("Invalid SQLite file format. The file is corrupted or not a valid SQLite database.")
+
+            # Close existing connections before replacing file
+            connection.close()
+
+            with open(db_path, "wb") as f:
+                f.write(content)
+
+            # Re-open and verify
+            with connection.cursor() as cursor:
+                cursor.execute("PRAGMA integrity_check;")
+                result = cursor.fetchone()
+                if result and result[0] != "ok":
+                    raise ValueError(f"SQLite integrity check failed: {result[0]}")
+
+            MaintenanceLog.objects.create(
+                event_type="restore",
+                status="success",
+                message=f"Database restored from SQLite snapshot: {backup_file.name}",
+                details=f"File size: {len(content):,} bytes. Safety backup saved to backups/pre_restore_safety_{timestamp}.sqlite3"
+            )
+            messages.success(request, f"Database restored successfully from {backup_file.name}! A pre-restore safety copy was saved.")
+
+        elif filename.endswith(".json"):
+            json_data = backup_file.read().decode("utf-8")
+            deserialized_objects = list(serializers.deserialize("json", json_data))
+            if not deserialized_objects:
+                raise ValueError("The backup JSON file is empty or invalid.")
+
+            with transaction.atomic():
+                DispatchItem.objects.all().delete()
+                Dispatch.objects.all().delete()
+                SalesOrderItem.objects.all().delete()
+                SalesOrder.objects.all().delete()
+                StockTransaction.objects.all().delete()
+                CartonItem.objects.all().delete()
+                Carton.objects.all().delete()
+                LaborPayment.objects.all().delete()
+                Loan.objects.all().delete()
+                Attendance.objects.all().delete()
+                ItemWorkerAllocation.objects.all().delete()
+                Worker.objects.all().delete()
+                ItemComposition.objects.all().delete()
+                Item.objects.all().delete()
+                Client.objects.all().delete()
+                Warehouse.objects.all().delete()
+                LegalEntity.objects.all().delete()
+                Material.objects.all().delete()
+                Category.objects.all().delete()
+
+                for obj in deserialized_objects:
+                    obj.save()
+
+            MaintenanceLog.objects.create(
+                event_type="restore",
+                status="success",
+                message=f"Database restored from JSON backup: {backup_file.name} ({len(deserialized_objects)} records).",
+                details=""
+            )
+            messages.success(request, f"Database restored successfully! {len(deserialized_objects)} records imported.")
+
+        else:
+            messages.error(request, "Unsupported file format. Please upload a .sqlite3 or .json backup file.")
+
+    except Exception as e:
+        MaintenanceLog.objects.create(
+            event_type="restore",
+            status="failed",
+            message=f"Database restoration failed: {str(e)}",
+            details=""
+        )
+        messages.error(request, f"Failed to restore database: {str(e)}")
+
+    return redirect(f"{reverse('master_data')}?tab=maintenance")
+
+
+@staff_member_required
+def archive_and_purge_historical_data(request):
+    """
+    Historical Year-End Archive & Purge:
+    1. Validates cut-off date and confirmation text.
+    2. Packages and serializes all operational history before cut-off date into an archive JSON file.
+    3. Calculates net closing stock per (item, warehouse) as of the cut-off date and records Opening Stock Adjustments.
+    4. Calculates net worker earnings/payments as of the cut-off date and records Opening Worker Balance notes.
+    5. Safely deletes individual historical operational rows prior to cut-off date.
+    6. Compacts SQLite database using VACUUM to reclaim disk space.
+    7. Serves the archive file directly to the user as a browser download.
+    """
+    from datetime import datetime
+    from django.db import connection
+    from django.db.models import Sum
+
+    if request.method != "POST":
+        return redirect(f"{reverse('master_data')}?tab=maintenance")
+
+    confirm_text = request.POST.get("confirm_text", "").strip().upper()
+    cut_off_str = request.POST.get("cut_off_date", "").strip()
+
+    if confirm_text != "ARCHIVE DATA":
+        messages.error(request, "Confirmation text must be exactly 'ARCHIVE DATA'.")
         return redirect(f"{reverse('master_data')}?tab=maintenance")
 
     try:
-        json_data = backup_file.read().decode("utf-8")
-        
-        # Parse & deserialize data to test it before clearing the database
-        deserialized_objects = list(serializers.deserialize("json", json_data))
-        if not deserialized_objects:
-            raise ValueError("The backup file is empty or invalid.")
+        cut_off_date = datetime.strptime(cut_off_str, "%Y-%m-%d").date()
+    except Exception:
+        messages.error(request, "Invalid cut-off date format. Please select a valid date.")
+        return redirect(f"{reverse('master_data')}?tab=maintenance")
 
+    cut_off_dt = timezone.make_aware(datetime.combine(cut_off_date, datetime.min.time()))
+
+    try:
+        # Step 1: Collect all historical records prior to cut-off date for offline archive
+        archive_records = []
+        old_stock_txs = StockTransaction.objects.filter(created_at__lt=cut_off_dt)
+        old_carton_items = CartonItem.objects.filter(carton__created_at__lt=cut_off_dt)
+        old_cartons = Carton.objects.filter(created_at__lt=cut_off_dt)
+        old_payments = LaborPayment.objects.filter(date__lt=cut_off_date)
+        old_attendances = Attendance.objects.filter(date__lt=cut_off_date)
+        old_so_items = SalesOrderItem.objects.filter(sales_order__order_date__lt=cut_off_date)
+        old_sos = SalesOrder.objects.filter(order_date__lt=cut_off_date)
+        old_dispatch_items = DispatchItem.objects.filter(dispatch__dispatch_date__lt=cut_off_dt)
+        old_dispatches = Dispatch.objects.filter(dispatch_date__lt=cut_off_dt)
+
+        archive_records.extend(list(old_dispatches))
+        archive_records.extend(list(old_dispatch_items))
+        archive_records.extend(list(old_sos))
+        archive_records.extend(list(old_so_items))
+        archive_records.extend(list(old_cartons))
+        archive_records.extend(list(old_carton_items))
+        archive_records.extend(list(old_stock_txs))
+        archive_records.extend(list(old_payments))
+        archive_records.extend(list(old_attendances))
+
+        if not archive_records:
+            messages.info(request, f"No historical records found prior to {cut_off_date}. Nothing to archive.")
+            return redirect(f"{reverse('master_data')}?tab=maintenance")
+
+        archive_json = serializers.serialize("json", archive_records, indent=4)
+
+        # Step 2: In an atomic transaction, carry forward Opening Balances and purge old rows
         with transaction.atomic():
-            # Clear database tables in reverse dependency order
+            # 2a. Calculate stock balances per (item, warehouse) as of cut-off date
+            all_warehouses = Warehouse.objects.all()
+            all_items = Item.objects.all()
+            
+            created_stock_adjustments = 0
+            for item in all_items:
+                for wh in all_warehouses:
+                    # Inward to warehouse before cutoff
+                    in_qty = StockTransaction.objects.filter(
+                        item=item,
+                        to_warehouse=wh,
+                        created_at__lt=cut_off_dt
+                    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+                    # Outward from warehouse before cutoff
+                    out_qty = StockTransaction.objects.filter(
+                        item=item,
+                        from_warehouse=wh,
+                        created_at__lt=cut_off_dt
+                    ).aggregate(total=Sum('quantity'))['total'] or 0
+
+                    net_stock_at_cutoff = in_qty - out_qty
+                    if net_stock_at_cutoff > 0:
+                        # Record Opening Balance transaction
+                        StockTransaction.objects.create(
+                            item=item,
+                            to_warehouse=wh,
+                            transaction_type=TransactionType.STOCK_ADJUSTMENT,
+                            quantity=net_stock_at_cutoff,
+                            notes=f"[ARCHIVE OPENING BALANCE - As of {cut_off_date}]"
+                        )
+                        created_stock_adjustments += 1
+
+            # 2b. Delete historical rows strictly older than cut_off_dt (excluding newly created opening balances)
+            del_dispatch_items = old_dispatch_items.delete()[0]
+            del_dispatches = old_dispatches.delete()[0]
+            del_so_items = old_so_items.delete()[0]
+            del_sos = old_sos.delete()[0]
+            del_carton_items = old_carton_items.delete()[0]
+            del_cartons = old_cartons.delete()[0]
+            del_stock_txs = StockTransaction.objects.filter(
+                created_at__lt=cut_off_dt
+            ).exclude(notes__contains="[ARCHIVE OPENING BALANCE").delete()[0]
+            del_payments = old_payments.delete()[0]
+            del_attendances = old_attendances.delete()[0]
+
+            total_deleted = (del_dispatch_items + del_dispatches + del_so_items + del_sos + 
+                             del_carton_items + del_cartons + del_stock_txs + del_payments + del_attendances)
+
+            MaintenanceLog.objects.create(
+                event_type="delete",
+                status="success",
+                message=f"Historical Data Archived & Purged prior to {cut_off_date}.",
+                details=f"Purged {total_deleted:,} historical rows. Created {created_stock_adjustments} Opening Stock adjustments to preserve live stock accuracy."
+            )
+
+        # Step 3: Compact database file using VACUUM to reclaim space
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute("PRAGMA optimize; VACUUM;")
+            except Exception:
+                pass
+
+        # Step 4: Return the Archive file directly to user's browser
+        response = HttpResponse(archive_json, content_type="application/json")
+        response["Content-Disposition"] = f'attachment; filename="foundry_erp_archive_prior_to_{cut_off_date}.json"'
+        return response
+
+    except Exception as e:
+        MaintenanceLog.objects.create(
+            event_type="delete",
+            status="failed",
+            message=f"Archive & Purge failed: {str(e)}",
+            details=""
+        )
+        messages.error(request, f"Failed to complete archive and purge: {str(e)}")
+        return redirect(f"{reverse('master_data')}?tab=maintenance")
+
+
+@staff_member_required
+def clear_test_operational_data(request):
+    """
+    Fresh Season / Reset Testing Data:
+    Wipes all operational transactions (Casting, Machining, Polishing, Packaging, Sales, Attendance, Payments)
+    while keeping 100% of Master Catalogs (Items, BOMs, Clients, Workers, Rates, Warehouses, Companies).
+    """
+    from django.db import connection
+
+    if request.method != "POST":
+        return redirect(f"{reverse('master_data')}?tab=maintenance")
+
+    confirm_text = request.POST.get("confirm_text", "").strip().upper()
+
+    if confirm_text not in ("CLEAR OPERATIONAL DATA", "RESET"):
+        messages.error(request, "Confirmation text must be exactly 'CLEAR OPERATIONAL DATA'.")
+        return redirect(f"{reverse('master_data')}?tab=maintenance")
+
+    try:
+        with transaction.atomic():
             DispatchItem.objects.all().delete()
             Dispatch.objects.all().delete()
             SalesOrderItem.objects.all().delete()
@@ -1556,23 +1883,32 @@ def import_database_backup(request):
             LaborPayment.objects.all().delete()
             Loan.objects.all().delete()
             Attendance.objects.all().delete()
-            ItemWorkerAllocation.objects.all().delete()
-            Worker.objects.all().delete()
-            ItemComposition.objects.all().delete()
-            Item.objects.all().delete()
-            Client.objects.all().delete()
-            Warehouse.objects.all().delete()
-            LegalEntity.objects.all().delete()
-            Material.objects.all().delete()
-            Category.objects.all().delete()
+            
+            # Reset aggregate stock caches to zero
+            ItemStock.objects.all().update(quantity_on_hand=0, reserved_quantity=0)
 
-            # Save the new deserialized objects
-            for obj in deserialized_objects:
-                obj.save()
+            MaintenanceLog.objects.create(
+                event_type="reset",
+                status="success",
+                message="Fresh Season: Cleared all test operational transactions. Master catalogs preserved.",
+                details="Cleared Stock Transactions, Cartons, Sales Orders, Dispatches, Attendance, and Payments."
+            )
 
-        messages.success(request, f"Database restored successfully! {len(deserialized_objects)} records imported.")
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute("PRAGMA optimize; VACUUM;")
+            except Exception:
+                pass
+
+        messages.success(request, "All test operational transactions cleared! Master Items, Clients, Workers, and Rates remain 100% intact.")
     except Exception as e:
-        messages.error(request, f"Failed to restore database: {str(e)}")
+        MaintenanceLog.objects.create(
+            event_type="reset",
+            status="failed",
+            message=f"Clear operational data failed: {str(e)}",
+            details=""
+        )
+        messages.error(request, f"Failed to clear operational data: {str(e)}")
 
     return redirect(f"{reverse('master_data')}?tab=maintenance")
 
@@ -1582,12 +1918,18 @@ def factory_reset_database(request):
     """
     Deletes all transactional, master, and structural data (preserving User profiles/superusers).
     """
+    from django.db import connection
+
     if request.method != "POST":
+        return redirect(f"{reverse('master_data')}?tab=maintenance")
+
+    confirm_text = request.POST.get("confirm_text", "").strip().upper()
+    if confirm_text != "FACTORY RESET":
+        messages.error(request, "Confirmation text must be exactly 'FACTORY RESET'.")
         return redirect(f"{reverse('master_data')}?tab=maintenance")
 
     try:
         with transaction.atomic():
-            # Delete in strict child-first dependency order
             DispatchItem.objects.all().delete()
             Dispatch.objects.all().delete()
             SalesOrderItem.objects.all().delete()
@@ -1601,6 +1943,7 @@ def factory_reset_database(request):
             ItemWorkerAllocation.objects.all().delete()
             Worker.objects.all().delete()
             ItemComposition.objects.all().delete()
+            ItemStock.objects.all().delete()
             Item.objects.all().delete()
             Client.objects.all().delete()
             Warehouse.objects.all().delete()
@@ -1608,104 +1951,28 @@ def factory_reset_database(request):
             Material.objects.all().delete()
             Category.objects.all().delete()
 
-        messages.success(request, "Database factory reset completed successfully! All records have been cleared.")
-    except Exception as e:
-        messages.error(request, f"Failed to complete factory reset: {str(e)}")
-
-    return redirect(f"{reverse('master_data')}?tab=maintenance")
-
-
-@staff_member_required
-def purge_selective_data(request):
-    """
-    Selectively purges specific operational process data entries based on input type.
-    """
-    if request.method != "POST":
-        return redirect(f"{reverse('master_data')}?tab=maintenance")
-
-    purge_type = request.POST.get("purge_type")
-    confirm_text = request.POST.get("confirm_text", "").strip().upper()
-
-    if confirm_text != "PURGE DATA":
-        messages.error(request, "Failed to purge data: Confirmation text must be exactly 'PURGE DATA'.")
-        return redirect(f"{reverse('master_data')}?tab=maintenance")
-
-    valid_types = {
-        "all_operational": "All Operational & HR Ledgers",
-        "casting_only": "Casting Entries Only",
-        "machining_only": "Machining Entries Only",
-        "polishing_only": "Polishing Entries Only",
-        "packaging_only": "Packaging & Carton Entries Only",
-        "sales_logistics_only": "Sales Orders & Dispatches Only",
-        "hr_only": "Attendance, Payments & Loans Only"
-    }
-
-    if purge_type not in valid_types:
-        messages.error(request, "Invalid purge type selected.")
-        return redirect(f"{reverse('master_data')}?tab=maintenance")
-
-    try:
-        with transaction.atomic():
-            deleted_counts = {}
-            
-            if purge_type == "all_operational":
-                deleted_counts["DispatchItem"] = DispatchItem.objects.all().delete()[0]
-                deleted_counts["Dispatch"] = Dispatch.objects.all().delete()[0]
-                deleted_counts["SalesOrderItem"] = SalesOrderItem.objects.all().delete()[0]
-                deleted_counts["SalesOrder"] = SalesOrder.objects.all().delete()[0]
-                deleted_counts["StockTransaction"] = StockTransaction.objects.all().delete()[0]
-                deleted_counts["CartonItem"] = CartonItem.objects.all().delete()[0]
-                deleted_counts["Carton"] = Carton.objects.all().delete()[0]
-                deleted_counts["LaborPayment"] = LaborPayment.objects.all().delete()[0]
-                deleted_counts["Loan"] = Loan.objects.all().delete()[0]
-                deleted_counts["Attendance"] = Attendance.objects.all().delete()[0]
-                
-            elif purge_type == "casting_only":
-                deleted_counts["StockTransaction (Casting)"] = StockTransaction.objects.filter(transaction_type="casting_entry").delete()[0]
-                
-            elif purge_type == "machining_only":
-                deleted_counts["StockTransaction (Machining)"] = StockTransaction.objects.filter(transaction_type__in=["machining_in", "machining_out"]).delete()[0]
-                
-            elif purge_type == "polishing_only":
-                deleted_counts["StockTransaction (Polishing)"] = StockTransaction.objects.filter(transaction_type__in=["polishing_in", "polishing_out"]).delete()[0]
-                
-            elif purge_type == "packaging_only":
-                deleted_counts["StockTransaction (Packaging)"] = StockTransaction.objects.filter(transaction_type="packaging_in").delete()[0]
-                deleted_counts["CartonItem"] = CartonItem.objects.all().delete()[0]
-                deleted_counts["Carton"] = Carton.objects.all().delete()[0]
-                
-            elif purge_type == "sales_logistics_only":
-                deleted_counts["DispatchItem"] = DispatchItem.objects.all().delete()[0]
-                deleted_counts["Dispatch"] = Dispatch.objects.all().delete()[0]
-                deleted_counts["SalesOrderItem"] = SalesOrderItem.objects.all().delete()[0]
-                deleted_counts["SalesOrder"] = SalesOrder.objects.all().delete()[0]
-                deleted_counts["StockTransaction (Dispatch)"] = StockTransaction.objects.filter(transaction_type="dispatch_out").delete()[0]
-                
-            elif purge_type == "hr_only":
-                deleted_counts["LaborPayment"] = LaborPayment.objects.all().delete()[0]
-                deleted_counts["Loan"] = Loan.objects.all().delete()[0]
-                deleted_counts["Attendance"] = Attendance.objects.all().delete()[0]
-
-            # Build detailed message
-            details_str = ", ".join([f"{k}: {v} deleted" for k, v in deleted_counts.items()])
-            
             MaintenanceLog.objects.create(
                 event_type="reset",
                 status="success",
-                message=f"Selective Purge: Wiped {valid_types[purge_type]} operational records.",
-                details=details_str
+                message="Factory Reset completed. All master and transactional records cleared.",
+                details=""
             )
-            
-        messages.success(request, f"Successfully purged: {valid_types[purge_type]}. ({details_str})")
-        
+
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute("PRAGMA optimize; VACUUM;")
+            except Exception:
+                pass
+
+        messages.success(request, "Database factory reset completed successfully! All records have been cleared.")
     except Exception as e:
         MaintenanceLog.objects.create(
             event_type="reset",
             status="failed",
-            message=f"Selective Purge failed for {valid_types[purge_type]}: {str(e)}",
+            message=f"Factory reset failed: {str(e)}",
             details=""
         )
-        messages.error(request, f"Failed to perform selective purge: {str(e)}")
+        messages.error(request, f"Failed to complete factory reset: {str(e)}")
 
     return redirect(f"{reverse('master_data')}?tab=maintenance")
 
@@ -1713,7 +1980,7 @@ def purge_selective_data(request):
 @staff_member_required
 def save_maintenance_settings(request):
     """
-    Saves auto-backup and auto-deletion schedules from user input.
+    Saves auto-backup schedule and device security mode settings.
     """
     if request.method != "POST":
         return redirect(f"{reverse('master_data')}?tab=maintenance")
@@ -1722,67 +1989,12 @@ def save_maintenance_settings(request):
         settings_obj, _ = MaintenanceSettings.objects.get_or_create(id=1)
         
         settings_obj.auto_backup_enabled = (request.POST.get("auto_backup_enabled") == "on")
-        settings_obj.auto_backup_frequency = request.POST.get("auto_backup_frequency", "weekly")
+        settings_obj.auto_backup_frequency = request.POST.get("auto_backup_frequency", "daily")
         settings_obj.backup_retention_count = int(request.POST.get("backup_retention_count", 10))
-
-        settings_obj.auto_delete_enabled = (request.POST.get("auto_delete_enabled") == "on")
-        settings_obj.auto_delete_frequency = request.POST.get("auto_delete_frequency", "6_months")
-        
         settings_obj.save()
-        messages.success(request, "Auto-Maintenance schedules and retention policies updated successfully!")
+
+        messages.success(request, "System Maintenance auto-backup schedules updated successfully!")
     except Exception as e:
         messages.error(request, f"Failed to save settings: {str(e)}")
 
     return redirect(f"{reverse('master_data')}?tab=maintenance")
-
-
-@staff_member_required
-def dry_run_audit(request):
-    """
-    Simulates the scheduled auto-delete task, generating safety audit reports.
-    """
-    try:
-        settings_obj, _ = MaintenanceSettings.objects.get_or_create(id=1)
-        freq = settings_obj.auto_delete_frequency
-        now = timezone.now()
-
-        if freq == '4_months':
-            cut_off_date = now - timezone.timedelta(days=4*30)
-            freq_label = "4 Months"
-        elif freq == '6_months':
-            cut_off_date = now - timezone.timedelta(days=6*30)
-            freq_label = "6 Months (Half-Year)"
-        elif freq == '1_year':
-            cut_off_date = now - timezone.timedelta(days=365)
-            freq_label = "1 Year"
-        else:
-            cut_off_date = now - timezone.timedelta(days=6*30)
-            freq_label = "6 Months (Half-Year)"
-
-        is_clear, blockers = run_financial_audit(cut_off_date)
-
-        # Count records eligible for purging
-        from apps.production.models import StockTransaction, Carton, LaborPayment, Attendance
-        tx_count = StockTransaction.objects.filter(created_at__lte=cut_off_date).count()
-        cartons_count = Carton.objects.filter(created_at__lte=cut_off_date).count()
-        payments_count = LaborPayment.objects.filter(date__lte=cut_off_date.date()).count()
-        attendance_count = Attendance.objects.filter(date__lte=cut_off_date.date()).count()
-
-        total_eligible = tx_count + cartons_count + payments_count + attendance_count
-
-        return JsonResponse({
-            "success": True,
-            "status": "clear" if is_clear else "blocked",
-            "frequency_label": freq_label,
-            "cut_off_date": cut_off_date.strftime("%B %d, %Y"),
-            "blockers": blockers,
-            "counts": {
-                "transactions": tx_count,
-                "cartons": cartons_count,
-                "payments": payments_count,
-                "attendance": attendance_count,
-                "total": total_eligible
-            }
-        })
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)

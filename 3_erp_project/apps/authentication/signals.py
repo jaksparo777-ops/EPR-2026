@@ -1,6 +1,9 @@
 from django.db.models.signals import post_save, post_delete
+from django.contrib.auth.signals import user_logged_in, user_logged_out
+from django.dispatch import receiver
 import json
 import threading
+import time
 
 from apps.authentication.utils import log_system_audit_event
 
@@ -87,13 +90,13 @@ def track_model_audit_event(instance, created, deleted=False):
 
 
 def on_model_post_save(sender, instance, created, **kwargs):
-    if sender.__name__ in ('SystemAuditLog', 'UserLiveActivity', 'Session', 'LogEntry', 'ContentType', 'Permission'):
+    if sender.__name__ in ('SystemAuditLog', 'UserLiveActivity', 'Session', 'LogEntry', 'ContentType', 'Permission', 'AuthorizedDevice'):
         return
     track_model_audit_event(instance, created=created, deleted=False)
 
 
 def on_model_post_delete(sender, instance, **kwargs):
-    if sender.__name__ in ('SystemAuditLog', 'UserLiveActivity', 'Session', 'LogEntry', 'ContentType', 'Permission'):
+    if sender.__name__ in ('SystemAuditLog', 'UserLiveActivity', 'Session', 'LogEntry', 'ContentType', 'Permission', 'AuthorizedDevice'):
         return
     track_model_audit_event(instance, created=False, deleted=True)
 
@@ -107,3 +110,44 @@ def register_audit_signals():
         if m.__name__ not in ('SystemAuditLog', 'UserLiveActivity', 'Session', 'LogEntry', 'ContentType', 'Permission'):
             post_save.connect(on_model_post_save, sender=m, weak=False)
             post_delete.connect(on_model_post_delete, sender=m, weak=False)
+
+
+@receiver(user_logged_in)
+def handle_user_login(sender, request, user, **kwargs):
+    """
+    On fresh user login:
+    - Set initial last_user_activity timestamp for inactivity tracking.
+    - If user has global access, role ADMIN, or multiple allowed companies:
+      Clear any pre-existing active_company_id in the session so they are required
+      to pick their desired workspace on the select_company screen.
+    - If user has only 1 company and no global access, auto-assign their active company.
+    """
+    if request and hasattr(request, 'session'):
+        request.session['last_user_activity'] = time.time()
+
+    can_access_global = getattr(user, 'is_superuser', False) or getattr(user, 'role', '') == 'ADMIN' or getattr(user, 'is_global_access', False)
+    allowed_count = user.get_allowed_companies().count() if hasattr(user, 'get_allowed_companies') else 0
+
+    if can_access_global or allowed_count > 1:
+        if request and hasattr(request, 'session') and 'active_company_id' in request.session:
+            del request.session['active_company_id']
+    elif allowed_count == 1:
+        comp = user.get_allowed_companies().first()
+        if comp and request and hasattr(request, 'session'):
+            request.session['active_company_id'] = comp.id
+
+
+@receiver(user_logged_out)
+def handle_user_logout(sender, request, user, **kwargs):
+    """
+    On user logout:
+    Clear active_company_id and last_user_activity from session to ensure clean slate for subsequent logins.
+    """
+    if request and hasattr(request, 'session'):
+        for key in ('active_company_id', 'last_user_activity'):
+            if key in request.session:
+                try:
+                    del request.session[key]
+                except KeyError:
+                    pass
+

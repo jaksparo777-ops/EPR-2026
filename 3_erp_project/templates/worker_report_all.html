@@ -380,6 +380,14 @@
             body.dark-theme .attendance-grid-container div[style*="aspect-ratio"] span {
                 color: #ffffff;
             }
+            #slips-print-container.printing-single .slip-container:not(.active-print-target) {
+                display: none !important;
+            }
+            #slips-print-container.printing-single .slip-container.active-print-target {
+                display: block !important;
+                page-break-after: avoid !important;
+                page-break-before: avoid !important;
+            }
         }
     </style>
 </head>
@@ -388,14 +396,14 @@
     <div class="utility-header no-print">
         <button onclick="handleGoBack()" class="btn-utility back-btn">◀ Back</button>
         <div style="display: flex; gap: 12px;">
-            <button onclick="downloadCombinedPDF()" class="btn-utility" style="background: var(--accent); color: white; border-color: var(--accent);">💾 Download PDF</button>
+            <button onclick="downloadCombinedPDF()" class="btn-utility" style="background: var(--accent); color: white; border-color: var(--accent);">💾 Download All PDF</button>
             <button onclick="window.print()" class="btn-utility">🖨 Print All</button>
         </div>
     </div>
 
     <div id="slips-print-container">
         {% for r in reports %}
-        <div class="slip-container {% if not forloop.last %}page-break{% endif %}">
+        <div class="slip-container {% if not forloop.last %}page-break{% endif %}" id="slip-w-{{ r.worker.id }}">
             <div class="header">
                 <div class="company-info">
                     <p style="margin:0; font-size:12px; color:var(--text-muted); font-weight: 600;">Monthly Staff Salary Slip</p>
@@ -406,6 +414,11 @@
                     {% if r.stats.loan_balance > 0 %}
                     <p style="margin:5px 0 0 0; font-size:11px; color:#ef4444; font-weight:700;">Remaining Loan: ₹{{ r.stats.loan_balance|floatformat:0 }}</p>
                     {% endif %}
+                    <div class="no-print" style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+                        <a href="{% url 'worker_monthly_report' r.worker.id %}?month={{ month_val }}&autoprint=1" target="_blank" class="btn-utility" style="padding:4px 12px; font-size:11px; font-weight:800; border-radius:6px; text-decoration:none; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); display:inline-flex; align-items:center; gap:5px;">🖨️ Print Slip</a>
+                        <button type="button" onclick="downloadSinglePDF('slip-w-{{ r.worker.id }}', '{{ r.worker.name|escapejs }}')" class="btn-utility" style="padding:4px 12px; font-size:11px; font-weight:800; border-radius:6px; cursor:pointer; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); display:inline-flex; align-items:center; gap:5px;">💾 Download PDF</button>
+                        <a href="{% url 'worker_monthly_report' r.worker.id %}?month={{ month_val }}" target="_blank" class="btn-utility" style="padding:4px 10px; font-size:11px; font-weight:800; border-radius:6px; text-decoration:none; background:rgba(255,255,255,0.05); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); display:inline-flex; align-items:center; gap:4px;">🔗 Single View</a>
+                    </div>
                 </div>
             </div>
 
@@ -534,6 +547,45 @@
             };
             
             // Temporarily disable dark-theme class so pdf renders on clean white background
+            document.body.classList.remove('dark-theme');
+            
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.body.classList.add('dark-theme');
+            }).catch(err => {
+                console.error("PDF generation failed:", err);
+                document.body.classList.add('dark-theme');
+            });
+        }
+
+        function printSingleSlip(slipId) {
+            const targetSlip = document.getElementById(slipId);
+            const container = document.getElementById('slips-print-container');
+            if (!targetSlip || !container) return;
+            
+            container.classList.add('printing-single');
+            targetSlip.classList.add('active-print-target');
+            
+            window.print();
+            
+            setTimeout(() => {
+                container.classList.remove('printing-single');
+                targetSlip.classList.remove('active-print-target');
+            }, 500);
+        }
+
+        function downloadSinglePDF(slipId, workerName) {
+            const element = document.getElementById(slipId);
+            if (!element) return;
+            const month = "{{ month_val }}";
+            const cleanName = (workerName || 'Worker').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const opt = {
+                margin:       10,
+                filename:     `${cleanName}_Salary_Slip_${month}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
             document.body.classList.remove('dark-theme');
             
             html2pdf().set(opt).from(element).save().then(() => {

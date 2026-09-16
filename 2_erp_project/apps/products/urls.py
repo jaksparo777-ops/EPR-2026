@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from apps.products import views_dashboard, views_api
+from apps.products import views_dashboard
 from apps.products.views import (
     dashboard,
     master_data,
@@ -23,7 +23,6 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('', dashboard, name='dashboard'),
     path('unified-dashboard/', views_dashboard.unified_dashboard, name='unified_dashboard'),
-    path('api/company/<int:company_id>/details/', views_api.company_details_api, name='company_details_api'),
     path('master-data/', master_data, name='master_data'),
     path('delete-item/<int:item_id>/', delete_item, name='delete_item'),
 

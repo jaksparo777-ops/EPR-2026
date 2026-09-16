@@ -332,6 +332,53 @@
     </div>
 </div>
 
+{% if is_master_admin %}
+<!-- MASTER ADMIN RECOVERY KEY CARD -->
+<div class="user-card" style="margin-bottom:24px; padding:20px 24px; background:linear-gradient(135deg, rgba(30, 27, 75, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%); border:1px solid rgba(129, 140, 248, 0.3); box-shadow:0 8px 32px rgba(0, 0, 0, 0.4); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <div style="width:48px; height:48px; border-radius:14px; background:linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(168,85,247,0.2) 100%); border:1px solid rgba(168,85,247,0.4); display:flex; align-items:center; justify-content:center; font-size:24px; color:#c084fc;">
+            🔐
+        </div>
+        <div>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span style="font-size:16px; font-weight:800; color:white; letter-spacing:0.3px;">Master Admin Emergency Recovery Key</span>
+                {% if recovery_config.is_active %}
+                <span style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-size:11px; font-weight:800; padding:3px 10px; border-radius:8px; display:inline-flex; align-items:center; gap:5px;">
+                    <span style="width:6px; height:6px; background:#10b981; border-radius:50%; display:inline-block;"></span> Active (Configured)
+                </span>
+                {% else %}
+                <span style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-size:11px; font-weight:800; padding:3px 10px; border-radius:8px;">
+                    ⚠️ Disabled
+                </span>
+                {% endif %}
+                <span style="background:rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.3); font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; letter-spacing:0.5px;">
+                    SUPER ADMIN ONLY
+                </span>
+            </div>
+            <div style="font-size:12.5px; color:var(--text-secondary); margin-top:4px; max-width:650px; line-height:1.4;">
+                Allows instant password recovery for Super Admins directly from the login screen if locked out.
+                {% if recovery_config.key_hint %}
+                <span style="display:inline-block; margin-left:8px; color:#93c5fd; font-weight:600;">
+                    💡 Storage Hint: <em>"{{ recovery_config.key_hint }}"</em>
+                </span>
+                {% endif %}
+                {% if recovery_config.last_used_at %}
+                <span style="display:inline-block; margin-left:8px; color:#cbd5e1; font-size:11.5px;">
+                    (Last reset: {{ recovery_config.last_used_at|date:"M d, Y H:i" }})
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div style="display:flex; gap:10px; align-items:center;">
+        <button type="button" onclick="openMasterRecoveryModal()" style="background:linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color:white; border:none; padding:10px 18px; border-radius:10px; font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(99,102,241,0.35); transition:all 0.2s;">
+            🔑 Set / Rotate Recovery Key
+        </button>
+    </div>
+</div>
+{% endif %}
+
 <!-- SECTION TAB NAVIGATION SWITCHER -->
 <div class="user-tab-nav" style="display:flex; gap:12px; margin-bottom:20px; border-bottom:1px solid var(--glass-border); padding-bottom:12px; flex-wrap:wrap;">
     <button type="button" id="tab-btn-users" onclick="switchUserTab('users')" style="padding:10px 20px; font-size:14px; font-weight:800; border-radius:12px; border:none; cursor:pointer; background:#4f46e5; color:white; display:flex; align-items:center; gap:8px;">
@@ -371,6 +418,7 @@
                     <th>Role Preset</th>
                     <th>Company Scope</th>
                     <th>Financial Data</th>
+                    <th>Idle Timeout</th>
                     <th>Status</th>
                     <th>Last Login</th>
                     <th style="text-align:right;">Actions</th>
@@ -424,6 +472,11 @@
                         {% endif %}
                     </td>
                     <td>
+                        <span style="font-size:11px; color:#38bdf8; font-weight:700; background:rgba(56,189,248,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(56,189,248,0.25); white-space:nowrap;">
+                            ⏱️ {{ u.session_timeout_minutes }}m ({% if u.timeout_logout_mode == 'INSTANT_LOGOUT' %}⚡ Instant{% else %}🔔 Warning{% endif %})
+                        </span>
+                    </td>
+                    <td>
                         {% if u.is_active %}
                         <span style="font-size:11px; color:#34d399; font-weight:800;">● Active</span>
                         {% else %}
@@ -435,7 +488,7 @@
                     </td>
                     <td style="text-align:right;">
                         <div style="display:flex; justify-content:flex-end; gap:8px;">
-                            <button type="button" onclick="openEditUserDrawer({{ u.id }}, '{{ u.username|escapejs }}', '{{ u.first_name|escapejs }}', '{{ u.last_name|escapejs }}', '{{ u.email|escapejs }}', '{{ u.role }}', {{ u.is_global_access|yesno:'true,false' }}, [{% for ac in u.allowed_companies.all %}{{ ac.id }}{% if not forloop.last %},{% endif %}{% endfor %}], {{ u.can_view_financials|yesno:'true,false' }}, '{{ u.permissions_json|escapejs }}')" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); font-weight:700; padding:6px 12px; font-size:11.5px; border-radius:8px; cursor:pointer;">
+                            <button type="button" onclick="openEditUserDrawer({{ u.id }}, '{{ u.username|escapejs }}', '{{ u.first_name|escapejs }}', '{{ u.last_name|escapejs }}', '{{ u.email|escapejs }}', '{{ u.role }}', {{ u.is_global_access|yesno:'true,false' }}, [{% for ac in u.allowed_companies.all %}{{ ac.id }}{% if not forloop.last %},{% endif %}{% endfor %}], {{ u.can_view_financials|yesno:'true,false' }}, '{{ u.permissions_json|escapejs }}', {{ u.session_timeout_minutes|default:60 }}, '{{ u.timeout_logout_mode|default:'POPUP_WARNING' }}')" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); font-weight:700; padding:6px 12px; font-size:11.5px; border-radius:8px; cursor:pointer;">
                                 ✏️ Edit
                             </button>
                             <button type="button" onclick="openPasswordResetModal({{ u.id }}, '{{ u.username|escapejs }}')" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); font-weight:700; padding:6px 10px; font-size:11.5px; border-radius:8px; cursor:pointer;" title="Reset Password">
@@ -468,6 +521,9 @@
         </div>
 
         <div class="filter-controls-group" style="display:flex; gap:10px; align-items:center;">
+            <button type="button" onclick="deduplicateDevices()" style="background:rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.35); padding:8px 14px; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;" title="Merge and remove duplicate device entries for identical IP & machine">
+                ✨ Clean Duplicates
+            </button>
             <button type="button" onclick="purgeStaleDevices()" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); padding:8px 14px; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;" title="Delete unapproved requests older than 30 days">
                 🧹 Purge Stale
             </button>
@@ -503,8 +559,14 @@
         <button type="button" class="dev-filter-pill" id="dev-pill-ALL" onclick="filterDeviceStatus('ALL')" style="padding:6px 14px; font-size:12px; font-weight:800; border-radius:10px; border:none; cursor:pointer; background:#4f46e5; color:white;">
             🔵 All ({{ total_devices_count }})
         </button>
+        <button type="button" class="dev-filter-pill" id="dev-pill-ONLINE" onclick="filterDeviceStatus('ONLINE')" style="padding:6px 14px; font-size:12px; font-weight:800; border-radius:10px; border:1px solid rgba(16,185,129,0.3); cursor:pointer; background:rgba(16,185,129,0.1); color:#34d399;">
+            🟢 Live Online ({{ online_devices_count }})
+        </button>
+        <button type="button" class="dev-filter-pill" id="dev-pill-OFFLINE" onclick="filterDeviceStatus('OFFLINE')" style="padding:6px 14px; font-size:12px; font-weight:800; border-radius:10px; border:1px solid var(--glass-border); cursor:pointer; background:rgba(255,255,255,0.05); color:var(--text-secondary);">
+            ⚪ Offline ({{ offline_devices_count }})
+        </button>
         <button type="button" class="dev-filter-pill" id="dev-pill-APPROVED" onclick="filterDeviceStatus('APPROVED')" style="padding:6px 14px; font-size:12px; font-weight:800; border-radius:10px; border:1px solid var(--glass-border); cursor:pointer; background:rgba(255,255,255,0.05); color:var(--text-secondary);">
-            🟢 Approved ({{ approved_devices_count }})
+            ✓ Approved ({{ approved_devices_count }})
         </button>
         <button type="button" class="dev-filter-pill" id="dev-pill-PENDING" onclick="filterDeviceStatus('PENDING')" style="padding:6px 14px; font-size:12px; font-weight:800; border-radius:10px; border:1px solid var(--glass-border); cursor:pointer; background:rgba(255,255,255,0.05); color:var(--text-secondary);">
             ⏳ Pending ({{ pending_devices_count }})
@@ -529,11 +591,14 @@
             </thead>
             <tbody>
                 {% for d in devices_list %}
-                <tr class="device-row-item" data-status="{{ d.status }}" style="{% if d.status == 'PENDING' %}background:rgba(245,158,11,0.05);{% elif d.status == 'REJECTED' %}background:rgba(239,68,68,0.05);{% endif %}">
+                <tr class="device-row-item" data-status="{{ d.status }}" data-online="{% if d.is_online %}ONLINE{% else %}OFFLINE{% endif %}" style="{% if d.status == 'PENDING' %}background:rgba(245,158,11,0.05);{% elif d.status == 'REJECTED' %}background:rgba(239,68,68,0.05);{% endif %}">
                     <td>
                         <div style="display:flex; align-items:center; gap:12px;">
-                            <div style="width:38px; height:38px; background:{% if d.status == 'APPROVED' %}rgba(16,185,129,0.15){% elif d.status == 'REJECTED' %}rgba(239,68,68,0.15){% else %}rgba(245,158,11,0.15){% endif %}; color:{% if d.status == 'APPROVED' %}#34d399{% elif d.status == 'REJECTED' %}#f87171{% else %}#fbbf24{% endif %}; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800;">
+                            <div style="width:38px; height:38px; background:{% if d.status == 'APPROVED' %}rgba(16,185,129,0.15){% elif d.status == 'REJECTED' %}rgba(239,68,68,0.15){% else %}rgba(245,158,11,0.15){% endif %}; color:{% if d.status == 'APPROVED' %}#34d399{% elif d.status == 'REJECTED' %}#f87171{% else %}#fbbf24{% endif %}; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; position:relative;">
                                 {{ d.get_device_icon }}
+                                {% if d.is_online %}
+                                <span style="position:absolute; bottom:-2px; right:-2px; width:10px; height:10px; background:#10b981; border:2px solid #0f172a; border-radius:50%; box-shadow:0 0 6px #10b981;"></span>
+                                {% endif %}
                             </div>
                             <div>
                                 <div style="font-weight:800; color:white; font-size:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -572,12 +637,19 @@
                     </td>
                     <td style="font-size:11.5px; color:var(--text-secondary);">
                         {% if d.is_online %}
-                        <span style="color:#34d399; font-weight:800; font-size:11.5px; display:inline-flex; align-items:center; gap:6px; background:rgba(16,185,129,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.25);">
+                        <span style="color:#34d399; font-weight:800; font-size:11.5px; display:inline-flex; align-items:center; gap:6px; background:rgba(16,185,129,0.12); padding:4px 10px; border-radius:8px; border:1px solid rgba(16,185,129,0.3); box-shadow:0 0 12px rgba(16,185,129,0.15);">
                             <span style="width:7px; height:7px; background:#10b981; border-radius:50%; display:inline-block; box-shadow:0 0 8px #10b981; animation:pulse 1.5s infinite;"></span>
                             🟢 LIVE NOW
                         </span>
                         {% else %}
-                        {{ d.last_used_at|date:"d M, H:i" }}
+                        <span style="display:inline-flex; align-items:center; gap:6px; color:#94a3b8; font-weight:600; font-size:11.5px;">
+                            <span style="width:6px; height:6px; background:#64748b; border-radius:50%; display:inline-block;"></span>
+                            {% if d.last_used_at %}
+                            {{ d.last_used_at|date:"d M, H:i" }}
+                            {% else %}
+                            Never
+                            {% endif %}
+                        </span>
                         {% endif %}
                     </td>
                     <td>
@@ -715,21 +787,56 @@
     <!-- SECTION 2: SYSTEM AUDIT LOG HISTORY -->
     <div class="user-card" style="padding:0; overflow:hidden;">
         <div class="card-header-compact" style="padding:18px 24px; background:#0f172a; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
-            <div style="font-weight:800; font-size:16px; color:white; display:flex; align-items:center; gap:8px;">
+            <div style="font-weight:800; font-size:16px; color:white; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                 <span>📜 System Audit Log History</span>
+                {% if security_blocked_count > 0 %}
+                <button type="button" onclick="clearSecurityAlertBadge()" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.35); padding:4px 12px; border-radius:8px; font-size:11.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;" title="Mark all current blocked security events as reviewed and clear the red badge">
+                    <span>✅ Mark Alerts Reviewed (Clear {{ security_blocked_count }} Blocked Badge)</span>
+                </button>
+                {% endif %}
             </div>
 
-            <div class="filter-controls-group" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                <input type="text" id="auditSearchInput" placeholder="🔍 Search user, record, path, IP..." onkeyup="filterAuditLogsUI()" style="padding:8px 14px; font-size:13px; width:220px; background:#090d16; border:1px solid var(--glass-border); border-radius:10px; color:white;">
-                <select id="auditEventTypeSelect" onchange="filterAuditLogsUI()" style="padding:8px 12px; font-size:13px; background:#090d16; border:1px solid var(--glass-border); border-radius:10px; color:white;">
+            <div class="filter-controls-group" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="text" id="auditSearchInput" placeholder="🔍 Search user, record, path, IP..." oninput="filterAuditLogsUI()" style="padding:8px 12px; font-size:12.5px; width:180px; background:#090d16; border:1px solid var(--glass-border); border-radius:10px; color:white;">
+                
+                <!-- QUICK TIME PRESET SELECTOR -->
+                <select id="auditQuickTimeSelect" onchange="handleAuditQuickTimeChange(this.value)" style="padding:8px 12px; font-size:12.5px; background:#090d16; border:1px solid var(--glass-border); border-radius:10px; color:white; cursor:pointer;">
+                    <option value="">📅 All Time</option>
+                    <option value="TODAY">Today</option>
+                    <option value="YESTERDAY">Yesterday</option>
+                    <option value="THIS_WEEK">This Week</option>
+                    <option value="THIS_MONTH">This Month</option>
+                    <option value="LAST_MONTH">Last Month</option>
+                    <option value="MONTH_PICKER">📆 Specific Month...</option>
+                    <option value="CUSTOM_RANGE">🗓️ Custom Date Range...</option>
+                </select>
+
+                <!-- SPECIFIC MONTH PICKER -->
+                <div id="auditMonthPickerWrapper" style="display:none; align-items:center; gap:6px;">
+                    <input type="month" id="auditMonthInput" onchange="filterAuditLogsUI()" style="padding:7px 10px; font-size:12px; background:#090d16; border:1px solid #818cf8; border-radius:8px; color:white; color-scheme:dark;">
+                </div>
+
+                <!-- CUSTOM DATE RANGE INPUTS -->
+                <div id="auditCustomRangeWrapper" style="display:none; align-items:center; gap:6px;">
+                    <input type="date" id="auditFromDate" onchange="filterAuditLogsUI()" placeholder="From" title="From Date" style="padding:7px 10px; font-size:12px; background:#090d16; border:1px solid #818cf8; border-radius:8px; color:white; color-scheme:dark;">
+                    <span style="font-size:11px; color:#94a3b8; font-weight:700;">to</span>
+                    <input type="date" id="auditToDate" onchange="filterAuditLogsUI()" placeholder="To" title="To Date" style="padding:7px 10px; font-size:12px; background:#090d16; border:1px solid #818cf8; border-radius:8px; color:white; color-scheme:dark;">
+                </div>
+
+                <select id="auditEventTypeSelect" onchange="filterAuditLogsUI()" style="padding:8px 12px; font-size:12.5px; background:#090d16; border:1px solid var(--glass-border); border-radius:10px; color:white; cursor:pointer;">
                     <option value="">All Event Types</option>
+                    <option value="BLOCKED_ALL">🚫 All Blocked & Security Events ({{ security_blocked_count }})</option>
+                    <option value="SECURITY_BLOCKED">🛑 Unauthorized Device Blocked</option>
+                    <option value="AUTH_FAILED">⚠️ Login / Recovery Failed</option>
                     <option value="CREATE">➕ Data Created</option>
                     <option value="UPDATE">✏️ Data Updated</option>
                     <option value="DELETE">🗑 Data Deleted</option>
-                    <option value="SECURITY_BLOCKED">🚫 Permission Blocked</option>
-                    <option value="SECURITY_REJECTED">🛑 Device Access Rejected</option>
                     <option value="AUTH_LOGIN">🔑 User Login</option>
                 </select>
+
+                <button type="button" onclick="resetAuditFilters()" style="background:rgba(255,255,255,0.05); color:#94a3b8; border:1px solid var(--glass-border); padding:8px 12px; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;" title="Reset all filters">
+                    <span>🔄 Reset</span>
+                </button>
             </div>
         </div>
 
@@ -881,12 +988,27 @@
         </div>
 
         <div style="margin-bottom:20px;">
-            <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:4px;">Role Preset Template</label>
-            <select id="formRolePreset" onchange="applyRolePresetTemplate(this.value)" style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; margin:0; display:flex; align-items:center; gap:6px;">
+                    🎯 Role Preset Templates
+                    <span style="font-size:10px; color:#64748b; font-weight:600;">(Click multiple to combine)</span>
+                </label>
+                <span id="activeRolePresetsIndicator" style="font-size:11px; color:#818cf8; font-weight:800; background:rgba(99, 102, 241, 0.15); padding:3px 10px; border-radius:12px; border:1px solid rgba(99, 102, 241, 0.3);">
+                    Custom / Manual
+                </span>
+            </div>
+            
+            <div id="rolePresetChipsContainer" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px;">
                 {% for r_code, r_label in roles %}
-                <option value="{{ r_code }}">{{ r_label }}</option>
+                {% if r_code != 'CUSTOM' %}
+                <button type="button" class="role-preset-chip" data-role="{{ r_code }}" onclick="toggleRolePresetChip('{{ r_code }}')" style="background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); color:#cbd5e1; padding:9px 12px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; text-align:left; display:flex; align-items:center; justify-content:space-between; transition:all 0.2s;">
+                    <span>{{ r_label }}</span>
+                    <span class="chip-check" style="font-size:12px; opacity:0; color:#818cf8; transition:opacity 0.2s;">✓</span>
+                </button>
+                {% endif %}
                 {% endfor %}
-            </select>
+            </div>
+            <input type="hidden" id="formRolePreset" value="CUSTOM">
         </div>
 
         <!-- AUTHORIZED LEGAL COMPANY SCOPE MULTI-SELECT -->
@@ -913,7 +1035,7 @@
         </div>
 
         <!-- FINANCIAL DATA MASKING SWITCH -->
-        <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); padding:14px 18px; border-radius:14px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); padding:14px 18px; border-radius:14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
             <div>
                 <div style="font-weight:800; font-size:13.5px; color:#fbbf24;">🙈 Financial Data & Rate Masking</div>
                 <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">When disabled, rates, worker wages, unit costs, and total ₹ values are masked as ***</div>
@@ -922,6 +1044,28 @@
                 <input type="checkbox" id="formCanViewFinancials" class="switch-input" checked>
                 <span class="switch-slider"></span>
             </label>
+        </div>
+
+        <!-- INACTIVITY SESSION TIMEOUT & AUTO-LOGOUT CONFIGURATION -->
+        <div style="background:#090d16; border:1px solid var(--glass-border); padding:16px; border-radius:12px; margin-bottom:20px;">
+            <label style="font-size:11px; font-weight:800; color:#38bdf8; text-transform:uppercase; display:block; margin-bottom:10px;">
+                ⏱️ Inactivity Session Timeout & Auto-Logout
+            </label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div>
+                    <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:4px;">Timeout (Minutes)</label>
+                    <input type="number" id="formSessionTimeout" min="5" max="480" value="60" style="background:#0b0f19; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%;">
+                    <div style="font-size:10.5px; color:#64748b; margin-top:4px;">Default: 60 min (Allowed: 5 to 480)</div>
+                </div>
+                <div>
+                    <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:4px;">Logout Action</label>
+                    <select id="formTimeoutLogoutMode" style="background:#0b0f19; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%;">
+                        <option value="POPUP_WARNING">🔔 Friendly Warning (60s Countdown)</option>
+                        <option value="INSTANT_LOGOUT">⚡ Instant Logout (No Warning)</option>
+                    </select>
+                    <div style="font-size:10.5px; color:#64748b; margin-top:4px;">Choose warning popup or instant exit</div>
+                </div>
+            </div>
         </div>
 
         <!-- HIERARCHICAL ACCORDION TREE PERMISSION MATRIX -->
@@ -985,6 +1129,57 @@
         </div>
     </div>
 </div>
+
+{% if is_master_admin %}
+<!-- MASTER RECOVERY KEY MODAL -->
+<div id="masterRecoveryModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:99999; align-items:center; justify-content:center;">
+    <div class="user-card modal-card-mobile" style="width:480px; padding:28px; margin:0; border:1px solid rgba(168,85,247,0.3); background:#0b0f19;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:10px; background:rgba(168,85,247,0.15); color:#c084fc; display:flex; align-items:center; justify-content:center; font-size:18px;">🔐</div>
+                <h3 style="margin:0; color:white; font-size:18px; font-weight:800;">Master Admin Recovery Key</h3>
+            </div>
+            <button type="button" onclick="closeMasterRecoveryModal()" style="background:none; border:none; color:var(--text-secondary); font-size:20px; cursor:pointer;">✕</button>
+        </div>
+
+        <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:20px; line-height:1.4;">
+            This master key is stored using cryptographic PBKDF2 hashing. It allows super admins to reset their credentials from the login screen if passwords are forgotten.
+        </p>
+
+        <form id="masterRecoveryKeyForm" onsubmit="event.preventDefault(); submitMasterRecoveryKeyUpdate();">
+            <div style="margin-bottom:14px;">
+                <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:6px;">Your Current Admin Password (Identity Verification)</label>
+                <input type="password" id="adminCurrentPasswordInput" required placeholder="Enter your current login password" style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%; box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; margin:0;">New Master Recovery Key</label>
+                    <button type="button" onclick="generateRandomMasterKey()" style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); color:#818cf8; font-size:11px; font-weight:800; padding:2px 8px; border-radius:6px; cursor:pointer;">🎲 Generate Random Key</button>
+                </div>
+                <div style="position:relative;">
+                    <input type="text" id="newMasterKeyInput" required placeholder="e.g. FOUNDRY-ADMIN-2026 or 16+ chars" style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:#38bdf8; font-family:monospace; font-weight:700; font-size:13.5px; width:100%; box-sizing:border-box;">
+                </div>
+                <div style="font-size:11px; color:#64748b; margin-top:4px;">Must be at least 8 characters. Keep this key in a secure physical location or password vault.</div>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:6px;">Location / Memory Hint (Optional)</label>
+                <input type="text" id="masterKeyHintInput" value="{{ recovery_config.key_hint|default:'' }}" placeholder="e.g. In the physical factory vault or CFO safe" style="background:#090d16; border:1px solid var(--glass-border); padding:10px 14px; border-radius:10px; color:white; font-size:13.5px; width:100%; box-sizing:border-box;">
+            </div>
+
+            <div id="masterRecoveryAlert" style="display:none; padding:10px 14px; border-radius:8px; font-size:12.5px; font-weight:700; margin-bottom:16px;"></div>
+
+            <div style="display:flex; gap:10px;">
+                <button type="button" onclick="closeMasterRecoveryModal()" style="flex:1; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); padding:10px; border-radius:10px; font-weight:700; cursor:pointer;">Cancel</button>
+                <button type="submit" id="btnSaveMasterRecoveryKey" style="flex:1.5; background:linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color:white; border:none; padding:10px; border-radius:10px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                    💾 Save Master Key
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 <script>
 let currentPermissionTree = JSON.parse('{{ default_permissions_json|escapejs }}');
@@ -1141,65 +1336,342 @@ function toggleAllTreeNodes(state) {
     updateTreeDataFromUI();
 }
 
-function applyRolePresetTemplate(role) {
-    let tree = JSON.parse('{{ default_permissions_json|escapejs }}');
-    const financialsSwitch = document.getElementById('formCanViewFinancials');
-
-    if (role === 'ADMIN') {
-        financialsSwitch.checked = true;
-    } else if (role === 'CASTING_MGR') {
-        financialsSwitch.checked = false;
-        tree.machining.enabled = false;
-        tree.polishing.enabled = false;
-        tree.packaging.enabled = false;
-        tree.orders.enabled = false;
-        tree.dispatch.enabled = false;
-        tree.master_data.enabled = false;
-        tree.labor_ledger.enabled = false;
-        tree.sql_explorer.enabled = false;
-        tree.user_management.enabled = false;
-    } else if (role === 'MACHINING_MGR') {
-        financialsSwitch.checked = false;
-        tree.casting.enabled = false;
-        tree.packaging.enabled = false;
-        tree.purchases.enabled = false;
-        tree.orders.enabled = false;
-        tree.master_data.enabled = false;
-        tree.labor_ledger.enabled = false;
-        tree.sql_explorer.enabled = false;
-        tree.user_management.enabled = false;
-    } else if (role === 'PACKAGING_MGR') {
-        financialsSwitch.checked = false;
-        tree.casting.enabled = false;
-        tree.machining.enabled = false;
-        tree.polishing.enabled = false;
-        tree.purchases.enabled = false;
-        tree.master_data.enabled = false;
-        tree.labor_ledger.enabled = false;
-        tree.sql_explorer.enabled = false;
-        tree.user_management.enabled = false;
-    } else if (role === 'SALES_ADMIN') {
-        financialsSwitch.checked = true;
-        tree.casting.enabled = false;
-        tree.machining.enabled = false;
-        tree.polishing.enabled = false;
-        tree.purchases.enabled = false;
-        tree.master_data.enabled = false;
-        tree.labor_ledger.enabled = false;
-        tree.sql_explorer.enabled = false;
-        tree.user_management.enabled = false;
-    } else if (role === 'AUDITOR') {
-        financialsSwitch.checked = true;
-        // View only across all modules
-        for (let mod in tree) {
-            for (let sub in tree[mod]) {
-                if (typeof tree[mod][sub] === 'object') {
-                    for (let act in tree[mod][sub]) {
-                        if (act !== 'view') tree[mod][sub][act] = false;
+const ROLE_PRESET_DEFINITIONS = {
+    ADMIN: {
+        label: "👑 System Admin / Owner",
+        financials: true,
+        apply: (tree) => {
+            for (let mod in tree) {
+                tree[mod].enabled = true;
+                for (let sub in tree[mod]) {
+                    if (sub === 'enabled') continue;
+                    if (typeof tree[mod][sub] === 'boolean') {
+                        tree[mod][sub] = true;
+                    } else if (typeof tree[mod][sub] === 'object') {
+                        for (let act in tree[mod][sub]) {
+                            tree[mod][sub][act] = true;
+                        }
                     }
                 }
             }
         }
+    },
+    CASTING_MGR: {
+        label: "🔥 Foundry Casting Manager",
+        financials: false,
+        apply: (tree) => {
+            if (!tree.casting) tree.casting = { enabled: true };
+            tree.casting.enabled = true;
+            if (!tree.casting.heats) tree.casting.heats = {};
+            tree.casting.heats.view = true;
+            tree.casting.heats.create = true;
+            tree.casting.heats.edit = true;
+            tree.casting.heats.delete = true;
+            if (!tree.casting.reports) tree.casting.reports = {};
+            tree.casting.reports.view = true;
+            tree.casting.reports.export = true;
+
+            if (!tree.purchases) tree.purchases = { enabled: true };
+            tree.purchases.enabled = true;
+            if (!tree.purchases.entry) tree.purchases.entry = {};
+            tree.purchases.entry.view = true;
+            tree.purchases.entry.create = true;
+
+            if (!tree.attendance) tree.attendance = { enabled: true };
+            tree.attendance.enabled = true;
+            tree.attendance.view = true;
+
+            if (!tree.master_data) tree.master_data = { enabled: true };
+            tree.master_data.enabled = true;
+            if (!tree.master_data.items) tree.master_data.items = {};
+            tree.master_data.items.view = true;
+            if (!tree.master_data.workers) tree.master_data.workers = {};
+            tree.master_data.workers.view = true;
+            if (!tree.master_data.bom) tree.master_data.bom = {};
+            tree.master_data.bom.view = true;
+        }
+    },
+    MACHINING_MGR: {
+        label: "⚙️ Machining & Polishing Supervisor",
+        financials: false,
+        apply: (tree) => {
+            if (!tree.machining) tree.machining = { enabled: true };
+            tree.machining.enabled = true;
+            if (!tree.machining.entry) tree.machining.entry = {};
+            tree.machining.entry.view = true;
+            tree.machining.entry.create = true;
+            tree.machining.entry.edit = true;
+            tree.machining.entry.delete = true;
+            if (!tree.machining.stock) tree.machining.stock = {};
+            tree.machining.stock.view = true;
+            tree.machining.stock.adjust_inventory = true;
+
+            if (!tree.polishing) tree.polishing = { enabled: true };
+            tree.polishing.enabled = true;
+            if (!tree.polishing.entry) tree.polishing.entry = {};
+            tree.polishing.entry.view = true;
+            tree.polishing.entry.create = true;
+            tree.polishing.entry.edit = true;
+            tree.polishing.entry.delete = true;
+            if (!tree.polishing.stock) tree.polishing.stock = {};
+            tree.polishing.stock.view = true;
+            tree.polishing.stock.adjust_inventory = true;
+
+            if (!tree.attendance) tree.attendance = { enabled: true };
+            tree.attendance.enabled = true;
+            tree.attendance.view = true;
+            tree.attendance.edit = true;
+
+            if (!tree.master_data) tree.master_data = { enabled: true };
+            tree.master_data.enabled = true;
+            if (!tree.master_data.items) tree.master_data.items = {};
+            tree.master_data.items.view = true;
+            if (!tree.master_data.workers) tree.master_data.workers = {};
+            tree.master_data.workers.view = true;
+            if (!tree.master_data.job_workers) tree.master_data.job_workers = {};
+            tree.master_data.job_workers.view = true;
+            if (!tree.master_data.bom) tree.master_data.bom = {};
+            tree.master_data.bom.view = true;
+        }
+    },
+    PACKAGING_MGR: {
+        label: "📦 Packaging & Warehouse Manager",
+        financials: false,
+        apply: (tree) => {
+            if (!tree.packaging) tree.packaging = { enabled: true };
+            tree.packaging.enabled = true;
+            if (!tree.packaging.entry) tree.packaging.entry = {};
+            tree.packaging.entry.view = true;
+            tree.packaging.entry.create = true;
+            tree.packaging.entry.edit = true;
+            tree.packaging.entry.delete = true;
+
+            if (!tree.dispatch) tree.dispatch = { enabled: true };
+            tree.dispatch.enabled = true;
+            if (!tree.dispatch.entry) tree.dispatch.entry = {};
+            tree.dispatch.entry.view = true;
+            tree.dispatch.entry.create = true;
+            tree.dispatch.entry.edit = true;
+            tree.dispatch.entry.delete = true;
+
+            if (!tree.orders) tree.orders = { enabled: true };
+            tree.orders.enabled = true;
+            if (!tree.orders.view) tree.orders.view = {};
+            tree.orders.view.view = true;
+
+            if (!tree.master_data) tree.master_data = { enabled: true };
+            tree.master_data.enabled = true;
+            if (!tree.master_data.items) tree.master_data.items = {};
+            tree.master_data.items.view = true;
+        }
+    },
+    SALES_ADMIN: {
+        label: "🛒 Sales & Customer PO Admin",
+        financials: true,
+        apply: (tree) => {
+            if (!tree.orders) tree.orders = { enabled: true };
+            tree.orders.enabled = true;
+            if (!tree.orders.view) tree.orders.view = {};
+            tree.orders.view.view = true;
+            if (!tree.orders.create) tree.orders.create = {};
+            tree.orders.create.create = true;
+            if (!tree.orders.edit) tree.orders.edit = {};
+            tree.orders.edit.edit = true;
+
+            if (!tree.dispatch) tree.dispatch = { enabled: true };
+            tree.dispatch.enabled = true;
+            if (!tree.dispatch.entry) tree.dispatch.entry = {};
+            tree.dispatch.entry.view = true;
+            tree.dispatch.entry.create = true;
+            tree.dispatch.entry.edit = true;
+
+            if (!tree.master_data) tree.master_data = { enabled: true };
+            tree.master_data.enabled = true;
+            if (!tree.master_data.items) tree.master_data.items = {};
+            tree.master_data.items.view = true;
+            if (!tree.master_data.clients) tree.master_data.clients = {};
+            tree.master_data.clients.view = true;
+            tree.master_data.clients.edit = true;
+        }
+    },
+    ACCOUNTANT: {
+        label: "💰 Accounts & Payroll Manager",
+        financials: true,
+        apply: (tree) => {
+            if (!tree.labor_ledger) tree.labor_ledger = { enabled: true };
+            tree.labor_ledger.enabled = true;
+            if (!tree.labor_ledger.view) tree.labor_ledger.view = {};
+            tree.labor_ledger.view.view = true;
+            if (!tree.labor_ledger.payment) tree.labor_ledger.payment = {};
+            tree.labor_ledger.payment.create = true;
+            tree.labor_ledger.payment.edit = true;
+
+            if (!tree.purchases) tree.purchases = { enabled: true };
+            tree.purchases.enabled = true;
+            if (!tree.purchases.entry) tree.purchases.entry = {};
+            tree.purchases.entry.view = true;
+            tree.purchases.entry.create = true;
+            tree.purchases.entry.edit = true;
+
+            if (!tree.orders) tree.orders = { enabled: true };
+            tree.orders.enabled = true;
+            if (!tree.orders.view) tree.orders.view = {};
+            tree.orders.view.view = true;
+
+            if (!tree.attendance) tree.attendance = { enabled: true };
+            tree.attendance.enabled = true;
+            tree.attendance.view = true;
+
+            if (!tree.master_data) tree.master_data = { enabled: true };
+            tree.master_data.enabled = true;
+            if (!tree.master_data.items) tree.master_data.items = {};
+            tree.master_data.items.view = true;
+            if (!tree.master_data.clients) tree.master_data.clients = {};
+            tree.master_data.clients.view = true;
+            if (!tree.master_data.workers) tree.master_data.workers = {};
+            tree.master_data.workers.view = true;
+            if (!tree.master_data.job_workers) tree.master_data.job_workers = {};
+            tree.master_data.job_workers.view = true;
+            if (!tree.master_data.rate_matrix) tree.master_data.rate_matrix = {};
+            tree.master_data.rate_matrix.view = true;
+        }
+    },
+    AUDITOR: {
+        label: "👁️ Auditor (Read-Only)",
+        financials: true,
+        apply: (tree) => {
+            for (let mod in tree) {
+                tree[mod].enabled = true;
+                for (let sub in tree[mod]) {
+                    if (sub === 'enabled') continue;
+                    if (typeof tree[mod][sub] === 'boolean') {
+                        if (sub === 'view') tree[mod][sub] = true;
+                    } else if (typeof tree[mod][sub] === 'object') {
+                        for (let act in tree[mod][sub]) {
+                            if (act === 'view') tree[mod][sub][act] = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
+let selectedRolePresets = new Set();
+
+function getEmptyPermissionTree() {
+    let base = JSON.parse('{{ default_permissions_json|escapejs }}');
+    for (let mod in base) {
+        base[mod].enabled = false;
+        for (let sub in base[mod]) {
+            if (sub === 'enabled') continue;
+            if (typeof base[mod][sub] === 'boolean') {
+                base[mod][sub] = false;
+            } else if (typeof base[mod][sub] === 'object') {
+                for (let act in base[mod][sub]) {
+                    base[mod][sub][act] = false;
+                }
+            }
+        }
+    }
+    return base;
+}
+
+function toggleRolePresetChip(roleCode) {
+    if (roleCode === 'ADMIN') {
+        if (selectedRolePresets.has('ADMIN')) {
+            selectedRolePresets.delete('ADMIN');
+        } else {
+            selectedRolePresets.clear();
+            selectedRolePresets.add('ADMIN');
+        }
+    } else {
+        if (selectedRolePresets.has('ADMIN')) {
+            selectedRolePresets.delete('ADMIN');
+        }
+        if (selectedRolePresets.has(roleCode)) {
+            selectedRolePresets.delete(roleCode);
+        } else {
+            selectedRolePresets.add(roleCode);
+        }
+    }
+
+    updateRoleChipsUI();
+    recalculateCombinedPermissions();
+}
+
+function updateRoleChipsUI() {
+    const chips = document.querySelectorAll('.role-preset-chip');
+    chips.forEach(chip => {
+        const role = chip.getAttribute('data-role');
+        const check = chip.querySelector('.chip-check');
+        if (selectedRolePresets.has(role)) {
+            chip.style.background = 'rgba(99, 102, 241, 0.2)';
+            chip.style.borderColor = '#818cf8';
+            chip.style.color = '#ffffff';
+            chip.style.boxShadow = '0 0 12px rgba(99, 102, 241, 0.3)';
+            if (check) check.style.opacity = '1';
+        } else {
+            chip.style.background = 'rgba(255, 255, 255, 0.03)';
+            chip.style.borderColor = 'var(--glass-border)';
+            chip.style.color = '#cbd5e1';
+            chip.style.boxShadow = 'none';
+            if (check) check.style.opacity = '0';
+        }
+    });
+
+    const indicator = document.getElementById('activeRolePresetsIndicator');
+    const roleInput = document.getElementById('formRolePreset');
+
+    if (selectedRolePresets.size === 0) {
+        if (indicator) {
+            indicator.textContent = 'Custom / Manual';
+            indicator.style.background = 'rgba(255, 255, 255, 0.05)';
+            indicator.style.color = '#94a3b8';
+            indicator.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+        }
+        if (roleInput) roleInput.value = 'CUSTOM';
+    } else if (selectedRolePresets.size === 1) {
+        const singleRole = Array.from(selectedRolePresets)[0];
+        if (indicator) {
+            indicator.textContent = `1 Role: ${singleRole}`;
+            indicator.style.background = 'rgba(99, 102, 241, 0.2)';
+            indicator.style.color = '#818cf8';
+            indicator.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+        }
+        if (roleInput) roleInput.value = singleRole;
+    } else {
+        if (indicator) {
+            indicator.textContent = `⚡ ${selectedRolePresets.size} Roles Combined`;
+            indicator.style.background = 'rgba(16, 185, 129, 0.2)';
+            indicator.style.color = '#34d399';
+            indicator.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        }
+        if (roleInput) roleInput.value = 'CUSTOM';
+    }
+}
+
+function recalculateCombinedPermissions() {
+    if (selectedRolePresets.size === 0) {
+        return;
+    }
+
+    const tree = getEmptyPermissionTree();
+    let enableFinancials = false;
+
+    selectedRolePresets.forEach(roleCode => {
+        const def = ROLE_PRESET_DEFINITIONS[roleCode];
+        if (def) {
+            def.apply(tree);
+            if (def.financials) {
+                enableFinancials = true;
+            }
+        }
+    });
+
+    const finSwitch = document.getElementById('formCanViewFinancials');
+    if (finSwitch) {
+        finSwitch.checked = enableFinancials;
     }
 
     currentPermissionTree = tree;
@@ -1221,11 +1693,15 @@ function openCreateUserDrawer() {
     document.getElementById('formLastName').value = '';
     document.getElementById('formPassword').value = '';
     document.getElementById('passwordRow').style.display = 'block';
-    document.getElementById('formRolePreset').value = 'CUSTOM';
-    document.getElementById('chkGlobalAccess').checked = false;
     
+    selectedRolePresets.clear();
+    updateRoleChipsUI();
+    
+    document.getElementById('chkGlobalAccess').checked = false;
     document.querySelectorAll('.chk-company-item').forEach(cb => cb.checked = true);
     document.getElementById('formCanViewFinancials').checked = true;
+    document.getElementById('formSessionTimeout').value = 60;
+    document.getElementById('formTimeoutLogoutMode').value = 'POPUP_WARNING';
 
     currentPermissionTree = JSON.parse('{{ default_permissions_json|escapejs }}');
     renderPermissionTreeUI(currentPermissionTree);
@@ -1234,7 +1710,7 @@ function openCreateUserDrawer() {
     document.getElementById('userDrawer').style.right = '0';
 }
 
-function openEditUserDrawer(id, username, firstName, lastName, email, role, isGlobalAccess, allowedCompIds, canViewFinancials, permsJsonStr) {
+function openEditUserDrawer(id, username, firstName, lastName, email, role, isGlobalAccess, allowedCompIds, canViewFinancials, permsJsonStr, sessionTimeout, timeoutLogoutMode) {
     document.getElementById('drawerTitle').textContent = `✏️ Edit User Permissions: ${username}`;
     document.getElementById('formUserId').value = id;
     document.getElementById('formUsername').value = username;
@@ -1244,9 +1720,17 @@ function openEditUserDrawer(id, username, firstName, lastName, email, role, isGl
     document.getElementById('formLastName').value = lastName;
     document.getElementById('formPassword').value = '';
     document.getElementById('passwordRow').style.display = 'none';
-    document.getElementById('formRolePreset').value = role;
+
+    selectedRolePresets.clear();
+    if (role && role !== 'CUSTOM' && ROLE_PRESET_DEFINITIONS[role]) {
+        selectedRolePresets.add(role);
+    }
+    updateRoleChipsUI();
+
     document.getElementById('chkGlobalAccess').checked = !!isGlobalAccess;
     document.getElementById('formCanViewFinancials').checked = canViewFinancials;
+    document.getElementById('formSessionTimeout').value = sessionTimeout || 60;
+    document.getElementById('formTimeoutLogoutMode').value = timeoutLogoutMode || 'POPUP_WARNING';
 
     const allowedSet = new Set(Array.isArray(allowedCompIds) ? allowedCompIds : []);
     document.querySelectorAll('.chk-company-item').forEach(cb => {
@@ -1288,6 +1772,8 @@ async function submitUserForm() {
         is_global_access: document.getElementById('chkGlobalAccess').checked,
         allowed_company_ids: allowedCompanyIds,
         can_view_financials: document.getElementById('formCanViewFinancials').checked,
+        session_timeout_minutes: parseInt(document.getElementById('formSessionTimeout').value) || 60,
+        timeout_logout_mode: document.getElementById('formTimeoutLogoutMode').value || 'POPUP_WARNING',
         permissions: currentPermissionTree
     };
 
@@ -1413,26 +1899,137 @@ function switchUserTab(tabName) {
     }
 }
 
-function filterAuditLogsUI() {
-    const search = document.getElementById('auditSearchInput').value.trim().toLowerCase();
-    const eventType = document.getElementById('auditEventTypeSelect').value;
+let auditSearchDebounceTimer = null;
+let auditLogsCache = {};
 
-    const rows = document.querySelectorAll('.audit-row-item');
-    rows.forEach(row => {
-        const u = row.getAttribute('data-user') || '';
-        const ev = row.getAttribute('data-event') || '';
-        const r = row.getAttribute('data-repr') || '';
-        const p = row.getAttribute('data-path') || '';
+function handleAuditQuickTimeChange(val) {
+    const monthWrapper = document.getElementById('auditMonthPickerWrapper');
+    const rangeWrapper = document.getElementById('auditCustomRangeWrapper');
 
-        const matchesSearch = !search || u.includes(search) || r.includes(search) || p.includes(search);
-        const matchesEvent = !eventType || ev === eventType;
-
-        if (matchesSearch && matchesEvent) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
+    if (val === 'MONTH_PICKER') {
+        if (monthWrapper) monthWrapper.style.display = 'flex';
+        if (rangeWrapper) rangeWrapper.style.display = 'none';
+        const monthInput = document.getElementById('auditMonthInput');
+        if (monthInput && !monthInput.value) {
+            const d = new Date();
+            const mo = String(d.getMonth() + 1).padStart(2, '0');
+            monthInput.value = `${d.getFullYear()}-${mo}`;
         }
-    });
+    } else if (val === 'CUSTOM_RANGE') {
+        if (monthWrapper) monthWrapper.style.display = 'none';
+        if (rangeWrapper) rangeWrapper.style.display = 'flex';
+    } else {
+        if (monthWrapper) monthWrapper.style.display = 'none';
+        if (rangeWrapper) rangeWrapper.style.display = 'none';
+    }
+    filterAuditLogsUI();
+}
+
+function resetAuditFilters() {
+    document.getElementById('auditSearchInput').value = '';
+    document.getElementById('auditQuickTimeSelect').value = '';
+    document.getElementById('auditEventTypeSelect').value = '';
+    
+    const monthInput = document.getElementById('auditMonthInput');
+    if (monthInput) monthInput.value = '';
+    const fromInput = document.getElementById('auditFromDate');
+    if (fromInput) fromInput.value = '';
+    const toInput = document.getElementById('auditToDate');
+    if (toInput) toInput.value = '';
+
+    const monthWrapper = document.getElementById('auditMonthPickerWrapper');
+    if (monthWrapper) monthWrapper.style.display = 'none';
+    const rangeWrapper = document.getElementById('auditCustomRangeWrapper');
+    if (rangeWrapper) rangeWrapper.style.display = 'none';
+
+    filterAuditLogsUI();
+}
+
+function filterAuditLogsUI() {
+    clearTimeout(auditSearchDebounceTimer);
+    auditSearchDebounceTimer = setTimeout(fetchFilteredAuditLogs, 250);
+}
+
+async function fetchFilteredAuditLogs() {
+    const search = document.getElementById('auditSearchInput').value.trim();
+    const eventType = document.getElementById('auditEventTypeSelect').value;
+    const quickTime = document.getElementById('auditQuickTimeSelect').value;
+    const monthVal = (quickTime === 'MONTH_PICKER') ? (document.getElementById('auditMonthInput')?.value || '') : '';
+    const fromVal = (quickTime === 'CUSTOM_RANGE') ? (document.getElementById('auditFromDate')?.value || '') : '';
+    const toVal = (quickTime === 'CUSTOM_RANGE') ? (document.getElementById('auditToDate')?.value || '') : '';
+
+    const tbody = document.getElementById('auditLogsTableBody');
+    if (!tbody) return;
+
+    try {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (eventType) params.append('event_type', eventType);
+        if (quickTime && quickTime !== 'MONTH_PICKER' && quickTime !== 'CUSTOM_RANGE') {
+            params.append('quick_range', quickTime);
+        }
+        if (monthVal) params.append('month', monthVal);
+        if (fromVal) params.append('start_date', fromVal);
+        if (toVal) params.append('end_date', toVal);
+
+        const res = await fetch(`/api/audit-logs/?${params.toString()}`);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            if (!data.logs || data.logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:48px; color:var(--text-secondary);">No audit logs matching the selected filter.</td></tr>';
+                return;
+            }
+
+            auditLogsCache = {};
+            let html = '';
+            data.logs.forEach(log => {
+                auditLogsCache[log.id] = log.changes_json;
+
+                let eventBadge = `<span style="font-size:11px; color:#a78bfa; font-weight:800; background:rgba(167,139,250,0.15); padding:4px 10px; border-radius:8px; border:1px solid rgba(167,139,250,0.3);">${log.event_display}</span>`;
+                if (log.event_type === 'CREATE') {
+                    eventBadge = `<span style="font-size:11px; color:#34d399; font-weight:800; background:rgba(16,185,129,0.15); padding:4px 10px; border-radius:8px; border:1px solid rgba(16,185,129,0.3);">➕ Created</span>`;
+                } else if (log.event_type === 'UPDATE') {
+                    eventBadge = `<span style="font-size:11px; color:#60a5fa; font-weight:800; background:rgba(59,130,246,0.15); padding:4px 10px; border-radius:8px; border:1px solid rgba(59,130,246,0.3);">✏️ Updated</span>`;
+                } else if (log.event_type === 'DELETE') {
+                    eventBadge = `<span style="font-size:11px; color:#f87171; font-weight:800; background:rgba(239,68,68,0.15); padding:4px 10px; border-radius:8px; border:1px solid rgba(239,68,68,0.3);">🗑 Deleted</span>`;
+                } else if (log.event_type === 'SECURITY_BLOCKED' || log.event_type === 'SECURITY_REJECTED') {
+                    eventBadge = `<span style="font-size:11px; color:#f87171; font-weight:800; background:rgba(239,68,68,0.2); padding:4px 10px; border-radius:8px; border:1px solid rgba(239,68,68,0.4); animation:pulse 2s infinite;">🛑 Security Blocked</span>`;
+                } else if (log.event_type === 'AUTH_FAILED') {
+                    eventBadge = `<span style="font-size:11px; color:#f59e0b; font-weight:800; background:rgba(245,158,11,0.2); padding:4px 10px; border-radius:8px; border:1px solid rgba(245,158,11,0.4);">⚠️ Auth Failed</span>`;
+                }
+
+                const inspectBtn = log.changes_json 
+                    ? `<button type="button" onclick="openAuditDiffModal(${log.id})" style="background:rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.3); font-weight:700; padding:6px 12px; font-size:11.5px; border-radius:8px; cursor:pointer;">🔍 Inspect Data</button>`
+                    : `<span style="font-size:11px; color:var(--text-secondary);">No Data Diff</span>`;
+
+                const pathDisplay = log.request_path 
+                    ? `<div style="font-family:monospace; font-size:11px; color:#818cf8; margin-top:2px;">${log.request_path}</div>`
+                    : '';
+
+                html += `
+                <tr class="audit-row-item">
+                    <td style="font-size:12px; color:#cbd5e1; font-weight:600; white-space:nowrap;">${log.timestamp}</td>
+                    <td><div style="font-weight:800; color:white; font-size:13.5px;">👤 ${log.username}</div></td>
+                    <td>${eventBadge}</td>
+                    <td><span style="font-size:12px; font-weight:700; color:#e2e8f0;">${log.module_name}</span></td>
+                    <td>
+                        <div style="font-size:13px; color:white; font-weight:700;">${log.object_repr || 'N/A'}</div>
+                        ${pathDisplay}
+                    </td>
+                    <td>
+                        <div style="font-family:monospace; font-size:12px; color:#cbd5e1; font-weight:600;">${log.ip_address}</div>
+                        <div style="font-size:10.5px; color:var(--text-secondary); margin-top:2px;">${log.network_scope}</div>
+                    </td>
+                    <td style="text-align:right;">${inspectBtn}</td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = html;
+        }
+    } catch(err) {
+        console.error('Error fetching audit logs:', err);
+    }
 }
 
 async function refreshLiveStreamUI() {
@@ -1495,14 +2092,22 @@ setInterval(() => {
 
 function openAuditDiffModal(logId) {
     let jsonText = '';
-    const elem = document.getElementById(`audit-json-${logId}`);
-    if (elem) {
+    if (auditLogsCache && auditLogsCache[logId]) {
         try {
-            const raw = elem.textContent.trim();
-            const parsed = JSON.parse(raw);
-            jsonText = JSON.stringify(parsed, null, 2);
+            jsonText = JSON.stringify(auditLogsCache[logId], null, 2);
         } catch (e) {
-            jsonText = elem.textContent;
+            jsonText = String(auditLogsCache[logId]);
+        }
+    } else {
+        const elem = document.getElementById(`audit-json-${logId}`);
+        if (elem) {
+            try {
+                const raw = elem.textContent.trim();
+                const parsed = JSON.parse(raw);
+                jsonText = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+                jsonText = elem.textContent;
+            }
         }
     }
     document.getElementById('auditDiffJsonContainer').textContent = jsonText || 'No data diff available.';
@@ -1524,6 +2129,29 @@ function closeAuditDiffModal() {
     document.getElementById('auditDiffModal').style.display = 'none';
 }
 
+async function clearSecurityAlertBadge() {
+    if (!confirm('Mark all current security alerts as reviewed and clear the alert badge?')) return;
+    try {
+        const res = await fetch('/api/audit-logs/clear-alerts/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            sessionStorage.setItem('activeUserTab', 'audit');
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to clear alerts');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Network error while clearing security alerts.');
+    }
+}
+
 function reloadDeviceTab() {
     sessionStorage.setItem('activeUserTab', 'devices');
     window.location.href = '/users/?tab=devices';
@@ -1538,15 +2166,32 @@ function filterDeviceStatus(statusKey) {
     });
     const activePill = document.getElementById(`dev-pill-${statusKey}`);
     if (activePill) {
-        activePill.style.background = '#4f46e5';
-        activePill.style.color = 'white';
-        activePill.style.border = 'none';
+        if (statusKey === 'ONLINE') {
+            activePill.style.background = 'rgba(16,185,129,0.25)';
+            activePill.style.color = '#34d399';
+            activePill.style.border = '1px solid rgba(16,185,129,0.5)';
+        } else if (statusKey === 'OFFLINE') {
+            activePill.style.background = 'rgba(148,163,184,0.2)';
+            activePill.style.color = '#f1f5f9';
+            activePill.style.border = '1px solid rgba(148,163,184,0.4)';
+        } else {
+            activePill.style.background = '#4f46e5';
+            activePill.style.color = 'white';
+            activePill.style.border = 'none';
+        }
     }
 
     const rows = document.querySelectorAll('.device-row-item');
     rows.forEach(row => {
         const rowStatus = row.getAttribute('data-status');
-        if (statusKey === 'ALL' || rowStatus === statusKey) {
+        const rowOnline = row.getAttribute('data-online');
+        if (statusKey === 'ALL') {
+            row.style.display = '';
+        } else if (statusKey === 'ONLINE') {
+            row.style.display = (rowOnline === 'ONLINE') ? '' : 'none';
+        } else if (statusKey === 'OFFLINE') {
+            row.style.display = (rowOnline === 'OFFLINE') ? '' : 'none';
+        } else if (rowStatus === statusKey) {
             row.style.display = '';
         } else {
             row.style.display = 'none';
@@ -1674,6 +2319,26 @@ async function changeDeviceSecurityMode(newMode) {
     }
 }
 
+async function deduplicateDevices() {
+    if (!confirm('Clean up redundant duplicate device records and keep active approved devices?')) return;
+    try {
+        const res = await fetch('/api/devices/deduplicate/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            alert(data.message);
+            reloadDeviceTab();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Failed to clean duplicate devices.');
+    }
+}
+
 async function purgeStaleDevices() {
     if (!confirm('Are you sure you want to purge all unapproved/rejected device requests older than 30 days?')) return;
     try {
@@ -1716,6 +2381,101 @@ async function renameDeviceModal(id, currentName) {
     } catch (e) {
         console.error(e);
         alert('Failed to rename device.');
+    }
+}
+
+function openMasterRecoveryModal() {
+    const modal = document.getElementById('masterRecoveryModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        const alertBox = document.getElementById('masterRecoveryAlert');
+        if (alertBox) alertBox.style.display = 'none';
+        const pwdInput = document.getElementById('adminCurrentPasswordInput');
+        if (pwdInput) pwdInput.value = '';
+        const keyInput = document.getElementById('newMasterKeyInput');
+        if (keyInput) keyInput.value = '';
+    }
+}
+
+function closeMasterRecoveryModal() {
+    const modal = document.getElementById('masterRecoveryModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function generateRandomMasterKey() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let p1 = '', p2 = '', p3 = '';
+    for (let i = 0; i < 4; i++) p1 += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < 4; i++) p2 += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < 4; i++) p3 += chars.charAt(Math.floor(Math.random() * chars.length));
+    const randomKey = `RECOV-${p1}-${p2}-${p3}`;
+    const input = document.getElementById('newMasterKeyInput');
+    if (input) input.value = randomKey;
+}
+
+async function submitMasterRecoveryKeyUpdate() {
+    const currentPassword = document.getElementById('adminCurrentPasswordInput').value;
+    const newMasterKey = document.getElementById('newMasterKeyInput').value.trim();
+    const keyHint = document.getElementById('masterKeyHintInput').value.trim();
+    const alertBox = document.getElementById('masterRecoveryAlert');
+    const btnSave = document.getElementById('btnSaveMasterRecoveryKey');
+
+    if (!currentPassword) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239,68,68,0.15)';
+        alertBox.style.color = '#f87171';
+        alertBox.textContent = 'Please enter your current admin password.';
+        return;
+    }
+
+    if (newMasterKey.length < 8) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239,68,68,0.15)';
+        alertBox.style.color = '#f87171';
+        alertBox.textContent = 'Master Recovery Key must be at least 8 characters long.';
+        return;
+    }
+
+    btnSave.disabled = true;
+    btnSave.textContent = 'Updating...';
+
+    try {
+        const res = await fetch('/api/admin/update-recovery-key/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                current_password: currentPassword,
+                new_master_key: newMasterKey,
+                key_hint: keyHint
+            })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            alertBox.style.display = 'block';
+            alertBox.style.background = 'rgba(16,185,129,0.15)';
+            alertBox.style.color = '#34d399';
+            alertBox.textContent = data.message || 'Master Recovery Key updated successfully!';
+            setTimeout(() => {
+                location.reload();
+            }, 1200);
+        } else {
+            alertBox.style.display = 'block';
+            alertBox.style.background = 'rgba(239,68,68,0.15)';
+            alertBox.style.color = '#f87171';
+            alertBox.textContent = data.error || 'Failed to update recovery key.';
+        }
+    } catch (err) {
+        console.error(err);
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239,68,68,0.15)';
+        alertBox.style.color = '#f87171';
+        alertBox.textContent = 'Network or server error updating Master Recovery Key.';
+    } finally {
+        btnSave.disabled = false;
+        btnSave.textContent = '💾 Save Master Key';
     }
 }
 

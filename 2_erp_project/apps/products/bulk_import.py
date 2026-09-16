@@ -10,13 +10,7 @@ from apps.workforce.models import Worker
 ITEM_HEADERS = [
     "Item Code*", "Item Name*", "Category", "Sub Category", "Material", "Variant",
     "Casting Weight (kg)", "Machining Weight (kg)", "Rate Per Piece", "Lot Size", "Lot With Box",
-    "Casting Required (Y/N)", "Machining Required (Y/N)", "Polishing Required (Y/N)", "Packing Required (Y/N)", "Notes",
-    "Client Name", "Companies",
-    "Casting Worker Name", "Casting Rate",
-    "Machining Worker Name", "Machining Rate",
-    "Polishing Worker Name", "Polishing Rate",
-    "Packing Worker Name", "Packing Rate",
-    "Job Worker Name", "Job Worker Rate"
+    "Casting Required (Y/N)", "Machining Required (Y/N)", "Polishing Required (Y/N)", "Packing Required (Y/N)", "Notes"
 ]
 
 WORKER_HEADERS = [
@@ -187,24 +181,6 @@ def validate_items_data(rows):
         raw_pack_req = row[14].strip() if len(row) > 14 else "Y"
         notes = row[15].strip() if len(row) > 15 else ""
 
-        client_name = row[16].strip() if len(row) > 16 else ""
-        companies_str = row[17].strip() if len(row) > 17 else ""
-        
-        casting_worker_name = row[18].strip() if len(row) > 18 else ""
-        raw_casting_rate = row[19].strip() if len(row) > 19 else ""
-        
-        machining_worker_name = row[20].strip() if len(row) > 20 else ""
-        raw_machining_rate = row[21].strip() if len(row) > 21 else ""
-        
-        polishing_worker_name = row[22].strip() if len(row) > 22 else ""
-        raw_polishing_rate = row[23].strip() if len(row) > 23 else ""
-        
-        packing_worker_name = row[24].strip() if len(row) > 24 else ""
-        raw_packing_rate = row[25].strip() if len(row) > 25 else ""
-        
-        job_worker_name = row[26].strip() if len(row) > 26 else ""
-        raw_job_worker_rate = row[27].strip() if len(row) > 27 else ""
-
         # 1. Check Required Fields
         if not code:
             errors.append("Item Code is required.")
@@ -273,88 +249,7 @@ def validate_items_data(rows):
         try: pack_req = to_bool(raw_pack_req, True)
         except ValueError as e: errors.append(str(e))
 
-        # 5. Client & Companies lookup validation
-        client_obj = None
-        if client_name:
-            client_obj = Client.objects.filter(name__iexact=client_name).first()
-            if not client_obj:
-                errors.append(f"Client '{client_name}' does not exist in the database.")
-                
-        company_ids = []
-        if companies_str:
-            from apps.client_orders.models import LegalEntity
-            comp_names = [c.strip() for c in companies_str.split(',') if c.strip()]
-            for cname in comp_names:
-                comp_obj = LegalEntity.objects.filter(name__iexact=cname).first()
-                if not comp_obj:
-                    errors.append(f"Company '{cname}' does not exist in the database.")
-                else:
-                    company_ids.append(comp_obj.id)
-
-        # 6. Rates & Workers lookup validation
-        casting_rate = 0.0
-        machining_rate = 0.0
-        polishing_rate = 0.0
-        packing_rate = 0.0
-        job_worker_rate = 0.0
-        
-        try: casting_rate = to_float(raw_casting_rate, 0.0)
-        except ValueError as e: errors.append(f"Casting Rate: {str(e)}")
-        
-        try: machining_rate = to_float(raw_machining_rate, 0.0)
-        except ValueError as e: errors.append(f"Machining Rate: {str(e)}")
-        
-        try: polishing_rate = to_float(raw_polishing_rate, 0.0)
-        except ValueError as e: errors.append(f"Polishing Rate: {str(e)}")
-        
-        try: packing_rate = to_float(raw_packing_rate, 0.0)
-        except ValueError as e: errors.append(f"Packing Rate: {str(e)}")
-        
-        try: job_worker_rate = to_float(raw_job_worker_rate, 0.0)
-        except ValueError as e: errors.append(f"Job Worker Rate: {str(e)}")
-
-        casting_worker_id = None
-        if casting_worker_name:
-            cw = Worker.objects.filter(name__iexact=casting_worker_name).first()
-            if not cw:
-                errors.append(f"Casting Worker '{casting_worker_name}' not found.")
-            else:
-                casting_worker_id = cw.id
-                
-        machining_worker_id = None
-        if machining_worker_name:
-            mw = Worker.objects.filter(name__iexact=machining_worker_name).first()
-            if not mw:
-                errors.append(f"Machining Worker '{machining_worker_name}' not found.")
-            else:
-                machining_worker_id = mw.id
-                
-        polishing_worker_id = None
-        if polishing_worker_name:
-            pw = Worker.objects.filter(name__iexact=polishing_worker_name).first()
-            if not pw:
-                errors.append(f"Polishing Worker '{polishing_worker_name}' not found.")
-            else:
-                polishing_worker_id = pw.id
-                
-        packing_worker_id = None
-        if packing_worker_name:
-            pk = Worker.objects.filter(name__iexact=packing_worker_name).first()
-            if not pk:
-                errors.append(f"Packing Worker '{packing_worker_name}' not found.")
-            else:
-                packing_worker_id = pk.id
-                
-        job_worker_id = None
-        if job_worker_name:
-            from apps.workforce.models import JobWorker
-            jw = JobWorker.objects.filter(name__iexact=job_worker_name).first()
-            if not jw:
-                errors.append(f"Job Worker '{job_worker_name}' not found.")
-            else:
-                job_worker_id = jw.id
-
-        # 7. Check if Code exists in DB to determine UPDATE vs INSERT
+        # 5. Check if Code exists in DB to determine UPDATE vs INSERT
         action = "INSERT"
         if code and not errors:
             exists = Item.objects.filter(code=code).exists()
@@ -377,19 +272,7 @@ def validate_items_data(rows):
             "machining_required": mach_req,
             "polishing_required": polish_req,
             "packing_required": pack_req,
-            "notes": notes,
-            "client_id": client_obj.id if client_obj else None,
-            "company_ids": company_ids,
-            "casting_worker_id": casting_worker_id,
-            "casting_rate": casting_rate,
-            "machining_worker_id": machining_worker_id,
-            "machining_rate": machining_rate,
-            "polishing_worker_id": polishing_worker_id,
-            "polishing_rate": polishing_rate,
-            "packing_worker_id": packing_worker_id,
-            "packing_rate": packing_rate,
-            "job_worker_id": job_worker_id,
-            "job_worker_rate": job_worker_rate
+            "notes": notes
         }
 
         validated_rows.append({
@@ -749,72 +632,9 @@ def commit_items_import(validated_rows):
                     "polishing_required": data["polishing_required"],
                     "packing_required": data["packing_required"],
                     "notes": data["notes"],
-                    "client_id": data.get("client_id"),
                     "active": True
                 }
             )
-            
-            # Set companies ManyToMany
-            company_ids = data.get("company_ids")
-            if company_ids:
-                item.companies.set(company_ids)
-            else:
-                item.companies.clear()
-                
-            # Set process rates
-            from apps.ledger_pay.models import ItemWorkerAllocation
-            ItemWorkerAllocation.objects.filter(item=item).delete()
-            
-            # Casting Allocation
-            casting_worker_id = data.get("casting_worker_id")
-            casting_rate = data.get("casting_rate", 0.0)
-            if casting_worker_id and casting_rate > 0:
-                ItemWorkerAllocation.objects.create(
-                    item=item,
-                    worker_id=casting_worker_id,
-                    rate_per_piece=casting_rate
-                )
-            
-            # Machining Allocation
-            machining_worker_id = data.get("machining_worker_id")
-            machining_rate = data.get("machining_rate", 0.0)
-            if machining_worker_id and machining_rate > 0:
-                ItemWorkerAllocation.objects.create(
-                    item=item,
-                    worker_id=machining_worker_id,
-                    rate_per_piece=machining_rate
-                )
-            
-            # Polishing Allocation
-            polishing_worker_id = data.get("polishing_worker_id")
-            polishing_rate = data.get("polishing_rate", 0.0)
-            if polishing_worker_id and polishing_rate > 0:
-                ItemWorkerAllocation.objects.create(
-                    item=item,
-                    worker_id=polishing_worker_id,
-                    rate_per_piece=polishing_rate
-                )
-            
-            # Packing Allocation
-            packing_worker_id = data.get("packing_worker_id")
-            packing_rate = data.get("packing_rate", 0.0)
-            if packing_worker_id and packing_rate > 0:
-                ItemWorkerAllocation.objects.create(
-                    item=item,
-                    worker_id=packing_worker_id,
-                    rate_per_piece=packing_rate
-                )
-            
-            # Job Worker Allocation
-            job_worker_id = data.get("job_worker_id")
-            job_worker_rate = data.get("job_worker_rate", 0.0)
-            if job_worker_id and job_worker_rate > 0:
-                ItemWorkerAllocation.objects.create(
-                    item=item,
-                    job_worker_id=job_worker_id,
-                    rate_per_piece=job_worker_rate
-                )
-
             if created:
                 created_count += 1
             else:

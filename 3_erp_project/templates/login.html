@@ -236,6 +236,13 @@
             animation: shake 0.4s ease-in-out;
         }
 
+        .alert-card.alert-warning {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+            animation: fade-in 0.4s ease-out;
+        }
+
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             20%, 60% { transform: translateX(-6px); }
@@ -269,6 +276,13 @@
             <div class="logo-title">Foundry ERP</div>
             <div class="logo-subtitle">Casting → Dispatch</div>
         </div>
+
+        {% if request.GET.reason == 'timeout' %}
+            <div class="alert-card alert-warning">
+                <span class="alert-icon">⏱️</span>
+                <span>Your session expired due to inactivity. Please sign in to resume your work.</span>
+            </div>
+        {% endif %}
 
         {% if form.errors %}
             <div class="alert-card">
@@ -309,12 +323,18 @@
                 </div>
             </div>
 
-            <input type="hidden" name="next" value="{{ next|default:'/' }}">
+            <input type="hidden" name="next" value="{{ next|default:'/select-company/' }}">
 
             <button type="submit" class="btn-submit">
                 <span>Sign In</span>
                 <span>→</span>
             </button>
+
+            <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 16px; font-size: 13px;">
+                <a href="javascript:void(0)" onclick="openEmergencyResetModal()" style="color: #818cf8; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; transition: color 0.2s;" onmouseover="this.style.color='#a5b4fc';" onmouseout="this.style.color='#818cf8';">
+                    🔑 Forgot Admin Password?
+                </a>
+            </div>
         </form>
 
         <div class="footer-note">
@@ -322,6 +342,180 @@
         </div>
 
     </div>
+
+    <!-- Admin Emergency Recovery Modal -->
+    <div id="emergencyResetModal" style="display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); align-items: center; justify-content: center; padding: 20px;">
+        <div style="width: 100%; max-width: 440px; background: rgba(17, 24, 39, 0.95); border: 1px solid rgba(255,255,255,0.12); border-radius: 24px; padding: 32px; box-shadow: 0 25px 60px rgba(0,0,0,0.8); position: relative; animation: fade-in 0.3s ease-out;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 20px;">🛡️</span>
+                        <h3 style="font-size: 18px; font-weight: 700; color: #f8fafc; font-family: 'Outfit', sans-serif;">Admin Password Recovery</h3>
+                    </div>
+                    <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Master Recovery is strictly restricted to Admin accounts.</p>
+                </div>
+                <button type="button" onclick="closeEmergencyResetModal()" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;">✕</button>
+            </div>
+
+            <div id="resetModalAlert" style="display: none; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px;"></div>
+
+            <form id="emergencyResetForm" onsubmit="submitEmergencyReset(event)">
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label class="form-label" style="font-size: 12px; margin-bottom: 6px;">Admin Username</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">👤</span>
+                        <input class="form-input" type="text" id="resetUsername" placeholder="e.g. admin" required style="padding: 11px 14px 11px 40px; font-size: 14px;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label class="form-label" style="font-size: 12px; margin-bottom: 6px;">Master Recovery Key</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔑</span>
+                        <input class="form-input" type="password" id="resetRecoveryKey" placeholder="Enter Master Recovery Key" required style="padding: 11px 40px 11px 40px; font-size: 14px;">
+                        <button type="button" onclick="togglePasswordVisibility('resetRecoveryKey', this)" style="position: absolute; right: 12px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px;">👁️</button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label class="form-label" style="font-size: 12px; margin-bottom: 6px;">New Admin Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input class="form-input" type="password" id="resetNewPassword" placeholder="Min. 6 characters" required minlength="6" style="padding: 11px 40px 11px 40px; font-size: 14px;">
+                        <button type="button" onclick="togglePasswordVisibility('resetNewPassword', this)" style="position: absolute; right: 12px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px;">👁️</button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label class="form-label" style="font-size: 12px; margin-bottom: 6px;">Confirm New Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input class="form-input" type="password" id="resetConfirmPassword" placeholder="Repeat new password" required minlength="6" style="padding: 11px 40px 11px 40px; font-size: 14px;">
+                        <button type="button" onclick="togglePasswordVisibility('resetConfirmPassword', this)" style="position: absolute; right: 12px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px;">👁️</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="closeEmergencyResetModal()" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.06); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">Cancel</button>
+                    <button type="submit" id="resetSubmitBtn" style="flex: 2; padding: 12px; background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);">Reset & Sign In →</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function syncDeviceToken() {
+            try {
+                const getCookie = (name) => {
+                    const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+                    return m ? decodeURIComponent(m[2]) : null;
+                };
+                const cookieToken = getCookie('device_token');
+                const localToken = localStorage.getItem('erp_device_token');
+
+                if (cookieToken) {
+                    localStorage.setItem('erp_device_token', cookieToken);
+                } else if (localToken) {
+                    document.cookie = `device_token=${encodeURIComponent(localToken)}; path=/; max-age=31536000; SameSite=Lax`;
+                }
+            } catch(e) {}
+        })();
+
+        function openEmergencyResetModal() {
+            const modal = document.getElementById('emergencyResetModal');
+            modal.style.display = 'flex';
+            document.getElementById('resetModalAlert').style.display = 'none';
+            const currentU = document.getElementById('username').value;
+            if (currentU) document.getElementById('resetUsername').value = currentU;
+        }
+
+        function closeEmergencyResetModal() {
+            document.getElementById('emergencyResetModal').style.display = 'none';
+            document.getElementById('emergencyResetForm').reset();
+        }
+
+        function togglePasswordVisibility(fieldId, btn) {
+            const input = document.getElementById(fieldId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+            }
+        }
+
+        function getCsrfToken() {
+            const match = document.cookie.match(/csrftoken=([^;]+)/);
+            return match ? match[1] : '';
+        }
+
+        async function submitEmergencyReset(e) {
+            e.preventDefault();
+            const btn = document.getElementById('resetSubmitBtn');
+            const alertBox = document.getElementById('resetModalAlert');
+            const username = document.getElementById('resetUsername').value.trim();
+            const recovery_key = document.getElementById('resetRecoveryKey').value.trim();
+            const new_password = document.getElementById('resetNewPassword').value.trim();
+            const confirm_password = document.getElementById('resetConfirmPassword').value.trim();
+
+            if (new_password !== confirm_password) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                alertBox.style.color = '#f87171';
+                alertBox.textContent = 'New password and confirmation do not match.';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+
+            try {
+                const res = await fetch('{% url "admin_emergency_reset_api" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        recovery_key: recovery_key,
+                        new_password: new_password,
+                        confirm_password: confirm_password
+                    })
+                });
+
+                const data = await res.json();
+                alertBox.style.display = 'block';
+
+                if (res.ok && data.status === 'success') {
+                    alertBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    alertBox.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+                    alertBox.style.color = '#34d399';
+                    alertBox.textContent = data.message || 'Password reset successfully! Redirecting...';
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url || '/select-company/';
+                    }, 1200);
+                } else {
+                    alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    alertBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                    alertBox.style.color = '#f87171';
+                    alertBox.textContent = data.error || 'Failed to reset password.';
+                    btn.disabled = false;
+                    btn.textContent = 'Reset & Sign In →';
+                }
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                alertBox.style.color = '#f87171';
+                alertBox.textContent = 'Connection error. Please try again.';
+                btn.disabled = false;
+                btn.textContent = 'Reset & Sign In →';
+            }
+        }
+    </script>
 
 </body>
 </html>

@@ -2578,328 +2578,239 @@
 <!-- ===================================== -->
 <!-- 5. SYSTEM MAINTENANCE SECTION -->
 <!-- ===================================== -->
+<!-- 5. STREAMLINED SYSTEM MAINTENANCE & DATA PROTECTION HUB -->
+<!-- ===================================== -->
 <div id="section-maintenance" class="main-section" style="display: none; margin-top: 20px;">
-    <div style="display: flex; flex-direction: column; gap: 30px;">
-        <!-- PILLAR 4: LIVE AUTOMATED MAINTENANCE MONITOR -->
-        <div class="card" style="background: linear-gradient(135deg, rgba(31, 41, 55, 0.4) 0%, rgba(17, 24, 39, 0.6) 100%); border-color: rgba(255, 255, 255, 0.08); padding: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; border-bottom: 1px solid var(--border-soft); padding-bottom: 20px; margin-bottom: 20px;">
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- TOP BANNER: SYSTEM STATUS & HEALTH OVERVIEW -->
+        <div class="card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(255, 255, 255, 0.08); padding: 24px 28px; border-radius: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div>
-                    <h3 style="font-size: 20px; color: var(--text-primary); margin: 0 0 6px 0; display: flex; align-items: center; gap: 8px;">
-                        🛠️ System Maintenance Health Monitor
+                    <h3 style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 0 0 6px 0; display: flex; align-items: center; gap: 10px;">
+                        🛠️ System Maintenance & Data Protection
                     </h3>
-                    <p style="font-size: 14px; color: var(--text-secondary); margin: 0;">
-                        Real-time safety guardrail evaluations and automated scheduler timeline tracking.
+                    <p style="font-size: 13.5px; color: #94a3b8; margin: 0;">
+                        1-click offline backups, disaster recovery, year-end data archiving with opening balance carry-forward, and server health tools.
                     </p>
                 </div>
-                <div>
-                    {% if is_clear %}
-                        <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3); display: inline-flex; align-items: center; gap: 6px;">
-                            <span style="display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
-                            🟢 System Safe-To-Purge: READY
-                        </span>
-                    {% else %}
-                        <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1px solid rgba(239, 68, 68, 0.3); display: inline-flex; align-items: center; gap: 6px;">
-                            <span style="display: inline-block; width: 8px; height: 8px; background: #f87171; border-radius: 50%;"></span>
-                            🔴 System Safe-To-Purge: BLOCKED
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
-                <!-- Scheduler status cards -->
-                <div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-soft); padding: 16px; border-radius: 12px;">
-                            <h4 style="margin: 0 0 10px 0; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                                📦 Auto-Backup Status
-                            </h4>
-                            <div style="font-size: 20px; font-weight: 700; color: {% if maintenance_settings.auto_backup_enabled %}#60a5fa{% else %}var(--text-secondary){% endif %}; margin-bottom: 8px;">
-                                {% if maintenance_settings.auto_backup_enabled %}Active ({{ maintenance_settings.get_auto_backup_frequency_display }}){% else %}Disabled{% endif %}
-                            </div>
-                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                                Last Run: {% if maintenance_settings.last_backup_run %}{{ maintenance_settings.last_backup_run|date:"M d, Y H:i" }}{% else %}Never{% endif %}
-                            </p>
-                        </div>
-
-                        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-soft); padding: 16px; border-radius: 12px;">
-                            <h4 style="margin: 0 0 10px 0; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                                🧹 Auto-Delete Status
-                            </h4>
-                            <div style="font-size: 20px; font-weight: 700; color: {% if maintenance_settings.auto_delete_enabled %}#fb923c{% else %}var(--text-secondary){% endif %}; margin-bottom: 8px;">
-                                {% if maintenance_settings.auto_delete_enabled %}Active ({{ maintenance_settings.get_auto_delete_frequency_display }}){% else %}Disabled{% endif %}
-                            </div>
-                            <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                                Last Run: {% if maintenance_settings.last_delete_run %}{{ maintenance_settings.last_delete_run|date:"M d, Y H:i" }}{% else %}Never{% endif %}
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Live dry run results panel, initially hidden -->
-                    <div id="dryRunResults" style="display: none; margin-top: 20px; background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius: 12px; padding: 20px;">
-                        <h4 style="margin: 0 0 15px 0; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                            📊 Safety Audit & Dry-Run Report
-                        </h4>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                            <div style="border-left: 3px solid #60a5fa; padding-left: 12px;">
-                                <div style="font-size: 12px; color: var(--text-secondary);">Cut-off Boundary Date</div>
-                                <div id="dryRunCutOff" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-top: 4px;">-</div>
-                            </div>
-                            <div style="border-left: 3px solid #10b981; padding-left: 12px;">
-                                <div style="font-size: 12px; color: var(--text-secondary);">Estimated Records to Purge</div>
-                                <div id="dryRunRecords" style="font-size: 16px; font-weight: 600; color: #10b981; margin-top: 4px;">0 records</div>
-                            </div>
-                        </div>
-
-                        <div id="dryRunBlockersAlert" style="display: none; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 12px; margin-top: 15px;">
-                            <h5 style="margin: 0 0 8px 0; font-size: 13px; color: #f87171; display: flex; align-items: center; gap: 6px;">
-                                ⚠️ Active Operational Blockers Present:
-                            </h5>
-                            <ul id="dryRunBlockersList" style="margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
-                                <!-- Dynamic blocker items -->
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Simulator button -->
-                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border-left: 1px solid var(--border-soft); padding-left: 20px;">
-                    <span style="font-size: 40px; display: block; margin-bottom: 12px; opacity: 0.8;">🔍</span>
-                    <h4 style="margin: 0 0 6px 0; font-size: 15px; color: var(--text-primary);">Audit Simulator</h4>
-                    <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.4;">
-                        Run a dry-run check to verify liabilities and preview records scheduled for deletion.
-                    </p>
-                    <button type="button" onclick="triggerSafetyDryRun()" id="dryRunBtn" style="background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent-blue); color: #60a5fa; padding: 10px 20px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;">
-                        🔍 Simulate Safety Audit
-                    </button>
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 800; border: 1px solid rgba(16, 185, 129, 0.3); display: inline-flex; align-items: center; gap: 8px;">
+                        <span style="display: inline-block; width: 8px; height: 8px; background: #34d399; border-radius: 50%; box-shadow: 0 0 8px #34d399;"></span>
+                        🟢 Storage Engine: Optimized (WAL Mode)
+                    </span>
+                    <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 800; border: 1px solid rgba(59, 130, 246, 0.3); display: inline-flex; align-items: center; gap: 8px;">
+                        📦 Auto-Backup: {% if maintenance_settings.auto_backup_enabled %}Active ({{ maintenance_settings.get_auto_backup_frequency_display }}){% else %}Manual Only{% endif %}
+                    </span>
                 </div>
             </div>
         </div>
 
-        <!-- MAIN 3-PANEL DATABASE MAINTENANCE SECTION -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
-            <!-- PANEL A: AUTOMATED SCHEDULES SETTINGS -->
-            <div class="card" style="padding: 30px;">
-                <h3 style="font-size: 17px; margin-bottom: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                    ⚙️ Schedule Settings
-                </h3>
-                <form action="{% url 'save_maintenance_settings' %}" method="POST">
-                    {% csrf_token %}
-                    
-                    <!-- Auto Backup Config Card -->
-                    <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <span style="font-weight: 600; font-size: 14px; color: var(--text-primary);">📥 Auto-Backup Settings</span>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <span id="autoBackupStateText" style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); transition: all 0.2s;">OFF</span>
-                                <label style="position: relative; display: inline-block; width: 44px; height: 22px; flex-shrink: 0;">
-                                    <input type="checkbox" name="auto_backup_enabled" {% if maintenance_settings.auto_backup_enabled %}checked{% endif %} style="opacity: 0; width: 0; height: 0;" id="autoBackupToggle" onchange="toggleBackupOptions(); updateToggleTextIndicators();">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                        <div id="backupOptions" style="display: {% if maintenance_settings.auto_backup_enabled %}block{% else %}none{% endif %};">
-                            <div style="margin-bottom: 12px;">
-                                <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">Backup Frequency</label>
-                                <select name="auto_backup_frequency" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); border-radius: 8px; color: white;">
-                                    <option value="daily" {% if maintenance_settings.auto_backup_frequency == 'daily' %}selected{% endif %}>Daily</option>
-                                    <option value="weekly" {% if maintenance_settings.auto_backup_frequency == 'weekly' %}selected{% endif %}>Weekly</option>
-                                    <option value="monthly" {% if maintenance_settings.auto_backup_frequency == 'monthly' %}selected{% endif %}>Monthly</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">Backup Retention Policy</label>
-                                <select name="backup_retention_count" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); border-radius: 8px; color: white;">
-                                    <option value="5" {% if maintenance_settings.backup_retention_count == 5 %}selected{% endif %}>Keep last 5 backups</option>
-                                    <option value="10" {% if maintenance_settings.backup_retention_count == 10 %}selected{% endif %}>Keep last 10 backups</option>
-                                    <option value="20" {% if maintenance_settings.backup_retention_count == 20 %}selected{% endif %}>Keep last 20 backups</option>
-                                </select>
-                            </div>
-                        </div>
+        <!-- 4-PILLAR CORE DATA MANAGEMENT GRID -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+            
+            <!-- PILLAR 1: 1-CLICK BACKUP HUB -->
+            <div class="card" style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding-bottom: 12px;">
+                        <h3 style="font-size: 17px; font-weight: 800; color: #f8fafc; margin: 0; display: flex; align-items: center; gap: 8px;">
+                            📦 1. Download Backup
+                        </h3>
+                        <span style="font-size: 11px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 800; padding: 3px 8px; border-radius: 6px;">Zero Risk</span>
                     </div>
-
-                    <!-- Auto Delete Config Card -->
-                    <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <span style="font-weight: 600; font-size: 14px; color: var(--text-primary);">🧹 Auto-Delete Settings</span>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <span id="autoDeleteStateText" style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); transition: all 0.2s;">OFF</span>
-                                <label style="position: relative; display: inline-block; width: 44px; height: 22px; flex-shrink: 0;">
-                                    <input type="checkbox" name="auto_delete_enabled" {% if maintenance_settings.auto_delete_enabled %}checked{% endif %} style="opacity: 0; width: 0; height: 0;" id="autoDeleteToggle" onchange="toggleDeleteOptions(); updateToggleTextIndicators();">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                        <div id="deleteOptions" style="display: {% if maintenance_settings.auto_delete_enabled %}block{% else %}none{% endif %};">
-                            <div>
-                                <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">Delete Frequency (Cut-off Boundary)</label>
-                                <select name="auto_delete_frequency" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); border-radius: 8px; color: white;">
-                                    <option value="4_months" {% if maintenance_settings.auto_delete_frequency == '4_months' %}selected{% endif %}>Older than 4 Months</option>
-                                    <option value="6_months" {% if maintenance_settings.auto_delete_frequency == '6_months' %}selected{% endif %}>Older than 6 Months</option>
-                                    <option value="1_year" {% if maintenance_settings.auto_delete_frequency == '1_year' %}selected{% endif %}>Older than 1 Year</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button type="submit" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent-blue); color: #60a5fa; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 10px; cursor: pointer; transition: all 0.2s;">
-                        💾 Save Scheduler Settings
-                    </button>
-                </form>
-            </div>
-
-            <!-- PANEL B: MANUAL SNAPSHOTS & RESTORE -->
-            <div class="card" style="padding: 30px;">
-                <h3 style="font-size: 17px; margin-bottom: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                    📥 Manual Backups & Restore
-                </h3>
-                
-                <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center;">
-                    <p style="font-size: 13px; color: var(--text-secondary); margin-top: 0; margin-bottom: 14px; line-height: 1.4;">
-                        Download a full snapshot including database entries and the uploaded media folder.
+                    <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 20px;">
+                        Download a full snapshot of your ERP database directly to your PC/phone in 1 click. Recommended before making large updates.
                     </p>
-                    <a href="{% url 'export_database_backup' %}" style="text-decoration: none;">
-                        <button type="button" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-soft); color: var(--text-primary); padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
-                            📥 Download JSON + Media ZIP
-                        </button>
-                    </a>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                        <a href="{% url 'export_database_backup' %}?format=sqlite" style="text-decoration: none;">
+                            <button type="button" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 13px; border-radius: 10px; font-weight: 800; font-size: 14px; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); transition: all 0.2s;">
+                                💾 Download .sqlite3 DB (Instant)
+                            </button>
+                        </a>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <a href="{% url 'export_database_backup' %}?format=zip" style="text-decoration: none;">
+                                <button type="button" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 12.5px; cursor: pointer;">
+                                    📦 Full ZIP (+Media)
+                                </button>
+                            </a>
+                            <a href="{% url 'export_database_backup' %}?format=json" style="text-decoration: none;">
+                                <button type="button" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 12.5px; cursor: pointer;">
+                                    📄 Export JSON
+                                </button>
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
-                <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px;">
-                    <h4 style="margin: 0 0 10px 0; font-size: 13px; color: var(--text-primary);">Restore From Snapshot File</h4>
-                    <form action="{% url 'import_database_backup' %}" method="POST" enctype="multipart/form-data">
+                <!-- Auto-Backup Scheduler Config Sub-panel -->
+                <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 14px; margin-top: 10px;">
+                    <form action="{% url 'save_maintenance_settings' %}" method="POST" style="margin: 0;">
                         {% csrf_token %}
-                        <div class="upload-zone" onclick="document.getElementById('backupFileInputMaster').click()" style="padding: 16px 10px; margin-bottom: 12px; border-radius: 10px;">
-                            <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Click to select JSON backup</span>
-                            <input type="file" name="backup_file" id="backupFileInputMaster" accept=".json" style="display: none;" onchange="onBackupFileSelectedMaster()">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 12px; font-weight: 700; color: #cbd5e1;">⏰ Automated Schedule</span>
+                            <label style="position: relative; display: inline-block; width: 38px; height: 20px; flex-shrink: 0;">
+                                <input type="checkbox" name="auto_backup_enabled" {% if maintenance_settings.auto_backup_enabled %}checked{% endif %} style="opacity: 0; width: 0; height: 0;" onchange="this.form.submit()">
+                                <span class="toggle-slider"></span>
+                            </label>
                         </div>
-                        <div id="backupFileSelectedInfoMaster" style="margin-top: 8px; margin-bottom: 12px; display: none; font-size: 11px; color: var(--text-primary); text-align: center; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 6px; border: 1px solid var(--border-soft);">
-                            Selected: <strong id="backupFilenameMaster">backup.json</strong>
+                        <div style="font-size: 11px; color: #64748b;">
+                            Last Run: {% if maintenance_settings.last_backup_run %}{{ maintenance_settings.last_backup_run|date:"M d, Y H:i" }}{% else %}Ready{% endif %}
                         </div>
-                        <button type="submit" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--success-green); color: white; padding: 12px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; border-radius: 10px;">
-                            🚀 Start Restoration
+                    </form>
+                </div>
+            </div>
+
+            <!-- PILLAR 2: 1-CLICK RESTORE & DISASTER RECOVERY -->
+            <div class="card" style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding-bottom: 12px;">
+                        <h3 style="font-size: 17px; font-weight: 800; color: #f8fafc; margin: 0; display: flex; align-items: center; gap: 8px;">
+                            🔄 2. Restore Database
+                        </h3>
+                        <span style="font-size: 11px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-weight: 800; padding: 3px 8px; border-radius: 6px;">Auto-Snapshot</span>
+                    </div>
+                    <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 16px;">
+                        Restore your system from any `.sqlite3` or `.json` backup file. A pre-restore safety snapshot is automatically created before applying.
+                    </p>
+
+                    <form action="{% url 'import_database_backup' %}" method="POST" enctype="multipart/form-data" onsubmit="return confirmRestoreSubmit()">
+                        {% csrf_token %}
+                        <div class="upload-zone" onclick="document.getElementById('backupFileInputMaster').click()" style="padding: 20px 12px; margin-bottom: 14px; border-radius: 10px; border: 2px dashed rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.02); text-align: center; cursor: pointer;">
+                            <span style="font-size: 24px; display: block; margin-bottom: 6px;">📤</span>
+                            <span style="font-size: 13px; font-weight: 700; color: #93c5fd; display: block;">Click to choose .sqlite3 or .json</span>
+                            <span style="font-size: 11px; color: #64748b;">Supports direct database upload</span>
+                            <input type="file" name="backup_file" id="backupFileInputMaster" accept=".sqlite3,.db,.json" style="display: none;" onchange="onBackupFileSelectedMaster()">
+                        </div>
+
+                        <div id="backupFileSelectedInfoMaster" style="margin-bottom: 14px; display: none; font-size: 12px; color: #34d399; text-align: center; background: rgba(16, 185, 129, 0.08); padding: 8px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                            Ready to restore: <strong id="backupFilenameMaster">backup.sqlite3</strong>
+                        </div>
+
+                        <button type="submit" id="restoreSubmitBtn" disabled style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; padding: 12px; font-size: 14px; font-weight: 800; cursor: not-allowed; border-radius: 10px; transition: all 0.2s;">
+                            🚀 Upload & Restore Database
                         </button>
                     </form>
                 </div>
             </div>
 
-            <!-- PANEL C: DANGEROUS AREA (FACTORY RESET) -->
-            <div class="card" style="border: 1px solid rgba(239, 68, 68, 0.2); background: linear-gradient(180deg, rgba(239, 68, 68, 0.01) 0%, rgba(0,0,0,0) 100%); padding: 30px;">
-                <h3 style="font-size: 17px; margin-bottom: 16px; color: #f87171; display: flex; align-items: center; gap: 8px;">
-                    ⚠️ Dangerous: Factory Reset
-                </h3>
-                
-                <form action="{% url 'factory_reset_database' %}" method="POST" onsubmit="return confirmFactoryResetSubmit()">
-                    {% csrf_token %}
-                    
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 12px; color: var(--text-primary); background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding: 10px; border-radius: 8px; user-select: none;">
-                            <input type="checkbox" id="confirmDeleteData" onchange="validateResetForm()" style="width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; accent-color: var(--error-red);">
-                            <span>Permanently delete all data.</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 12px; color: var(--text-primary); background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding: 10px; border-radius: 8px; user-select: none;">
-                            <input type="checkbox" id="confirmBackupDownloaded" onchange="validateResetForm()" style="width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; accent-color: var(--error-red);">
-                            <span>I have downloaded a backup JSON first.</span>
-                        </label>
+            <!-- PILLAR 3: HISTORICAL ARCHIVE & YEAR-END PURGE -->
+            <div class="card" style="background: #111827; border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding-bottom: 12px;">
+                        <h3 style="font-size: 17px; font-weight: 800; color: #fb923c; margin: 0; display: flex; align-items: center; gap: 8px;">
+                            📁 3. Archive & Year-End Purge
+                        </h3>
+                        <span style="font-size: 11px; background: rgba(245, 158, 11, 0.15); color: #fb923c; font-weight: 800; padding: 3px 8px; border-radius: 6px;">Opening Balances</span>
+                    </div>
+                    <p style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 16px;">
+                        Downloads an offline archive file to your PC, automatically carries forward <strong>Opening Stock Balances</strong> & worker dues, and cleans old history so your server stays lightweight.
+                    </p>
+
+                    <form action="{% url 'archive_and_purge_historical_data' %}" method="POST" onsubmit="return confirmArchiveSubmit()">
+                        {% csrf_token %}
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">Archive Records Prior To Date:</label>
+                            <input type="date" name="cut_off_date" id="archiveCutoffDate" required style="width: 100%; padding: 10px 12px; background: #0d1117; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: white; font-size: 13.5px; font-family: inherit; font-weight: 700; outline: none;">
+                        </div>
+
+                        <div style="margin-bottom: 14px;">
+                            <input type="text" id="confirmArchiveText" name="confirm_text" oninput="validateArchiveForm()" placeholder="Type ARCHIVE DATA" style="width: 100%; padding: 10px 12px; background: #0d1117; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: white; font-size: 13px; text-transform: uppercase; outline: none;">
+                        </div>
+
+                        <button type="submit" id="archiveSubmitBtn" disabled style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: #fb923c; padding: 12px; font-size: 13.5px; font-weight: 800; cursor: not-allowed; border-radius: 10px; transition: all 0.2s;">
+                            📥 Download Archive & Clean Server
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- PILLAR 4: FRESH SEASON & RESET TOOLS -->
+            <div class="card" style="background: #111827; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding-bottom: 12px;">
+                        <h3 style="font-size: 17px; font-weight: 800; color: #f87171; margin: 0; display: flex; align-items: center; gap: 8px;">
+                            🧹 4. Fresh Season & Reset
+                        </h3>
+                        <span style="font-size: 11px; background: rgba(239, 68, 68, 0.15); color: #f87171; font-weight: 800; padding: 3px 8px; border-radius: 6px;">Protected</span>
                     </div>
 
-                    <div style="margin-bottom: 16px;">
-                        <input type="text" id="confirmResetText" oninput="validateResetForm()" placeholder="Type FACTORY RESET" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius: 8px; color: white; font-size: 13px; text-transform: uppercase;">
+                    <!-- Option A: Clear Test Operations (Keep Master Catalogs) -->
+                    <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+                        <h4 style="font-size: 13.5px; font-weight: 700; color: #f8fafc; margin: 0 0 4px 0;">⚡ Fresh Season: Clear Test Data</h4>
+                        <p style="font-size: 11.5px; color: #94a3b8; margin: 0 0 10px 0; line-height: 1.4;">
+                            Clears test operational entries (Casting, Machining, Polishing, Attendance, Payments). <strong>Master Items, Clients, Workers & Rates are preserved.</strong>
+                        </p>
+                        <form action="{% url 'clear_test_operational_data' %}" method="POST" onsubmit="return confirmClearOperationsSubmit()">
+                            {% csrf_token %}
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="confirmClearOpsText" name="confirm_text" oninput="validateClearOpsForm()" placeholder="Type CLEAR OPERATIONAL DATA" style="flex: 1; padding: 8px 10px; background: #0d1117; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: white; font-size: 11.5px; text-transform: uppercase; outline: none;">
+                                <button type="submit" id="clearOpsSubmitBtn" disabled style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fb923c; padding: 8px 14px; font-size: 12px; font-weight: 800; cursor: not-allowed; border-radius: 6px; white-space: nowrap;">
+                                    Clear Ops
+                                </button>
+                            </div>
+                        </form>
                     </div>
 
-                    <button type="submit" id="factoryResetSubmitBtn" disabled style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 12px; font-size: 14px; font-weight: 600; cursor: not-allowed; border-radius: 10px; transition: all 0.2s;">
-                        ⚠️ Wipe Database Data
-                    </button>
-                </form>
+                    <!-- Option B: Factory Reset -->
+                    <div style="background: rgba(239, 68, 68, 0.03); border: 1px solid rgba(239, 68, 68, 0.15); border-radius: 10px; padding: 14px;">
+                        <h4 style="font-size: 13.5px; font-weight: 700; color: #f87171; margin: 0 0 4px 0;">⚠️ Complete Factory Reset</h4>
+                        <p style="font-size: 11.5px; color: #94a3b8; margin: 0 0 10px 0; line-height: 1.4;">
+                            Permanently wipes all catalogs and logs back to blank.
+                        </p>
+                        <form action="{% url 'factory_reset_database' %}" method="POST" onsubmit="return confirmFactoryResetSubmit()">
+                            {% csrf_token %}
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="confirmResetText" name="confirm_text" oninput="validateResetForm()" placeholder="Type FACTORY RESET" style="flex: 1; padding: 8px 10px; background: #0d1117; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; color: white; font-size: 11.5px; text-transform: uppercase; outline: none;">
+                                <button type="submit" id="factoryResetSubmitBtn" disabled style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 8px 14px; font-size: 12px; font-weight: 800; cursor: not-allowed; border-radius: 6px; white-space: nowrap;">
+                                    Wipe DB
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- PILLAR 5: TRIAL & ERROR SELECTIVE PURGE HUB -->
-        <div class="card" style="border: 1px solid rgba(245, 158, 11, 0.2); background: linear-gradient(180deg, rgba(245, 158, 11, 0.02) 0%, rgba(0,0,0,0) 100%); padding: 30px; margin-top: 10px;">
-            <h3 style="font-size: 17px; margin-bottom: 8px; color: #fb923c; display: flex; align-items: center; gap: 8px; margin-top: 0;">
-                ⚡ Trial &amp; Error Selective Data Purge
-            </h3>
-            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.4;">
-                Reset specific production steps or operational history while preserving your setup master databases (Items, Clients, and Employees/Workers). Perfect for initial dry-runs and development testing.
-            </p>
+        <!-- PILLAR 5: IMMUTABLE AUDIT TRAIL LOGS FEED -->
+        <div class="card" style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding-bottom: 12px;">
+                <h3 style="font-size: 17px; font-weight: 800; color: #f8fafc; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    📜 Maintenance Audit Trail
+                </h3>
+                <span style="font-size: 12px; color: #64748b;">Chronological Security Logs</span>
+            </div>
             
-            <form action="{% url 'purge_selective_data' %}" method="POST" onsubmit="return confirmPurgeSubmit()">
-                {% csrf_token %}
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
-                    <!-- LEFT COLUMN: Select Purge Mode -->
-                    <div style="display: flex; flex-direction: column; gap: 15px;">
-                        <div>
-                            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; letter-spacing: 0.5px; text-transform: uppercase;">1. Select What To Delete</label>
-                            <select name="purge_type" id="purgeTypeSelect" style="width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); border-radius: 8px; color: white; font-size: 14px;">
-                                <option value="all_operational">All Operations &amp; HR Ledger Data (Wipe Everything except Master Catalogs)</option>
-                                <option value="casting_only">Casting Entries Only (Delete Stock Heats &amp; Casting Stock)</option>
-                                <option value="machining_only">Machining Entries Only (Delete Machining WIP &amp; Issues)</option>
-                                <option value="polishing_only">Polishing Entries Only (Delete Polishing WIP &amp; Stock)</option>
-                                <option value="packaging_only">Packaging &amp; Carton Entries Only (Delete Carton Packs &amp; Boxes)</option>
-                                <option value="sales_logistics_only">Sales Orders &amp; Dispatches Only (Delete Client Orders &amp; Challans)</option>
-                                <option value="hr_only">Attendance, Payments &amp; Loans Only (Delete employee balances but keep profiles)</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- RIGHT COLUMN: Safety Confirmation -->
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; letter-spacing: 0.5px; text-transform: uppercase;">2. Confirm Security Verification</label>
-                        
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 12px; color: var(--text-primary); background: rgba(255,255,255,0.01); border: 1px solid var(--border-soft); padding: 10px; border-radius: 8px; user-select: none;">
-                            <input type="checkbox" id="confirmPurgeUnderstand" onchange="validatePurgeForm()" style="width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; accent-color: #fb923c;">
-                            <span>I understand this will permanently delete logs for the selected area.</span>
-                        </label>
-                        
-                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
-                            <input type="text" id="confirmPurgeText" name="confirm_text" oninput="validatePurgeForm()" placeholder="Type PURGE DATA" style="flex: 1; padding: 11px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius: 8px; color: white; font-size: 13px; text-transform: uppercase; outline: none;">
-                            <button type="submit" id="purgeSubmitBtn" disabled style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: #fb923c; padding: 11px 24px; font-size: 13px; font-weight: 700; cursor: not-allowed; border-radius: 8px; transition: all 0.2s; white-space: nowrap;">
-                                💥 Execute Purge
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <!-- PILLAR 3: IMMUTABLE AUDIT TRAIL LOGS FEED -->
-        <div class="card" style="padding: 30px;">
-            <h3 style="font-size: 17px; margin-bottom: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-                📜 Immutable Maintenance Audit Trail
-            </h3>
-            
-            <div style="max-height: 350px; overflow-y: auto;">
+            <div style="max-height: 300px; overflow-y: auto;">
                 {% if maintenance_logs %}
                     <div class="table-responsive">
-                        <table class="table" style="font-size: 13px;">
+                        <table class="table" style="font-size: 13px; width: 100%; border-collapse: collapse;">
                             <thead>
-                                <tr>
-                                    <th style="width: 150px; text-align: left;">Timestamp</th>
-                                    <th style="width: 150px; text-align: left;">Event Type</th>
-                                    <th style="width: 100px; text-align: left;">Status</th>
-                                    <th style="text-align: left;">Logs & Trail Message</th>
+                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); text-align: left;">
+                                    <th style="padding: 10px 12px; color: #94a3b8; font-weight: 800; width: 180px;">Timestamp</th>
+                                    <th style="padding: 10px 12px; color: #94a3b8; font-weight: 800; width: 140px;">Event Type</th>
+                                    <th style="padding: 10px 12px; color: #94a3b8; font-weight: 800; width: 100px;">Status</th>
+                                    <th style="padding: 10px 12px; color: #94a3b8; font-weight: 800;">Log Message &amp; Summary</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for log in maintenance_logs %}
-                                    <tr>
-                                        <td style="color: var(--text-secondary); font-weight: 600;">{{ log.timestamp|date:"M d, Y H:i:s" }}</td>
-                                        <td style="font-weight: 600;">{{ log.get_event_type_display }}</td>
-                                        <td>
+                                    <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                                        <td style="padding: 10px 12px; color: #94a3b8; font-weight: 600;">{{ log.timestamp|date:"M d, Y H:i:s" }}</td>
+                                        <td style="padding: 10px 12px; font-weight: 700; color: #f1f5f9;">{{ log.get_event_type_display }}</td>
+                                        <td style="padding: 10px 12px;">
                                             {% if log.status == 'success' %}
-                                                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">Success</span>
+                                                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 4px;">Success</span>
                                             {% elif log.status == 'skipped' %}
-                                                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-weight: 700;">Skipped</span>
+                                                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fb923c; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 4px;">Skipped</span>
                                             {% else %}
-                                                <span class="badge badge-error" style="font-weight: 700;">Failed</span>
+                                                <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 4px;">Failed</span>
                                             {% endif %}
                                         </td>
-                                        <td style="line-height: 1.4;">
-                                            <div style="font-weight: 600; color: var(--text-primary);">{{ log.message }}</div>
+                                        <td style="padding: 10px 12px; line-height: 1.4;">
+                                            <div style="font-weight: 600; color: #f8fafc;">{{ log.message }}</div>
                                             {% if log.details %}
-                                                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; white-space: pre-line; background: rgba(0,0,0,0.15); padding: 8px; border-radius: 6px; border: 1px solid var(--border-soft);">{{ log.details }}</div>
+                                                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px; white-space: pre-line; background: rgba(0,0,0,0.25); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">{{ log.details }}</div>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -2908,9 +2819,9 @@
                         </table>
                     </div>
                 {% else %}
-                    <div style="text-align: center; padding: 40px 20px;">
-                        <span style="font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.3;">📜</span>
-                        <p style="font-size: 13px; color: var(--text-secondary);">No maintenance log entries recorded yet.</p>
+                    <div style="text-align: center; padding: 30px 20px;">
+                        <span style="font-size: 28px; display: block; margin-bottom: 8px; opacity: 0.4;">📜</span>
+                        <p style="font-size: 13px; color: #64748b; margin: 0;">No maintenance logs recorded yet.</p>
                     </div>
                 {% endif %}
             </div>
@@ -3703,104 +3614,51 @@
         };
     }
 
-    // --- SYSTEM MAINTENANCE HANDLERS ---
+    // --- STREAMLINED SYSTEM MAINTENANCE HANDLERS ---
     function onBackupFileSelectedMaster() {
         const input = document.getElementById('backupFileInputMaster');
         const infoDiv = document.getElementById('backupFileSelectedInfoMaster');
         const filenameSpan = document.getElementById('backupFilenameMaster');
+        const restoreBtn = document.getElementById('restoreSubmitBtn');
         
         if (input.files && input.files[0]) {
-            filenameSpan.textContent = input.files[0].name;
+            const file = input.files[0];
+            filenameSpan.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
             infoDiv.style.display = 'block';
-        }
-    }
-
-    function toggleBackupOptions() {
-        const toggle = document.getElementById('autoBackupToggle');
-        const opts = document.getElementById('backupOptions');
-        if (opts && toggle) {
-            opts.style.display = toggle.checked ? 'block' : 'none';
-        }
-    }
-
-    function toggleDeleteOptions() {
-        const toggle = document.getElementById('autoDeleteToggle');
-        const opts = document.getElementById('deleteOptions');
-        if (opts && toggle) {
-            opts.style.display = toggle.checked ? 'block' : 'none';
-        }
-    }
-
-    function updateToggleTextIndicators() {
-        const backupToggle = document.getElementById('autoBackupToggle');
-        const backupText = document.getElementById('autoBackupStateText');
-        if (backupToggle && backupText) {
-            if (backupToggle.checked) {
-                backupText.textContent = "ON";
-                backupText.style.color = "#10b981";
-            } else {
-                backupText.textContent = "OFF";
-                backupText.style.color = "var(--text-secondary)";
-            }
-        }
-
-        const deleteToggle = document.getElementById('autoDeleteToggle');
-        const deleteText = document.getElementById('autoDeleteStateText');
-        if (deleteToggle && deleteText) {
-            if (deleteToggle.checked) {
-                deleteText.textContent = "ON";
-                deleteText.style.color = "#fb923c";
-            } else {
-                deleteText.textContent = "OFF";
-                deleteText.style.color = "var(--text-secondary)";
+            if (restoreBtn) {
+                restoreBtn.disabled = false;
+                restoreBtn.style.background = 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)';
+                restoreBtn.style.borderColor = '#3b82f6';
+                restoreBtn.style.color = '#ffffff';
+                restoreBtn.style.cursor = 'pointer';
             }
         }
     }
 
-    function validateResetForm() {
-        const check1 = document.getElementById('confirmDeleteData').checked;
-        const check2 = document.getElementById('confirmBackupDownloaded').checked;
-        const textInput = document.getElementById('confirmResetText');
-        const text = textInput.value.trim().toUpperCase();
-        const btn = document.getElementById('factoryResetSubmitBtn');
-        
-        if (check1 && check2 && text === "FACTORY RESET") {
-            btn.disabled = false;
-            btn.style.background = 'rgba(239, 68, 68, 0.2)';
-            btn.style.borderColor = 'rgba(239, 68, 68, 0.5)';
-            btn.style.color = '#f87171';
-            btn.style.cursor = 'pointer';
-        } else {
-            btn.disabled = true;
-            btn.style.background = 'rgba(239, 68, 68, 0.12)';
-            btn.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-            btn.style.color = '#f87171';
-            btn.style.cursor = 'not-allowed';
-        }
-    }
-
-    function confirmFactoryResetSubmit() {
-        const text = document.getElementById('confirmResetText').value.trim().toUpperCase();
-        if (text !== "FACTORY RESET") {
-            alert("Please type FACTORY RESET exactly to confirm.");
+    function confirmRestoreSubmit() {
+        const input = document.getElementById('backupFileInputMaster');
+        if (!input.files || !input.files[0]) {
+            alert("Please select a valid .sqlite3 or .json backup file first.");
             return false;
         }
-        return confirm("ARE YOU ABSOLUTELY SURE? All your master data, items, employee mappings, piecework entries, stock transaction tables, and logistics details will be completely wiped out. This cannot be undone.");
+        return confirm(`RESTORE DATABASE CONFIRMATION:\n\nYou are about to restore database from "${input.files[0].name}".\n\nA pre-restore safety copy of your current database will be saved automatically.\n\nDo you want to proceed?`);
     }
 
-    function validatePurgeForm() {
-        const check = document.getElementById('confirmPurgeUnderstand').checked;
-        const textInput = document.getElementById('confirmPurgeText');
-        const text = textInput.value.trim().toUpperCase();
-        const btn = document.getElementById('purgeSubmitBtn');
+    function validateArchiveForm() {
+        const textInput = document.getElementById('confirmArchiveText');
+        const dateInput = document.getElementById('archiveCutoffDate');
+        const btn = document.getElementById('archiveSubmitBtn');
         
-        if (check && text === "PURGE DATA") {
+        const isTextValid = (textInput && textInput.value.trim().toUpperCase() === "ARCHIVE DATA");
+        const isDateValid = (dateInput && dateInput.value.trim() !== "");
+
+        if (isTextValid && isDateValid && btn) {
             btn.disabled = false;
-            btn.style.background = 'rgba(245, 158, 11, 0.2)';
-            btn.style.borderColor = 'rgba(245, 158, 11, 0.5)';
-            btn.style.color = '#fb923c';
+            btn.style.background = 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)';
+            btn.style.borderColor = '#f59e0b';
+            btn.style.color = '#ffffff';
             btn.style.cursor = 'pointer';
-        } else {
+        } else if (btn) {
             btn.disabled = true;
             btn.style.background = 'rgba(245, 158, 11, 0.12)';
             btn.style.borderColor = 'rgba(245, 158, 11, 0.3)';
@@ -3809,61 +3667,76 @@
         }
     }
 
-    function confirmPurgeSubmit() {
-        const text = document.getElementById('confirmPurgeText').value.trim().toUpperCase();
-        if (text !== "PURGE DATA") {
-            alert("Please type PURGE DATA exactly to confirm.");
+    function confirmArchiveSubmit() {
+        const dateInput = document.getElementById('archiveCutoffDate');
+        const textInput = document.getElementById('confirmArchiveText');
+        if (!dateInput || !dateInput.value) {
+            alert("Please select a cut-off date.");
             return false;
         }
-        const select = document.getElementById('purgeTypeSelect');
-        const selectionText = select.options[select.selectedIndex].text;
-        return confirm(`ARE YOU ABSOLUTELY SURE? You are about to permanently wipe out the following records:\n\n--> ${selectionText}\n\nThis action cannot be undone.`);
+        if (!textInput || textInput.value.trim().toUpperCase() !== "ARCHIVE DATA") {
+            alert("Please type ARCHIVE DATA exactly to confirm.");
+            return false;
+        }
+        return confirm(`ARCHIVE & PURGE CONFIRMATION:\n\n1. All historical operational records before ${dateInput.value} will be downloaded as a backup file.\n2. Opening Stock Balances and Worker Opening Balances will be preserved.\n3. Older operational rows will be removed to keep the server fast.\n\nProceed with download and clean?`);
     }
 
-    function triggerSafetyDryRun() {
-        const btn = document.getElementById('dryRunBtn');
-        const resultsDiv = document.getElementById('dryRunResults');
-        const cutoffSpan = document.getElementById('dryRunCutOff');
-        const recordsSpan = document.getElementById('dryRunRecords');
-        const blockersAlert = document.getElementById('dryRunBlockersAlert');
-        const blockersList = document.getElementById('dryRunBlockersList');
+    function validateClearOpsForm() {
+        const textInput = document.getElementById('confirmClearOpsText');
+        const btn = document.getElementById('clearOpsSubmitBtn');
+        const text = textInput ? textInput.value.trim().toUpperCase() : "";
 
-        btn.disabled = true;
-        btn.textContent = "🔍 Auditing Database...";
-        
-        fetch("{% url 'dry_run_audit' %}")
-            .then(response => response.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.textContent = "🔍 Simulate Safety Audit";
+        if (text === "CLEAR OPERATIONAL DATA" && btn) {
+            btn.disabled = false;
+            btn.style.background = '#f59e0b';
+            btn.style.color = '#000000';
+            btn.style.borderColor = '#f59e0b';
+            btn.style.cursor = 'pointer';
+        } else if (btn) {
+            btn.disabled = true;
+            btn.style.background = 'rgba(245, 158, 11, 0.15)';
+            btn.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+            btn.style.color = '#fb923c';
+            btn.style.cursor = 'not-allowed';
+        }
+    }
 
-                if (data.success) {
-                    resultsDiv.style.display = 'block';
-                    cutoffSpan.textContent = data.cut_off_date + " (" + data.frequency_label + " cut-off)";
-                    
-                    const counts = data.counts;
-                    recordsSpan.textContent = `${counts.total} eligible records (${counts.transactions} transactions, ${counts.cartons} cartons, ${counts.payments} payments)`;
+    function confirmClearOperationsSubmit() {
+        const textInput = document.getElementById('confirmClearOpsText');
+        if (!textInput || textInput.value.trim().toUpperCase() !== "CLEAR OPERATIONAL DATA") {
+            alert("Please type CLEAR OPERATIONAL DATA exactly to confirm.");
+            return false;
+        }
+        return confirm("FRESH SEASON CONFIRMATION:\n\nThis will clear all operational logs (Casting, Machining, Polishing, Packaging, Attendance, and Payments).\n\nYour Master Items, BOMs, Clients, Workers, and Rate cards will remain 100% untouched.\n\nAre you sure you want to start a fresh season?");
+    }
 
-                    if (data.status === "blocked") {
-                        blockersAlert.style.display = 'block';
-                        blockersList.innerHTML = "";
-                        data.blockers.forEach(blocker => {
-                            const li = document.createElement('li');
-                            li.textContent = blocker;
-                            blockersList.appendChild(li);
-                        });
-                    } else {
-                        blockersAlert.style.display = 'none';
-                    }
-                } else {
-                    alert("Dry-Run Simulation Failed: " + data.error);
-                }
-            })
-            .catch(err => {
-                btn.disabled = false;
-                btn.textContent = "🔍 Simulate Safety Audit";
-                alert("Dry-Run Error: Failed to complete AJAX request.");
-            });
+    function validateResetForm() {
+        const textInput = document.getElementById('confirmResetText');
+        const btn = document.getElementById('factoryResetSubmitBtn');
+        const text = textInput ? textInput.value.trim().toUpperCase() : "";
+
+        if (text === "FACTORY RESET" && btn) {
+            btn.disabled = false;
+            btn.style.background = '#ef4444';
+            btn.style.color = '#ffffff';
+            btn.style.borderColor = '#ef4444';
+            btn.style.cursor = 'pointer';
+        } else if (btn) {
+            btn.disabled = true;
+            btn.style.background = 'rgba(239, 68, 68, 0.15)';
+            btn.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            btn.style.color = '#f87171';
+            btn.style.cursor = 'not-allowed';
+        }
+    }
+
+    function confirmFactoryResetSubmit() {
+        const textInput = document.getElementById('confirmResetText');
+        if (!textInput || textInput.value.trim().toUpperCase() !== "FACTORY RESET") {
+            alert("Please type FACTORY RESET exactly to confirm.");
+            return false;
+        }
+        return confirm("DANGER - COMPLETE FACTORY RESET:\n\nAll Master Catalogs, Items, Workers, Clients, and all historical operational logs will be permanently deleted.\n\nAre you absolutely sure?");
     }
 </script>
 

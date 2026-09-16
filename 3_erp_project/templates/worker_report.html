@@ -694,9 +694,9 @@
                 <h2 style="margin:0; font-weight:800; font-size:20px; color:var(--primary);">
                     {{ month_name }}
                     {% if is_fully_paid %}
-                    <span style="background: #10b981; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-left: 8px; text-transform: uppercase; display: inline-block;">✓ FULLY SETTLED & PAID</span>
+                    <span class="no-print" style="background: #10b981; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-left: 8px; text-transform: uppercase; display: inline-block;">✓ FULLY SETTLED & PAID</span>
                     {% elif stats.balance and stats.balance > 0 %}
-                    <span style="background: #ef4444; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-left: 8px; text-transform: uppercase; display: inline-block;">⚠️ DUE: ₹{{ stats.balance|floatformat:2 }}</span>
+                    <span class="no-print" style="background: #ef4444; color: white; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-left: 8px; text-transform: uppercase; display: inline-block;">⚠️ DUE: ₹{{ stats.balance|floatformat:2 }}</span>
                     {% endif %}
                 </h2>
                 {% if stats.loan_balance > 0 %}
@@ -934,6 +934,14 @@
                 window.location.href = `?month=${dateStr}`;
             }
         });
+        // Auto print trigger when opened with ?autoprint=1
+        if (new URLSearchParams(window.location.search).get('autoprint') === '1') {
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    window.print();
+                }, 400);
+            });
+        }
     </script>
 </body>
 </html>

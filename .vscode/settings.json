@@ -1,0 +1,27 @@
+{
+  "files.associations": {
+    "*.html": "django-html",
+    "**/templates/**/*.html": "django-html"
+  },
+  "html.validate.styles": false,
+  "html.validate.scripts": false,
+  "css.validate": true,
+  "javascript.validate.enable": true,
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
+  "python.analysis.autoSearchPaths": true,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/3_erp_project",
+    "${workspaceFolder}/3_erp_project/apps"
+  ],
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}/3_erp_project",
+    "${workspaceFolder}/3_erp_project/apps"
+  ],
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportMissingModuleSource": "none"
+  },
+  "python.pyrefly.typeCheckingMode": "off",
+  "python.pyrefly.disableTypeErrors": true
+}

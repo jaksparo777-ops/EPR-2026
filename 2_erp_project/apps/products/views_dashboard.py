@@ -35,7 +35,7 @@ def unified_dashboard(request):
         total_cartons = Carton.objects.count()
         
         # Calculate shared item flow data for the Sankey flow visualizer
-        shared_items = Item.objects.filter(companies__isnull=True).order_by('code')[:10]
+        shared_items = Item.objects.filter(company__isnull=True).order_by('code')[:10]
         flow_data = []
         
         for item in shared_items:
@@ -84,8 +84,8 @@ def unified_dashboard(request):
         
     else:
         # Compile company-specific metrics
-        private_items = Item.objects.filter(companies=active_company)
-        private_clients = Client.objects.filter(companies=active_company)
+        private_items = Item.objects.filter(company=active_company)
+        private_clients = Client.objects.filter(company=active_company)
         private_pos = ClientPO.objects.filter(legal_entity=active_company)
         
         # Local warehouse stock calculation for active company
@@ -94,11 +94,11 @@ def unified_dashboard(request):
         for wh in warehouses:
             # Simple in/out aggregation for safety
             in_qty = StockTransaction.objects.filter(
-                to_warehouse=wh, item__in=Item.objects.filter(Q(companies=active_company) | Q(companies__isnull=True))
+                to_warehouse=wh, item__in=Item.objects.filter(Q(company=active_company) | Q(company__isnull=True))
             ).aggregate(total=Sum('quantity'))['total'] or 0
             
             out_qty = StockTransaction.objects.filter(
-                from_warehouse=wh, item__in=Item.objects.filter(Q(companies=active_company) | Q(companies__isnull=True))
+                from_warehouse=wh, item__in=Item.objects.filter(Q(company=active_company) | Q(company__isnull=True))
             ).aggregate(total=Sum('quantity'))['total'] or 0
             
             balance = in_qty - out_qty

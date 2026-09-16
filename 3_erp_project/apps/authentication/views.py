@@ -1,9 +1,13 @@
+import datetime
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.db.models import Q
 from apps.master_data.models import LegalEntity
 from apps.authentication.models import CustomUser, AuthorizedDevice, SystemAuditLog, UserLiveActivity
+from apps.authentication.middleware import get_client_ip
 
 @login_required
 def select_company(request):
@@ -32,15 +36,18 @@ def select_company(request):
 
     if request.method == 'POST':
         company_id = request.POST.get('company_id')
+        next_url = request.POST.get('next') or request.GET.get('next') or 'dashboard'
+        if next_url in ('select_company', '/select-company/'):
+            next_url = 'dashboard'
         if company_id == 'global' and can_access_global:
             request.session['active_company_id'] = 'global'
-            return redirect('dashboard')
+            return redirect(next_url)
 
         if company_id and str(company_id).isdigit():
             cid = int(company_id)
             if user.can_access_company(cid):
                 request.session['active_company_id'] = cid
-                return redirect('dashboard')
+                return redirect(next_url)
 
     return render(request, 'select_company.html', {
         'companies': allowed_qs,
@@ -147,18 +154,28 @@ def user_management_view(request):
     approved_devices_count = devices_list.filter(status='APPROVED').count()
     pending_devices_count = devices_list.filter(status='PENDING').count()
     rejected_devices_count = devices_list.filter(status='REJECTED').count()
+    online_devices_count = sum(1 for d in devices_list if d.is_online)
+    offline_devices_count = total_devices_count - online_devices_count
     
     current_device_id = getattr(request, 'device', None).device_id if hasattr(request, 'device') and request.device else request.COOKIES.get('device_token', '')
     
     audit_logs_qs = SystemAuditLog.objects.all().select_related('user', 'device').order_by('-timestamp')
     live_activities_list = UserLiveActivity.objects.all().select_related('user', 'device').order_by('-last_heartbeat')[:20]
     
+    from apps.authentication.models import AdminRecoveryConfig
+    recovery_config = AdminRecoveryConfig.get_config()
+
     total_audit_logs = audit_logs_qs.count()
-    security_blocked_count = audit_logs_qs.filter(event_type__in=['SECURITY_BLOCKED', 'SECURITY_REJECTED', 'AUTH_FAILED']).count()
+    blocked_qs = audit_logs_qs.filter(event_type__in=['SECURITY_BLOCKED', 'SECURITY_REJECTED', 'AUTH_FAILED'])
+    if recovery_config.last_security_alerts_cleared_at:
+        blocked_qs = blocked_qs.filter(timestamp__gt=recovery_config.last_security_alerts_cleared_at)
+    security_blocked_count = blocked_qs.count()
     audit_logs_list = audit_logs_qs[:100]
 
     from apps.master_data.models import MaintenanceSettings
     m_settings, _ = MaintenanceSettings.objects.get_or_create(id=1)
+
+    is_master_admin = bool(request.user.is_superuser or getattr(request.user, 'role', '') == 'ADMIN')
 
     context = {
         'users_list': users,
@@ -172,6 +189,8 @@ def user_management_view(request):
         'approved_devices_count': approved_devices_count,
         'pending_devices_count': pending_devices_count,
         'rejected_devices_count': rejected_devices_count,
+        'online_devices_count': online_devices_count,
+        'offline_devices_count': offline_devices_count,
         'current_device_id': current_device_id,
         'audit_logs_list': audit_logs_list,
         'live_activities_list': live_activities_list,
@@ -180,7 +199,9 @@ def user_management_view(request):
         'now_time': timezone.now(),
         'device_security_mode': m_settings.device_security_mode,
         'security_mode_choices': MaintenanceSettings.SECURITY_MODE_CHOICES,
-        'default_permissions_json': json.dumps(get_default_permission_tree())
+        'default_permissions_json': json.dumps(get_default_permission_tree()),
+        'recovery_config': recovery_config,
+        'is_master_admin': is_master_admin,
     }
     return render(request, 'user_management.html', context)
 
@@ -200,6 +221,16 @@ def user_create_api(request):
         permissions = data.get('permissions', get_default_permission_tree())
         is_global_access = bool(data.get('is_global_access', False))
         allowed_company_ids = data.get('allowed_company_ids', [])
+        
+        try:
+            session_timeout_minutes = int(data.get('session_timeout_minutes', 60))
+        except (ValueError, TypeError):
+            session_timeout_minutes = 60
+        session_timeout_minutes = max(5, min(480, session_timeout_minutes))
+        
+        timeout_logout_mode = data.get('timeout_logout_mode', 'POPUP_WARNING')
+        if timeout_logout_mode not in ('POPUP_WARNING', 'INSTANT_LOGOUT'):
+            timeout_logout_mode = 'POPUP_WARNING'
 
         if not username or not password:
             return JsonResponse({'status': 'error', 'error': 'Username and Password are required.'}, status=400)
@@ -217,6 +248,8 @@ def user_create_api(request):
             is_global_access=is_global_access,
             can_view_financials=bool(can_view_financials),
             permissions=permissions,
+            session_timeout_minutes=session_timeout_minutes,
+            timeout_logout_mode=timeout_logout_mode,
             is_staff=True if role in ('ADMIN', 'CASTING_MGR', 'MACHINING_MGR', 'PACKAGING_MGR', 'SALES_ADMIN', 'ACCOUNTANT') else False
         )
 
@@ -252,6 +285,18 @@ def user_edit_api(request, user_id):
         if 'is_global_access' in data:
             user.is_global_access = bool(data['is_global_access'])
 
+        if 'session_timeout_minutes' in data:
+            try:
+                mins = int(data['session_timeout_minutes'])
+                user.session_timeout_minutes = max(5, min(480, mins))
+            except (ValueError, TypeError):
+                pass
+
+        if 'timeout_logout_mode' in data:
+            mode = str(data['timeout_logout_mode'])
+            if mode in ('POPUP_WARNING', 'INSTANT_LOGOUT'):
+                user.timeout_logout_mode = mode
+
         if 'permissions' in data:
             user.permissions = data['permissions']
 
@@ -281,6 +326,17 @@ def user_edit_api(request, user_id):
         return JsonResponse({'status': 'error', 'error': 'User not found.'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def session_keep_alive_api(request):
+    """
+    Refreshes the session inactivity timestamp when a user interacts or clicks 'Stay Logged In'.
+    """
+    import time
+    now = time.time()
+    request.session['last_user_activity'] = now
+    return JsonResponse({'status': 'success', 'timestamp': now, 'last_user_activity': now})
 
 @login_required
 @user_passes_test(is_admin_or_superuser)
@@ -484,6 +540,59 @@ def device_purge_stale_api(request):
 @login_required
 @user_passes_test(is_admin_or_superuser)
 @require_POST
+def device_deduplicate_api(request):
+    """
+    Cleans up redundant duplicate device records created for the same IP, OS, and Browser.
+    Also removes bot/scraper/empty user-agent records.
+    Keeps the active / approved device with the highest activity (or current device).
+    """
+    try:
+        from apps.authentication.utils import parse_user_agent_details
+        current_token = request.COOKIES.get('device_token')
+        all_devices = AuthorizedDevice.objects.all().order_by('-is_approved', '-last_used_at', '-created_at')
+        seen_keys = {}
+        deleted_ids = []
+
+        for dev in all_devices:
+            ua = dev.user_agent or ''
+            ua_meta = parse_user_agent_details(ua)
+            
+            # 1. Flag bot / scraper / empty UA records for deletion (unless it's the current session device)
+            if (ua_meta.get('is_bot') or not ua.strip() or dev.name.startswith('Computer (Unknown OS')) and dev.device_id != current_token:
+                deleted_ids.append(dev.id)
+                continue
+
+            # 2. Group by (IP, OS, Browser / Brand)
+            brand_group = dev.brand_model or ua_meta.get('brand_model') or 'Device'
+            os_group = dev.os_info or ua_meta.get('os_info') or 'OS'
+            browser_group = dev.browser_info or ua_meta.get('browser_info') or 'Browser'
+            key = (dev.last_ip or '127.0.0.1', brand_group, os_group, browser_group)
+
+            if dev.device_id == current_token:
+                if key in seen_keys:
+                    prev_id = seen_keys[key]
+                    if prev_id != dev.id and prev_id not in deleted_ids:
+                        deleted_ids.append(prev_id)
+                seen_keys[key] = dev.id
+            elif key not in seen_keys:
+                seen_keys[key] = dev.id
+            else:
+                deleted_ids.append(dev.id)
+
+        if deleted_ids:
+            AuthorizedDevice.objects.filter(id__in=deleted_ids).delete()
+
+        return JsonResponse({
+            'status': 'success',
+            'deleted_count': len(deleted_ids),
+            'message': f'Cleaned {len(deleted_ids)} duplicate/stale device records successfully.'
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+@login_required
+@user_passes_test(is_admin_or_superuser)
+@require_POST
 def device_delete_api(request, device_pk):
     try:
         device = AuthorizedDevice.objects.get(id=device_pk)
@@ -499,6 +608,72 @@ def device_delete_api(request, device_pk):
     except Exception as e:
         return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
 
+@require_POST
+def device_master_key_unlock_api(request):
+    """
+    Instantly authorizes a new device if the valid Master Admin Recovery Key is provided.
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        device_id = data.get('device_id', '').strip()
+        master_key = data.get('master_key', '').strip()
+        device_name = data.get('device_name', '').strip()
+
+        if not device_id or not master_key:
+            return JsonResponse({'status': 'error', 'error': 'Device ID and Master Recovery Key are required.'}, status=400)
+
+        from apps.authentication.models import AdminRecoveryConfig, AuthorizedDevice, SystemAuditLog
+        recovery_config = AdminRecoveryConfig.get_config()
+
+        is_locked, remaining_mins = recovery_config.is_rate_limited()
+        if is_locked:
+            return JsonResponse({
+                'status': 'error',
+                'error': f'Rate limit exceeded. Unlock is locked for {remaining_mins} more minute(s).'
+            }, status=429)
+
+        if not recovery_config.check_key(master_key):
+            recovery_config.record_failed_attempt()
+            SystemAuditLog.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                event_type='AUTH_FAILED',
+                module_name='AUTHENTICATION',
+                object_repr=f"Invalid Master Recovery Key entered for Device Unlock ({device_id}) (Attempt {recovery_config.failed_attempts}/3)",
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent_summary=request.META.get('HTTP_USER_AGENT', '')[:250]
+            )
+            return JsonResponse({'status': 'error', 'error': 'Invalid Master Recovery Key.'}, status=403)
+
+        device_obj, _ = AuthorizedDevice.objects.get_or_create(device_id=device_id)
+        device_obj.is_approved = True
+        device_obj.status = 'APPROVED'
+        if device_name:
+            device_obj.name = device_name
+        if request.user.is_authenticated:
+            device_obj.approved_by = request.user
+        device_obj.approved_at = timezone.now()
+        device_obj.save()
+
+        recovery_config.record_successful_reset()
+
+        SystemAuditLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            event_type='UPDATE',
+            module_name='Authorized Device',
+            object_repr=f"Device {device_obj.name or device_id} instantly authorized via Master Recovery Key",
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent_summary=request.META.get('HTTP_USER_AGENT', '')[:250]
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Device authorized successfully!'
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+
 @login_required
 @user_passes_test(is_admin_or_superuser)
 def audit_logs_api(request):
@@ -507,13 +682,55 @@ def audit_logs_api(request):
         event_type = request.GET.get('event_type')
         module = request.GET.get('module')
         search = request.GET.get('search', '').strip().lower()
+        quick_range = request.GET.get('quick_range')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        month = request.GET.get('month')
 
         qs = SystemAuditLog.objects.all().select_related('user', 'device').order_by('-timestamp')
+
+        now = timezone.now()
+        if quick_range == 'TODAY':
+            qs = qs.filter(timestamp__date=now.date())
+        elif quick_range == 'YESTERDAY':
+            yesterday = (now - datetime.timedelta(days=1)).date()
+            qs = qs.filter(timestamp__date=yesterday)
+        elif quick_range == 'THIS_WEEK':
+            start_week = (now - datetime.timedelta(days=now.weekday())).date()
+            qs = qs.filter(timestamp__date__gte=start_week, timestamp__date__lte=now.date())
+        elif quick_range == 'THIS_MONTH':
+            qs = qs.filter(timestamp__year=now.year, timestamp__month=now.month)
+        elif quick_range == 'LAST_MONTH':
+            first_this_month = now.date().replace(day=1)
+            last_day_prev_month = first_this_month - datetime.timedelta(days=1)
+            qs = qs.filter(timestamp__year=last_day_prev_month.year, timestamp__month=last_day_prev_month.month)
+
+        if month:
+            try:
+                yr, mo = month.split('-')
+                qs = qs.filter(timestamp__year=int(yr), timestamp__month=int(mo))
+            except (ValueError, TypeError):
+                pass
+
+        if start_date:
+            try:
+                qs = qs.filter(timestamp__date__gte=datetime.date.fromisoformat(start_date))
+            except ValueError:
+                pass
+
+        if end_date:
+            try:
+                qs = qs.filter(timestamp__date__lte=datetime.date.fromisoformat(end_date))
+            except ValueError:
+                pass
 
         if user_id:
             qs = qs.filter(user_id=int(user_id))
         if event_type:
-            qs = qs.filter(event_type=event_type)
+            if event_type == 'BLOCKED_ALL':
+                qs = qs.filter(event_type__in=['SECURITY_BLOCKED', 'SECURITY_REJECTED', 'AUTH_FAILED'])
+            else:
+                qs = qs.filter(event_type=event_type)
         if module:
             qs = qs.filter(module_name__icontains=module)
         if search:
@@ -521,11 +738,12 @@ def audit_logs_api(request):
                 Q(object_repr__icontains=search) | 
                 Q(request_path__icontains=search) | 
                 Q(ip_address__icontains=search) |
-                Q(user__username__icontains=search)
+                Q(user__username__icontains=search) |
+                Q(module_name__icontains=search)
             )
 
         logs_data = []
-        for log in qs[:100]:
+        for log in qs[:150]:
             logs_data.append({
                 'id': log.id,
                 'timestamp': log.timestamp.strftime('%d %b %Y, %H:%M:%S'),
@@ -542,6 +760,23 @@ def audit_logs_api(request):
             })
 
         return JsonResponse({'status': 'success', 'logs': logs_data, 'total_count': qs.count()})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(is_admin_or_superuser)
+@require_POST
+def clear_audit_alerts_api(request):
+    try:
+        from apps.authentication.models import AdminRecoveryConfig
+        cfg = AdminRecoveryConfig.get_config()
+        cfg.last_security_alerts_cleared_at = timezone.now()
+        cfg.save(update_fields=['last_security_alerts_cleared_at'])
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Security alerts acknowledged and alert badge cleared successfully.'
+        })
     except Exception as e:
         return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
 
@@ -606,6 +841,10 @@ def heartbeat_api(request):
                     'network_scope': net_scope
                 }
             )
+            if device_obj and device_obj.pk:
+                device_obj.last_used_at = timezone.now()
+                device_obj.save(update_fields=['last_used_at'])
+
             return JsonResponse({'status': 'success', 'page': page_name})
         except Exception as e:
             return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
@@ -703,5 +942,142 @@ def device_set_security_mode_api(request):
         })
     except Exception as e:
         return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+
+@require_POST
+def admin_emergency_reset_api(request):
+    """
+    Emergency Password Reset for Admin accounts using the Master Recovery Key.
+    Rate-limited: 3 failed attempts triggers 30 min lockout.
+    """
+    try:
+        data = json.loads(request.body)
+        username = data.get('username', '').strip()
+        recovery_key = data.get('recovery_key', '').strip()
+        new_password = data.get('new_password', '').strip()
+        confirm_password = data.get('confirm_password', '').strip()
+
+        if not username or not recovery_key or not new_password:
+            return JsonResponse({'status': 'error', 'error': 'All fields are required.'}, status=400)
+
+        if len(new_password) < 6:
+            return JsonResponse({'status': 'error', 'error': 'New password must be at least 6 characters long.'}, status=400)
+
+        if confirm_password and new_password != confirm_password:
+            return JsonResponse({'status': 'error', 'error': 'New password and confirmation do not match.'}, status=400)
+
+        from apps.authentication.models import AdminRecoveryConfig, CustomUser, SystemAuditLog
+        recovery_config = AdminRecoveryConfig.get_config()
+
+        is_locked, remaining_mins = recovery_config.is_rate_limited()
+        if is_locked:
+            return JsonResponse({
+                'status': 'error', 
+                'error': f'Rate limit exceeded. Emergency reset is locked for {remaining_mins} more minute(s).'
+            }, status=429)
+
+        # Strictly verify user exists and is an Admin / Superuser
+        user = CustomUser.objects.filter(username=username, is_active=True).first()
+        if not user or not (user.is_superuser or getattr(user, 'role', '') == 'ADMIN'):
+            recovery_config.record_failed_attempt()
+            SystemAuditLog.objects.create(
+                user=None,
+                event_type='AUTH_FAILED',
+                module_name='AUTHENTICATION',
+                object_repr=f"Failed admin emergency recovery attempt for unknown/non-admin username: '{username}'",
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent_summary=request.META.get('HTTP_USER_AGENT', '')[:250]
+            )
+            return JsonResponse({'status': 'error', 'error': 'Emergency recovery is only available for Super Admins.'}, status=403)
+
+        # Check recovery key
+        if not recovery_config.check_key(recovery_key):
+            recovery_config.record_failed_attempt()
+            SystemAuditLog.objects.create(
+                user=user,
+                event_type='AUTH_FAILED',
+                module_name='AUTHENTICATION',
+                object_repr=f"Invalid Master Recovery Key entered for admin '{user.username}' (Attempt {recovery_config.failed_attempts}/3)",
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent_summary=request.META.get('HTTP_USER_AGENT', '')[:250]
+            )
+            attempts_left = max(0, 3 - recovery_config.failed_attempts)
+            if attempts_left == 0:
+                msg = "Invalid Master Recovery Key. Account recovery is now locked for 30 minutes."
+            else:
+                msg = f"Invalid Master Recovery Key. {attempts_left} attempt(s) remaining before 30-minute lockout."
+            return JsonResponse({'status': 'error', 'error': msg}, status=400)
+
+        # Reset password
+        user.set_password(new_password)
+        user.save()
+        recovery_config.record_successful_reset()
+
+        # Log audit
+        SystemAuditLog.objects.create(
+            user=user,
+            event_type='UPDATE',
+            module_name='AUTHENTICATION',
+            object_repr=f"Admin password successfully reset via Master Recovery Key for '{user.username}'",
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent_summary=request.META.get('HTTP_USER_AGENT', '')[:250]
+        )
+
+        from django.contrib.auth import login
+        login(request, user)
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f"Password for {user.username} has been reset successfully. Logging in...",
+            'redirect_url': '/select-company/'
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(is_admin_or_superuser)
+@require_POST
+def admin_update_recovery_key_api(request):
+    """
+    Update or Rotate the Master Recovery Key. Requires current admin password verification.
+    """
+    try:
+        data = json.loads(request.body)
+        current_password = data.get('current_password', '').strip()
+        new_recovery_key = (data.get('new_recovery_key') or data.get('new_master_key', '')).strip()
+        key_hint = data.get('key_hint', '').strip()
+
+        if not current_password or not new_recovery_key:
+            return JsonResponse({'status': 'error', 'error': 'Current password and new recovery key are required.'}, status=400)
+
+        if not request.user.check_password(current_password):
+            return JsonResponse({'status': 'error', 'error': 'Current admin password verification failed.'}, status=403)
+
+        if len(new_recovery_key) < 6:
+            return JsonResponse({'status': 'error', 'error': 'Recovery key must be at least 6 characters long.'}, status=400)
+
+        from apps.authentication.models import AdminRecoveryConfig, SystemAuditLog
+        cfg = AdminRecoveryConfig.get_config()
+        cfg.set_key(new_recovery_key, hint=key_hint, user=request.user)
+
+        SystemAuditLog.objects.create(
+            user=request.user,
+            event_type='UPDATE',
+            module_name='SECURITY',
+            object_repr=f"Master Recovery Key updated/rotated by {request.user.username}",
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent_summary=request.META.get('HTTP_USER_AGENT', '')[:250]
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Master Recovery Key updated successfully.',
+            'key_hint': cfg.key_hint,
+            'updated_at': cfg.updated_at.strftime('%d %b %Y, %I:%M %p')
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
 
 

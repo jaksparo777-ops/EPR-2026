@@ -20,13 +20,6 @@ class LegalEntity(models.Model):
         related_name='legal_entity',
         help_text="The corresponding Client record when this entity acts as a customer to another entity"
     )
-    processes = models.CharField(
-        max_length=255, 
-        blank=True, 
-        null=True, 
-        default='', 
-        help_text="Comma-separated list of active operational processes (CASTING, MACHINING, POLISHING, PACKAGING, DISPATCH)"
-    )
 
     class Meta:
         verbose_name = 'Legal Entity'
@@ -34,12 +27,6 @@ class LegalEntity(models.Model):
 
     def __str__(self):
         return self.name
-
-    @property
-    def process_list(self):
-        if self.processes:
-            return [p.strip().upper() for p in self.processes.split(',') if p.strip()]
-        return []
 
 
 class ClientPO(models.Model):

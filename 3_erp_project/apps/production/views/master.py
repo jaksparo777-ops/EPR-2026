@@ -229,8 +229,11 @@ def master_data(request):
                             except ValueError:
                                 r_val = 0.0
                             try:
-                                # Handle prefixes for Internal vs Job Worker
-                                clean_wid = wid.replace('w_', '').replace('jw_', '')
+                                clean_wid = wid
+                                if str(clean_wid).startswith("jw_"):
+                                    clean_wid = clean_wid[3:]
+                                elif str(clean_wid).startswith("w_"):
+                                    clean_wid = clean_wid[2:]
                                 w_obj = Worker.objects.filter(id=clean_wid).first()
                                 if w_obj:
                                     ItemWorkerAllocation.objects.create(
@@ -733,17 +736,22 @@ def master_data(request):
         "show_inactive": show_inactive,
     }
 
-    # Fetch Automated Maintenance configuration and history logs for the new tab
-    try:
-        from apps.production.views.import_export_hub import run_automatic_maintenance_checks, run_financial_audit
-        run_automatic_maintenance_checks()
-        is_clear, blockers = run_financial_audit()
-    except Exception:
-        is_clear, blockers = True, []
+    # Fetch Automated Maintenance configuration and history logs for the maintenance tab
+    active_tab = request.GET.get('tab', '')
+    is_clear, blockers = True, []
+    if active_tab == 'maintenance':
+        try:
+            from apps.production.views.import_export_hub import run_automatic_maintenance_checks, run_financial_audit
+            run_automatic_maintenance_checks()
+            is_clear, blockers = run_financial_audit()
+        except Exception:
+            is_clear, blockers = True, []
 
     from apps.master_data.models import MaintenanceSettings, MaintenanceLog
-    maintenance_settings, _ = MaintenanceSettings.objects.get_or_create(id=1)
-    maintenance_logs = MaintenanceLog.objects.all()[:15]
+    maintenance_settings = MaintenanceSettings.objects.filter(id=1).first()
+    if not maintenance_settings:
+        maintenance_settings, _ = MaintenanceSettings.objects.get_or_create(id=1)
+    maintenance_logs = MaintenanceLog.objects.all()[:15] if active_tab == 'maintenance' else []
 
     context.update({
         "maintenance_settings": maintenance_settings,

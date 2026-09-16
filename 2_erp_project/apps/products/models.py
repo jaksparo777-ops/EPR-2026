@@ -40,11 +40,13 @@ class Material(models.Model):
 
 
 class Client(SoftDeleteModel):
-    companies = models.ManyToManyField(
+    company = models.ForeignKey(
         'client_orders.LegalEntity',
+        on_delete=models.SET_NULL,
         blank=True,
+        null=True,
         related_name='owned_clients',
-        help_text="The companies this client belongs to. If empty, the client is global."
+        help_text="The company this client belongs to. If blank, it is a shared client."
     )
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=20, blank=True, null=True)
@@ -60,11 +62,13 @@ class Client(SoftDeleteModel):
 
 
 class Item(SoftDeleteModel):
-    companies = models.ManyToManyField(
+    company = models.ForeignKey(
         'client_orders.LegalEntity',
+        on_delete=models.SET_NULL,
         blank=True,
+        null=True,
         related_name='owned_items',
-        help_text="The companies this item belongs to. If empty, the item is global."
+        help_text="The company this item belongs to. If blank, it is a shared item in the casting pipeline."
     )
     client = models.ForeignKey(
         Client,

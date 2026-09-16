@@ -43,6 +43,15 @@ class StockTransaction(models.Model):
     linked_consumption = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='linked_production')
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['item', 'transaction_type']),
+            models.Index(fields=['transaction_type', 'created_at']),
+            models.Index(fields=['worker', 'transaction_type']),
+            models.Index(fields=['client', 'transaction_type']),
+            models.Index(fields=['from_warehouse', 'to_warehouse']),
+        ]
+
     def __str__(self):
         return f"{self.item.code} - {self.get_transaction_type_display()}"
 
@@ -56,6 +65,10 @@ class ItemWorkerAllocation(models.Model):
     class Meta:
         verbose_name = "Item Worker Rate"
         verbose_name_plural = "Item Worker Rates"
+        unique_together = ('worker', 'item')
+        indexes = [
+            models.Index(fields=['worker', 'item']),
+        ]
 
     def __str__(self):
         worker_name = self.worker.name if self.worker else "Unknown"
@@ -72,6 +85,10 @@ class ItemWorkerRateHistory(models.Model):
 
     class Meta:
         ordering = ['-effective_from', '-created_at']
+        indexes = [
+            models.Index(fields=['worker', 'item', 'effective_from']),
+            models.Index(fields=['worker', 'effective_from']),
+        ]
 
     def __str__(self):
         w_name = self.worker.name if self.worker else "Unknown"
@@ -96,6 +113,11 @@ class Attendance(models.Model):
     class Meta:
         unique_together = ('worker', 'date')
         verbose_name_plural = "Attendance Logs"
+        indexes = [
+            models.Index(fields=['date', 'worker']),
+            models.Index(fields=['worker', 'date']),
+            models.Index(fields=['date', 'status']),
+        ]
 
 
 class Holiday(models.Model):
@@ -172,6 +194,13 @@ class LaborPayment(models.Model):
     reference_no = models.CharField(max_length=100, blank=True, null=True)
     settlement_period = models.CharField(max_length=7, blank=True, null=True, help_text="Y-m period being settled e.g. 2026-07")
     notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['worker', 'date']),
+            models.Index(fields=['settlement_period']),
+            models.Index(fields=['date', 'payment_type']),
+        ]
 
 
 class Carton(models.Model):

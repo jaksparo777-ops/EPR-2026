@@ -530,7 +530,6 @@
             <div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.02); padding:6px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
                 <label for="company-switcher" style="font-size:12px; font-weight:700; color:var(--text-secondary);">🏢 Company:</label>
                 <select id="company-switcher" style="background:#0b0e14; color:white; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; width:180px;" onchange="location.href='?tab={{ active_tab }}&active_company=' + this.value">
-                    <option value="global" {% if not active_company %}selected{% endif %}>🌐 Global / Shared</option>
                     {% for company in companies %}
                         <option value="{{ company.id }}" {% if active_company.id == company.id %}selected{% endif %}>{{ company.name }}</option>
                     {% endfor %}
@@ -1628,12 +1627,12 @@
                 </div>
                 {% for comp in companies %}
                 <div class="card company-selection-card" id="company-card-{{ comp.id }}" 
-                     onclick="selectCompanyToEdit('{{ comp.id }}', '{{ comp.name|escapejs }}', '{{ comp.address|escapejs }}', '{{ comp.gst_number|default_if_none:''|escapejs }}', '{{ comp.phone|default_if_none:''|escapejs }}', '{{ comp.letterhead_title|default_if_none:''|escapejs }}', '{{ comp.processes|default_if_none:''|escapejs }}')"
+                     onclick="selectCompanyToEdit('{{ comp.id }}', '{{ comp.name|escapejs }}', '{{ comp.address|escapejs }}', '{{ comp.gst_number|default_if_none:''|escapejs }}', '{{ comp.phone|default_if_none:''|escapejs }}', '{{ comp.letterhead_title|default_if_none:''|escapejs }}')"
                      style="padding:22px; cursor:pointer; border:1px solid rgba(255,255,255,0.08); transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden; display:flex; flex-direction:column; gap:12px; background:rgba(255,255,255,0.02); border-radius:16px;">
                     
                     <!-- Decorative color bar based on entity ID/index -->
                     <div style="position:absolute; top:0; left:0; bottom:0; width:5px; 
-                          background: {% if forloop.counter == 1 %}#f59e0b{% elif forloop.counter == 2 %}#3b82f6{% else %}#10b981{% endif %};"></div>
+                         background: {% if forloop.counter == 1 %}#f59e0b{% elif forloop.counter == 2 %}#3b82f6{% else %}#10b981{% endif %};"></div>
                     
                     <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                         <div style="display:flex; align-items:center; gap:12px;">
@@ -1642,27 +1641,13 @@
                             </span>
                             <div>
                                 <h4 style="margin:0; font-size:18px; color:white; font-weight:700;">{{ comp.name }}</h4>
-                                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
-                                    {% for proc in comp.process_list %}
-                                        <span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:100px; display:inline-block;
-                                             background: {% if proc == 'CASTING' %}rgba(245,158,11,0.15); color:#f59e0b{% elif proc == 'MACHINING' %}rgba(59,130,246,0.15); color:#60a5fa{% elif proc == 'POLISHING' %}rgba(16,185,129,0.15); color:#34d399{% elif proc == 'PACKAGING' %}rgba(168,85,247,0.15); color:#c084fc{% else %}rgba(239,68,68,0.15); color:#f87171{% endif %};">
-                                            {% if proc == 'CASTING' %}🔥 Casting{% elif proc == 'MACHINING' %}⚙️ Machining{% elif proc == 'POLISHING' %}✨ Polishing{% elif proc == 'PACKAGING' %}📦 Packaging{% else %}🚚 Dispatch{% endif %}
-                                        </span>
-                                    {% empty %}
-                                        <span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:100px; display:inline-block; background:rgba(255,255,255,0.05); color:var(--text-muted);">
-                                            No Operations
-                                        </span>
-                                    {% endfor %}
-                                </div>
+                                <span style="font-size:11px; font-weight:700; text-transform:uppercase; padding:3px 8px; border-radius:100px; margin-top:4px; display:inline-block;
+                                     background: {% if forloop.counter == 1 %}rgba(245,158,11,0.15); color:#f59e0b{% elif forloop.counter == 2 %}rgba(59,130,246,0.15); color:#60a5fa{% else %}rgba(16,185,129,0.15); color:#34d399{% endif %};">
+                                    {% if forloop.counter == 1 %}Company 1: Casting Foundry{% elif forloop.counter == 2 %}Company 2: Finishing Processor{% else %}Company 3: Jobwork Supplier{% endif %}
+                                </span>
                             </div>
                         </div>
-                        <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
-                            <button type="button" 
-                                    onclick="event.stopPropagation(); openCompanyInspector('{{ comp.id }}')"
-                                    style="background:rgba(59, 130, 246, 0.15); color:#60a5fa; border:1px solid rgba(59, 130, 246, 0.3); border-radius:8px; padding:6px 12px; font-weight:700; font-size:12px; cursor:pointer; transition:all 0.2s;"
-                                    onmouseover="this.style.background='rgba(59, 130, 246, 0.25)'" onmouseout="this.style.background='rgba(59, 130, 246, 0.15)'">
-                                🔍 Inspect Workspace
-                            </button>
+                        <div style="margin-left:auto;">
                             <span class="chevron-indicator" style="color:var(--text-secondary); font-size:18px; transition: transform 0.2s;">➔</span>
                         </div>
                     </div>
@@ -1740,28 +1725,6 @@
                                       style="width:100%; background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); color:white; padding:12px; border-radius:10px; font-size:15px; line-height:1.5; resize:vertical;"></textarea>
                         </div>
 
-                        <div class="form-group" style="margin:0;">
-                            <label style="font-size:13px; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:8px;">Active Operational Processes</label>
-                            <div style="display:flex; flex-wrap:wrap; gap:10px;">
-                                <div class="process-chip" data-process="CASTING" onclick="toggleProcessChip(this)" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); color:var(--text-secondary); padding:8px 16px; border-radius:100px; cursor:pointer; font-weight:700; font-size:13px; transition:all 0.2s;">
-                                    🔥 Casting
-                                </div>
-                                <div class="process-chip" data-process="MACHINING" onclick="toggleProcessChip(this)" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); color:var(--text-secondary); padding:8px 16px; border-radius:100px; cursor:pointer; font-weight:700; font-size:13px; transition:all 0.2s;">
-                                    ⚙️ Machining
-                                </div>
-                                <div class="process-chip" data-process="POLISHING" onclick="toggleProcessChip(this)" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); color:var(--text-secondary); padding:8px 16px; border-radius:100px; cursor:pointer; font-weight:700; font-size:13px; transition:all 0.2s;">
-                                    ✨ Polishing
-                                </div>
-                                <div class="process-chip" data-process="PACKAGING" onclick="toggleProcessChip(this)" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); color:var(--text-secondary); padding:8px 16px; border-radius:100px; cursor:pointer; font-weight:700; font-size:13px; transition:all 0.2s;">
-                                    📦 Packaging
-                                </div>
-                                <div class="process-chip" data-process="DISPATCH" onclick="toggleProcessChip(this)" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft); color:var(--text-secondary); padding:8px 16px; border-radius:100px; cursor:pointer; font-weight:700; font-size:13px; transition:all 0.2s;">
-                                    🚚 Dispatch & Sales
-                                </div>
-                            </div>
-                            <input type="hidden" id="form-company-processes" name="company_processes" value="">
-                        </div>
-
                         <button type="submit" id="form-company-submit-btn"
                                 style="width:100%; background:var(--accent-blue); color:white; border:none; padding:14px; border-radius:10px; font-weight:bold; cursor:pointer; margin-top:10px; font-size:16px; transition:all 0.2s; box-shadow:0 4px 12px rgba(59,130,246,0.25);">
                             Update Company Details
@@ -1792,7 +1755,7 @@
         window.history.pushState(null, '', '?tab=' + section);
     }
 
-    function selectCompanyToEdit(id, name, address, gst, phone, letterhead, processes) {
+    function selectCompanyToEdit(id, name, address, gst, phone, letterhead) {
         // Highlight active card
         document.querySelectorAll('.company-selection-card').forEach(card => {
             card.style.background = 'rgba(255,255,255,0.02)';
@@ -1823,81 +1786,8 @@
         document.getElementById('form-company-letterhead').value = letterhead;
         document.getElementById('form-company-address').value = address;
         
-        // Reset process chips first
-        document.querySelectorAll('.process-chip').forEach(chip => {
-            chip.classList.remove('active');
-            chip.style.background = 'rgba(255,255,255,0.03)';
-            chip.style.borderColor = 'var(--border-soft)';
-            chip.style.color = 'var(--text-secondary)';
-            chip.style.boxShadow = 'none';
-        });
-
-        // Activate matching chips
-        if (processes) {
-            const activeList = processes.split(',');
-            activeList.forEach(proc => {
-                const chip = document.querySelector(`.process-chip[data-process="${proc.trim().toUpperCase()}"]`);
-                if (chip) {
-                    chip.classList.add('active');
-                    const activeStyles = {
-                        'CASTING': { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#f59e0b' },
-                        'MACHINING': { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.4)', text: '#60a5fa' },
-                        'POLISHING': { bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.4)', text: '#34d399' },
-                        'PACKAGING': { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#c084fc' },
-                        'DISPATCH': { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', text: '#f87171' }
-                    };
-                    const style = activeStyles[proc.trim().toUpperCase()];
-                    if (style) {
-                        chip.style.background = style.bg;
-                        chip.style.borderColor = style.border;
-                        chip.style.color = style.text;
-                        chip.style.boxShadow = `0 0 10px ${style.bg}`;
-                    }
-                }
-            });
-        }
-        document.getElementById('form-company-processes').value = processes || '';
-        
         // Update button text
         document.getElementById('form-company-submit-btn').innerText = 'Save ' + name + ' Profile';
-    }
-
-    function toggleProcessChip(chip) {
-        const process = chip.getAttribute('data-process');
-        const isActive = chip.classList.contains('active');
-        
-        const activeStyles = {
-            'CASTING': { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)', text: '#f59e0b' },
-            'MACHINING': { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.4)', text: '#60a5fa' },
-            'POLISHING': { bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.4)', text: '#34d399' },
-            'PACKAGING': { bg: 'rgba(168, 85, 247, 0.15)', border: 'rgba(168, 85, 247, 0.4)', text: '#c084fc' },
-            'DISPATCH': { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', text: '#f87171' }
-        };
-
-        if (isActive) {
-            chip.classList.remove('active');
-            chip.style.background = 'rgba(255,255,255,0.03)';
-            chip.style.borderColor = 'var(--border-soft)';
-            chip.style.color = 'var(--text-secondary)';
-            chip.style.boxShadow = 'none';
-        } else {
-            chip.classList.add('active');
-            const style = activeStyles[process];
-            chip.style.background = style.bg;
-            chip.style.borderColor = style.border;
-            chip.style.color = style.text;
-            chip.style.boxShadow = `0 0 10px ${style.bg}`;
-        }
-        
-        updateHiddenProcessesInput();
-    }
-
-    function updateHiddenProcessesInput() {
-        const activeProcesses = [];
-        document.querySelectorAll('.process-chip.active').forEach(chip => {
-            activeProcesses.push(chip.getAttribute('data-process'));
-        });
-        document.getElementById('form-company-processes').value = activeProcesses.join(',');
     }
 
     function clearCompanyForm() {
@@ -1912,15 +1802,6 @@
             }
         });
 
-        // Reset process chips
-        document.querySelectorAll('.process-chip').forEach(chip => {
-            chip.classList.remove('active');
-            chip.style.background = 'rgba(255,255,255,0.03)';
-            chip.style.borderColor = 'var(--border-soft)';
-            chip.style.color = 'var(--text-secondary)';
-            chip.style.boxShadow = 'none';
-        });
-
         // Clear values
         document.getElementById('form-company-id').value = '';
         document.getElementById('form-company-name').value = '';
@@ -1928,25 +1809,9 @@
         document.getElementById('form-company-phone').value = '';
         document.getElementById('form-company-letterhead').value = '';
         document.getElementById('form-company-address').value = '';
-        document.getElementById('form-company-processes').value = '';
 
         // Reset submit button
         document.getElementById('form-company-submit-btn').innerText = 'Register New Company';
-    }
-
-    function toggleScopeCompanies(chk, prefix) {
-        const container = document.getElementById(prefix + '-scope-company-checkboxes');
-        if (!container) return;
-        
-        if (chk.checked) {
-            container.style.opacity = '0.5';
-            container.style.pointerEvents = 'none';
-            // Uncheck all custom companies
-            container.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
-        } else {
-            container.style.opacity = '1';
-            container.style.pointerEvents = 'auto';
-        }
     }
 
     function showItemSub(sub) {
@@ -2811,35 +2676,7 @@
                         style="width:30px; height:30px; cursor:pointer;">
                     <label for="check_packing"
                         style="font-size:18px; font-weight:bold; color:white; margin:0; cursor:pointer;">Packaging</label>
-            </div>
-        </div>
-
-        <!-- ORGANIZATIONAL SCOPE CHECKLIST -->
-        <div style="margin-top:20px; padding:25px; background:rgba(255,255,255,0.02); border-radius:16px; border:1px solid var(--border-soft);">
-            <label style="display:block; margin-bottom:15px; font-size:18px; font-weight:bold; color:var(--text-secondary); text-transform: uppercase;">
-                Organizational Scope
-            </label>
-            <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:12px;">
-                <input type="checkbox" id="item-scope-global" name="scope_global" onchange="toggleScopeCompanies(this, 'item')" 
-                       {% if not edit_item_data or not edit_item_data.companies.exists %}checked{% endif %}
-                       style="width:24px; height:24px; cursor:pointer;">
-                <label for="item-scope-global" style="font-size:16px; font-weight:bold; color:#34d399; margin:0; cursor:pointer;">
-                    🌐 Global / Shared (Available to all entities)
-                </label>
-            </div>
-            <div id="item-scope-company-checkboxes" 
-                 style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px; transition: opacity 0.2s;
-                        {% if not edit_item_data or not edit_item_data.companies.exists %}opacity:0.5; pointer-events:none;{% else %}opacity:1; pointer-events:auto;{% endif %}">
-                {% for comp in companies %}
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" id="item-scope-{{ comp.id }}" name="scope_companies" value="{{ comp.id }}" class="item-scope-company-check"
-                           {% if edit_item_data and comp in edit_item_data.companies.all %}checked{% endif %}
-                           style="width:22px; height:22px; cursor:pointer;">
-                    <label for="item-scope-{{ comp.id }}" style="font-size:14px; font-weight:600; color:white; margin:0; cursor:pointer;">
-                        🏢 {{ comp.name }}
-                    </label>
                 </div>
-                {% endfor %}
             </div>
         </div>
 
@@ -2980,35 +2817,6 @@
                 <textarea name="client_notes" rows="2"
                     style="width:100%; padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border-soft); color:white; font-size:14px;"
                     placeholder="Any special instructions...">{{ edit_client_data.notes|default:'' }}</textarea>
-            </div>
-
-            <!-- ORGANIZATIONAL SCOPE CHECKLIST -->
-            <div style="margin-top:20px; padding:20px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px solid var(--border-soft);">
-                <label style="display:block; margin-bottom:10px; font-size:15px; font-weight:bold; color:var(--text-secondary); text-transform: uppercase;">
-                    Organizational Scope
-                </label>
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:10px;">
-                    <input type="checkbox" id="client-scope-global" name="scope_global" onchange="toggleScopeCompanies(this, 'client')" 
-                           {% if not edit_client_data or not edit_client_data.companies.exists %}checked{% endif %}
-                           style="width:20px; height:20px; cursor:pointer;">
-                    <label for="client-scope-global" style="font-size:14px; font-weight:bold; color:#34d399; margin:0; cursor:pointer;">
-                        🌐 Global / Shared (Available to all entities)
-                    </label>
-                </div>
-                <div id="client-scope-company-checkboxes" 
-                     style="display:flex; flex-direction:column; gap:8px; margin-left:20px; transition: opacity 0.2s;
-                            {% if not edit_client_data or not edit_client_data.companies.exists %}opacity:0.5; pointer-events:none;{% else %}opacity:1; pointer-events:auto;{% endif %}">
-                    {% for comp in companies %}
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="checkbox" id="client-scope-{{ comp.id }}" name="scope_companies" value="{{ comp.id }}" class="client-scope-company-check"
-                               {% if edit_client_data and comp in edit_client_data.companies.all %}checked{% endif %}
-                               style="width:18px; height:18px; cursor:pointer;">
-                        <label for="client-scope-{{ comp.id }}" style="font-size:13px; font-weight:600; color:white; margin:0; cursor:pointer;">
-                            🏢 {{ comp.name }}
-                        </label>
-                    </div>
-                    {% endfor %}
-                </div>
             </div>
         </div>
 
@@ -3658,118 +3466,6 @@
             style="width:100%; background:#10b981; color:white; border:none; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer;">Update
             Structure</button>
     </form>
-</div>
-
-<!-- COMPANY WORKFLOW INSPECTOR DRAWER -->
-<div id="companyInspectorDrawer" class="drawer" style="width: 750px;">
-    <div class="drawer-header" style="border-bottom: none; margin-bottom: 15px; padding-bottom: 0;">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div id="inspectCompanyEmblem" style="width: 55px; height: 55px; border-radius: 12px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: #60a5fa;">
-                🏢
-            </div>
-            <div>
-                <h2 id="inspectCompanyName" style="margin:0; color:white; font-size: 24px; font-weight: 800;">Company Inspector</h2>
-                <p id="inspectCompanySub" style="margin:4px 0 0; color:var(--text-secondary); font-size:13px; font-weight: 500;"></p>
-            </div>
-        </div>
-        <button onclick="closeAllDrawers()"
-            style="background:rgba(255,255,255,0.05); border:none; color:white; width:35px; height:35px; border-radius:10px; cursor:pointer; font-size: 16px;">✕</button>
-    </div>
-
-    <!-- Company Metadata Card -->
-    <div id="inspectCompanyMetaCard" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-soft); border-radius: 16px; padding: 20px; margin-bottom: 25px;">
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; font-size: 13px;">
-            <div>
-                <span style="display:block; font-size:10px; text-transform:uppercase; color:var(--text-muted); font-weight:700; margin-bottom: 4px;">GSTIN</span>
-                <span id="inspectCompanyGST" style="font-family:monospace; color:white; font-weight:600;"></span>
-            </div>
-            <div>
-                <span style="display:block; font-size:10px; text-transform:uppercase; color:var(--text-muted); font-weight:700; margin-bottom: 4px;">Contact Phone</span>
-                <span id="inspectCompanyPhone" style="color:white; font-weight:600;"></span>
-            </div>
-            <div style="grid-column: span 2;">
-                <span style="display:block; font-size:10px; text-transform:uppercase; color:var(--text-muted); font-weight:700; margin-bottom: 4px;">Address</span>
-                <span id="inspectCompanyAddress" style="line-height:1.4; color:white;"></span>
-            </div>
-            <div id="inspectCompanyLetterheadGroup" style="grid-column: span 2; display: none;">
-                <span style="display:block; font-size:10px; text-transform:uppercase; color:var(--text-muted); font-weight:700; margin-bottom: 4px;">Official Letterhead Title</span>
-                <span id="inspectCompanyLetterhead" style="font-style:italic; color:#60a5fa; font-weight: 600;"></span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Drawer Navigation Tabs -->
-    <div style="display: flex; border-bottom: 1px solid var(--border-soft); margin-bottom: 20px; gap: 20px;">
-        <button id="inspect-tab-items" onclick="switchInspectTab('items')" style="background: none; border: none; color: white; padding: 10px 5px; font-weight: 700; cursor: pointer; border-bottom: 2px solid var(--accent-blue); font-size: 14px; transition: all 0.2s;">
-            📦 Mapped Items
-        </button>
-        <button id="inspect-tab-clients" onclick="switchInspectTab('clients')" style="background: none; border: none; color: var(--text-secondary); padding: 10px 5px; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; font-size: 14px; transition: all 0.2s;">
-            🤝 Mapped Clients
-        </button>
-        <button id="inspect-tab-allocations" onclick="switchInspectTab('allocations')" style="background: none; border: none; color: var(--text-secondary); padding: 10px 5px; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; font-size: 14px; transition: all 0.2s;">
-            ⚙️ Workflow Allocations
-        </button>
-    </div>
-
-    <!-- Content Sections -->
-    <!-- Tab: Items -->
-    <div id="inspect-content-items" class="inspect-tab-content">
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead>
-                    <tr style="border-bottom: 1px solid var(--border-soft); font-size: 11px; text-transform: uppercase; color: var(--text-muted);">
-                        <th style="padding: 12px 8px; font-weight: 700;">Code</th>
-                        <th style="padding: 12px 8px; font-weight: 700;">Name</th>
-                        <th style="padding: 12px 8px; font-weight: 700;">Category</th>
-                        <th style="padding: 12px 8px; font-weight: 700;">Material</th>
-                        <th style="padding: 12px 8px; font-weight: 700; text-align: right;">Scoping</th>
-                    </tr>
-                </thead>
-                <tbody id="inspectItemsTableBody" style="font-size: 13px; color: white;">
-                    <!-- Rendered dynamically -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Tab: Clients -->
-    <div id="inspect-content-clients" class="inspect-tab-content" style="display: none;">
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead>
-                    <tr style="border-bottom: 1px solid var(--border-soft); font-size: 11px; text-transform: uppercase; color: var(--text-muted);">
-                        <th style="padding: 12px 8px; font-weight: 700;">Client Name</th>
-                        <th style="padding: 12px 8px; font-weight: 700;">GSTIN</th>
-                        <th style="padding: 12px 8px; font-weight: 700;">City</th>
-                        <th style="padding: 12px 8px; font-weight: 700; text-align: right;">Scoping</th>
-                    </tr>
-                </thead>
-                <tbody id="inspectClientsTableBody" style="font-size: 13px; color: white;">
-                    <!-- Rendered dynamically -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Tab: Allocations -->
-    <div id="inspect-content-allocations" class="inspect-tab-content" style="display: none;">
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead>
-                    <tr style="border-bottom: 1px solid var(--border-soft); font-size: 11px; text-transform: uppercase; color: var(--text-muted);">
-                        <th style="padding: 12px 8px; font-weight: 700;">Item Code</th>
-                        <th style="padding: 12px 8px; font-weight: 700;">Operator / Worker</th>
-                        <th style="padding: 12px 8px; font-weight: 700;">Type</th>
-                        <th style="padding: 12px 8px; font-weight: 700;">Process</th>
-                        <th style="padding: 12px 8px; font-weight: 700; text-align: right;">Piece-Rate</th>
-                    </tr>
-                </thead>
-                <tbody id="inspectAllocationsTableBody" style="font-size: 13px; color: white;">
-                    <!-- Rendered dynamically -->
-                </tbody>
-            </table>
-        </div>
-    </div>
 </div>
 
 <!-- QUICK SET CREATOR DRAWER -->
@@ -4638,161 +4334,6 @@
             confirmBtn.disabled = false;
             confirmBtn.innerText = originalText;
         }
-    }
-
-    // COMPANY WORKFLOW INSPECTOR LOGIC
-    let currentInspectCompanyData = null;
-
-    async function openCompanyInspector(companyId) {
-        closeAllDrawers();
-        
-        // Show loading state in drawer header/fields
-        document.getElementById('inspectCompanyName').innerText = 'Loading Workspace...';
-        document.getElementById('inspectCompanySub').innerText = 'Connecting to database...';
-        document.getElementById('inspectCompanyGST').innerText = '...';
-        document.getElementById('inspectCompanyPhone').innerText = '...';
-        document.getElementById('inspectCompanyAddress').innerText = '...';
-        document.getElementById('inspectCompanyLetterheadGroup').style.display = 'none';
-        
-        // Clear tables
-        document.getElementById('inspectItemsTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">⌛ Loading items...</td></tr>';
-        document.getElementById('inspectClientsTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-muted);">⌛ Loading clients...</td></tr>';
-        document.getElementById('inspectAllocationsTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">⌛ Loading allocations...</td></tr>';
-
-        // Open the drawer visually
-        document.getElementById('companyInspectorDrawer').classList.add('active');
-        document.getElementById('drawerBackdrop').classList.add('active');
-        
-        // Default to items tab
-        switchInspectTab('items');
-
-        try {
-            const response = await fetch(`/api/company/${companyId}/details/`);
-            if (!response.ok) throw new Error('Failed to retrieve company workspace details.');
-            
-            const data = await response.json();
-            currentInspectCompanyData = data;
-            
-            // Populate Company Profile Header and Metadata
-            const comp = data.company;
-            document.getElementById('inspectCompanyName').innerText = comp.name;
-            document.getElementById('inspectCompanySub').innerText = comp.letterhead ? `"${comp.letterhead}"` : 'Registered Entity Profile';
-            
-            // Set dynamic emblem letters
-            const emblem = document.getElementById('inspectCompanyEmblem');
-            if (emblem) {
-                emblem.innerText = comp.name ? comp.name.charAt(0).toUpperCase() : '🏢';
-            }
-
-            document.getElementById('inspectCompanyGST').innerText = comp.gst_number || 'Not Registered';
-            document.getElementById('inspectCompanyPhone').innerText = comp.phone || 'Not Specified';
-            document.getElementById('inspectCompanyAddress').innerText = comp.address || 'No Address Specified';
-            
-            if (comp.letterhead) {
-                document.getElementById('inspectCompanyLetterhead').innerText = comp.letterhead;
-                document.getElementById('inspectCompanyLetterheadGroup').style.display = 'block';
-            } else {
-                document.getElementById('inspectCompanyLetterheadGroup').style.display = 'none';
-            }
-
-            // 1. Populate Items Tab
-            const itemsTbody = document.getElementById('inspectItemsTableBody');
-            itemsTbody.innerHTML = '';
-            if (data.items.length === 0) {
-                itemsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted); font-style:italic;">No mapped items found for this company.</td></tr>';
-            } else {
-                data.items.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
-                    
-                    const badgeColor = item.is_global ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)';
-                    const badgeTextCol = item.is_global ? '#60a5fa' : '#34d399';
-                    const badgeLabel = item.is_global ? 'Shared / Global' : 'Private';
-                    
-                    tr.innerHTML = `
-                        <td style="padding:12px 8px; font-family:monospace; color:#38bdf8; font-weight:700;">${item.code}</td>
-                        <td style="padding:12px 8px; font-weight:600;">${item.name}</td>
-                        <td style="padding:12px 8px; color:var(--text-secondary);">${item.category}</td>
-                        <td style="padding:12px 8px;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.05); color:var(--text-secondary);">${item.material}</span></td>
-                        <td style="padding:12px 8px; text-align:right;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; padding:3px 8px; border-radius:100px; display:inline-block; background:${badgeColor}; color:${badgeTextCol};">${badgeLabel}</span></td>
-                    `;
-                    itemsTbody.appendChild(tr);
-                });
-            }
-
-            // 2. Populate Clients Tab
-            const clientsTbody = document.getElementById('inspectClientsTableBody');
-            clientsTbody.innerHTML = '';
-            if (data.clients.length === 0) {
-                clientsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-muted); font-style:italic;">No mapped clients found for this company.</td></tr>';
-            } else {
-                data.clients.forEach(client => {
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
-                    
-                    const badgeColor = client.is_global ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)';
-                    const badgeTextCol = client.is_global ? '#60a5fa' : '#34d399';
-                    const badgeLabel = client.is_global ? 'Shared / Global' : 'Private';
-                    
-                    tr.innerHTML = `
-                        <td style="padding:12px 8px; font-weight:600;">${client.name}</td>
-                        <td style="padding:12px 8px; font-family:monospace; color:var(--text-secondary);">${client.gst_number}</td>
-                        <td style="padding:12px 8px; color:var(--text-secondary);">${client.city}</td>
-                        <td style="padding:12px 8px; text-align:right;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; padding:3px 8px; border-radius:100px; display:inline-block; background:${badgeColor}; color:${badgeTextCol};">${badgeLabel}</span></td>
-                    `;
-                    clientsTbody.appendChild(tr);
-                });
-            }
-
-            // 3. Populate Allocations Tab
-            const allocTbody = document.getElementById('inspectAllocationsTableBody');
-            allocTbody.innerHTML = '';
-            if (data.allocations.length === 0) {
-                allocTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted); font-style:italic;">No active labor allocations found for this company\'s items.</td></tr>';
-            } else {
-                data.allocations.forEach(alloc => {
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
-                    
-                    const typeColor = alloc.worker_type === 'Employee' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(234, 179, 8, 0.15)';
-                    const typeTextCol = alloc.worker_type === 'Employee' ? '#c084fc' : '#facc15';
-                    
-                    tr.innerHTML = `
-                        <td style="padding:12px 8px; font-family:monospace; color:#38bdf8; font-weight:700;">${alloc.item_code}</td>
-                        <td style="padding:12px 8px; font-weight:600;">${alloc.worker_name}</td>
-                        <td style="padding:12px 8px;"><span style="font-size:11px; font-weight:700; text-transform:uppercase; padding:3px 8px; border-radius:100px; display:inline-block; background:${typeColor}; color:${typeTextCol};">${alloc.worker_type}</span></td>
-                        <td style="padding:12px 8px; color:var(--text-secondary);">${alloc.process}</td>
-                        <td style="padding:12px 8px; text-align:right; font-weight:700; color:#10b981;">₹${Number(alloc.rate).toFixed(2)}</td>
-                    `;
-                    allocTbody.appendChild(tr);
-                });
-            }
-
-        } catch (error) {
-            console.error(error);
-            document.getElementById('inspectCompanyName').innerText = 'Error Loading Workspace';
-            document.getElementById('inspectCompanySub').innerText = 'Could not sync entity metadata.';
-            alert('An operational database or network error occurred while retrieving workspace details.');
-        }
-    }
-
-    function switchInspectTab(tab) {
-        // Toggle tab visibility
-        document.querySelectorAll('.inspect-tab-content').forEach(el => el.style.display = 'none');
-        document.getElementById(`inspect-content-${tab}`).style.display = 'block';
-
-        // Toggle active button style
-        const tabs = ['items', 'clients', 'allocations'];
-        tabs.forEach(t => {
-            const btn = document.getElementById(`inspect-tab-${t}`);
-            if (t === tab) {
-                btn.style.color = 'white';
-                btn.style.borderBottom = '2px solid var(--accent-blue)';
-            } else {
-                btn.style.color = 'var(--text-secondary)';
-                btn.style.borderBottom = '2px solid transparent';
-            }
-        });
     }
 </script>
 {% endblock %}

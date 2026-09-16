@@ -3,22 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Approval Required - Foundry ERP</title>
+    <title>Device Authorization - Foundry ERP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #090d16;
-            --card-dark: #111827;
+            --bg-dark: #07090e;
+            --card-dark: #0f1422;
+            --card-border: rgba(255, 255, 255, 0.08);
             --border-soft: rgba(255, 255, 255, 0.12);
             --accent-blue: #6366f1;
+            --accent-blue-hover: #4f46e5;
             --accent-amber: #f59e0b;
+            --accent-emerald: #10b981;
+            --accent-rose: #f43f5e;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
             margin: 0;
-            padding: 0;
+            padding: 24px 16px;
             background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(245, 158, 11, 0.08) 0px, transparent 50%);
             color: #f1f5f9;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -26,64 +38,151 @@
         }
 
         .device-card {
-            background: rgba(17, 24, 39, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border-soft);
+            background: rgba(15, 20, 34, 0.92);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
             border-radius: 24px;
-            padding: 40px;
+            padding: 36px 32px;
             width: 100%;
             max-width: 480px;
             text-align: center;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
-            box-sizing: border-box;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
         }
 
         .icon-pulse {
-            width: 80px;
-            height: 80px;
-            background: rgba(245, 158, 11, 0.15);
+            width: 72px;
+            height: 72px;
+            background: rgba(245, 158, 11, 0.12);
             color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            border: 1px solid rgba(245, 158, 11, 0.25);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 38px;
-            margin: 0 auto 20px auto;
-            animation: pulse 2s infinite;
+            font-size: 32px;
+            margin: 0 auto 18px auto;
+            animation: pulse 2.2s infinite ease-in-out;
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.35); }
+            70% { transform: scale(1.04); box-shadow: 0 0 0 14px rgba(245, 158, 11, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-        }
-
-        .device-code-box {
-            background: #000000;
-            border: 1px solid rgba(99, 102, 241, 0.4);
-            border-radius: 14px;
-            padding: 16px;
-            margin: 20px 0;
-            font-family: monospace;
-            font-size: 24px;
-            font-weight: 800;
-            color: #818cf8;
-            letter-spacing: 2px;
         }
 
         .badge-status {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 14px;
-            background: rgba(245, 158, 11, 0.15);
+            padding: 5px 14px;
+            background: rgba(245, 158, 11, 0.12);
             color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            border: 1px solid rgba(245, 158, 11, 0.25);
             border-radius: 20px;
-            font-size: 12px;
-            font-weight: 800;
+            font-size: 11.5px;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 18px;
+        }
+
+        .device-code-box {
+            background: #000000;
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin: 12px 0 20px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 800;
+            color: #a5b4fc;
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .btn-copy {
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #c7d2fe;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-copy:hover {
+            background: rgba(99, 102, 241, 0.35);
+            color: white;
+        }
+
+        .input-dark {
+            width: 100%;
+            background: #05070c;
+            border: 1px solid var(--border-soft);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: white;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-dark:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .unlock-card {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 18px;
+            margin: 20px 0 16px 0;
+            text-align: left;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            padding: 11px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.1s, opacity 0.15s;
+        }
+        .btn-primary:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .logout-link {
+            display: inline-block;
+            margin-top: 18px;
+            color: #94a3b8;
+            font-size: 12.5px;
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+        .logout-link:hover {
+            color: #f43f5e;
         }
     </style>
 </head>
@@ -91,66 +190,105 @@
 
 <div class="device-card">
     {% if device_status == 'REJECTED' %}
-    <div class="icon-pulse" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); animation: none;">
+    <div class="icon-pulse" style="background: rgba(244, 63, 94, 0.12); color: #f43f5e; border-color: rgba(244, 63, 94, 0.25); animation: none;">
         🚫
     </div>
     
-    <h1 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0; color: white;">Device Access Blocked</h1>
-    <p style="color: #94a3b8; font-size: 13.5px; margin: 0 0 20px 0; line-height: 1.5;">
-        Access from this device has been declined by the System Administrator.
+    <h1 style="font-size: 22px; font-weight: 800; margin: 0 0 8px 0; color: white;">Device Access Declined</h1>
+    <p style="color: #94a3b8; font-size: 13px; margin: 0 0 16px 0; line-height: 1.5;">
+        Access from this device was declined by the Factory Administrator.
     </p>
 
-    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 14px; padding: 16px; margin: 20px 0; text-align: left;">
-        <div style="font-size: 11px; font-weight: 800; color: #f87171; text-transform: uppercase; margin-bottom: 4px;">Rejection Reason</div>
-        <div style="font-size: 14px; font-weight: 700; color: white;">{{ rejection_reason|default:"Declined by Administrator" }}</div>
+    <div style="background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: 12px; padding: 14px; margin: 16px 0; text-align: left;">
+        <div style="font-size: 10.5px; font-weight: 800; color: #f43f5e; text-transform: uppercase; margin-bottom: 4px;">Reason Given</div>
+        <div style="font-size: 13px; font-weight: 600; color: #fecdd3;">{{ rejection_reason|default:"Declined by Administrator" }}</div>
     </div>
 
-    <div class="device-code-box" id="deviceCodeDisplay" style="border-color: rgba(239, 68, 68, 0.3); color: #f87171;">
-        {{ device_id|default:"DEV-INITIALIZING" }}
+    <div class="device-code-box" style="border-color: rgba(244, 63, 94, 0.3); color: #fda4af;">
+        <span id="deviceCodeText">{{ device_id|default:"DEV-INITIALIZING" }}</span>
+        <button type="button" class="btn-copy" onclick="copyDeviceId()">Copy</button>
     </div>
 
-    <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
-        Contact your Factory Manager or System Administrator if you believe this is an error.
-    </p>
+    <!-- Master Key Override for Rejected device if Admin wants to authorize -->
+    <div class="unlock-card">
+        <div style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            🔑 <span>Owner Master Key Authorization</span>
+        </div>
+        <p style="font-size: 11.5px; color: #64748b; margin: 0 0 12px 0;">
+            Enter the 16-character Master Admin Recovery Key to force-approve and unlock this device.
+        </p>
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <input type="password" id="masterKeyInput" placeholder="XXXX-XXXX-XXXX-XXXX" class="input-dark" style="font-family: 'JetBrains Mono', monospace; letter-spacing: 1px;">
+        </div>
+        <div id="unlockErrorMsg" style="display: none; color: #f43f5e; font-size: 11.5px; margin-bottom: 8px; font-weight: 600;"></div>
+        <button type="button" class="btn-primary" id="btnMasterUnlock" onclick="submitMasterKeyUnlock()">
+            Authorize & Unlock Device
+        </button>
+    </div>
+
+    <div>
+        <a href="/logout/" class="logout-link">← Log Out / Switch Account</a>
+    </div>
+
     {% else %}
     <div class="icon-pulse">📱</div>
     
-    <h1 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0; color: white;">Device Approval Required</h1>
-    <p style="color: #94a3b8; font-size: 13.5px; margin: 0 0 20px 0; line-height: 1.5;">
-        This phone/tablet/PC is not yet authorized to access the Foundry ERP. Show the Device ID below to your Factory Administrator for 1-click approval.
+    <h1 style="font-size: 22px; font-weight: 800; margin: 0 0 6px 0; color: white;">Device Approval Required</h1>
+    <p style="color: #94a3b8; font-size: 13px; margin: 0 0 16px 0; line-height: 1.5;">
+        This device is not yet registered. Approve it from an authorized PC or enter your Master Recovery Key below.
     </p>
 
     <div class="badge-status">
-        <span style="display: inline-block; width: 8px; height: 8px; background: #fbbf24; border-radius: 50%;"></span>
-        Awaiting Admin Approval
+        <span style="display: inline-block; width: 7px; height: 7px; background: #fbbf24; border-radius: 50%;"></span>
+        Awaiting Approval
     </div>
 
-    <div class="device-code-box" id="deviceCodeDisplay">
-        {{ device_id|default:"DEV-INITIALIZING" }}
+    <div class="device-code-box">
+        <span id="deviceCodeText">{{ device_id|default:"DEV-INITIALIZING" }}</span>
+        <button type="button" class="btn-copy" onclick="copyDeviceId()">Copy</button>
     </div>
 
-    <div style="margin-top: 16px; margin-bottom: 24px;">
-        <label style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 6px;">Device Label / Name</label>
-        <input type="text" id="deviceNameInput" value="{{ device_name|default:'' }}" placeholder="e.g. Casting Floor Tablet #1" style="width: 100%; background: #090d16; border: 1px solid var(--border-soft); border-radius: 10px; padding: 10px 14px; color: white; font-size: 13px; text-align: center; box-sizing: border-box;" onchange="saveDeviceName(this.value)">
+    <div style="margin-bottom: 16px; text-align: left;">
+        <label style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 6px;">Device Friendly Label</label>
+        <input type="text" id="deviceNameInput" value="{{ device_name|default:'' }}" placeholder="e.g. My Phone / Casting Floor Tablet" class="input-dark" onchange="saveDeviceName(this.value)">
     </div>
 
-    {% if is_dev_environment %}
-    <div style="margin-bottom: 20px; padding: 14px; background: rgba(99, 102, 241, 0.1); border: 1px dashed rgba(99, 102, 241, 0.4); border-radius: 14px;">
-        <div style="font-size: 11px; font-weight: 800; color: #818cf8; text-transform: uppercase; margin-bottom: 6px;">🛠️ Development Network Detected</div>
-        <button onclick="quickTrustDevDevice()" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-            ⚡ Quick-Trust This Dev Device
+    <!-- Master Recovery Key Self-Unlock Section -->
+    <div class="unlock-card">
+        <div style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 6px;">🔑 <span>Instant Owner Unlock</span></span>
+            <span style="font-size: 10px; color: #6366f1; background: rgba(99, 102, 241, 0.15); padding: 2px 8px; border-radius: 10px; font-weight: 700;">ADMIN</span>
+        </div>
+        <p style="font-size: 11.5px; color: #64748b; margin: 0 0 12px 0;">
+            If you are the Administrator, enter your Master Recovery Key to instantly authorize this device.
+        </p>
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <input type="password" id="masterKeyInput" placeholder="Master Key (e.g. 16 chars)" class="input-dark" style="font-family: 'JetBrains Mono', monospace; letter-spacing: 1px;">
+        </div>
+        <div id="unlockErrorMsg" style="display: none; color: #f43f5e; font-size: 11.5px; margin-bottom: 8px; font-weight: 600;"></div>
+        <button type="button" class="btn-primary" id="btnMasterUnlock" onclick="submitMasterKeyUnlock()">
+            Authorize & Unlock Device
         </button>
     </div>
-    {% endif %}
 
-    <p style="font-size: 12px; color: #64748b; margin: 0;">
-        🔄 Auto-detecting approval status... (Page will automatically unlock once approved by Admin)
+    <p style="font-size: 11.5px; color: #64748b; margin: 12px 0 0 0;">
+        🔄 Auto-detecting approval status... (Will redirect automatically once approved)
     </p>
+
+    <div>
+        <a href="/logout/" class="logout-link">← Log Out of Account</a>
+    </div>
     {% endif %}
 </div>
 
 <script>
 const deviceId = "{{ device_id }}";
+if (deviceId && deviceId !== 'DEV-INITIALIZING') {
+    try {
+        localStorage.setItem('erp_device_token', deviceId);
+        document.cookie = `device_token=${encodeURIComponent(deviceId)}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch(e) {}
+}
 
 function getCookie(name) {
     let cookieValue = null;
@@ -165,6 +303,15 @@ function getCookie(name) {
         }
     }
     return cookieValue;
+}
+
+function copyDeviceId() {
+    const text = document.getElementById('deviceCodeText').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Device ID copied: " + text);
+    }).catch(() => {
+        prompt("Copy Device ID:", text);
+    });
 }
 
 async function saveDeviceName(name) {
@@ -183,43 +330,73 @@ async function saveDeviceName(name) {
     }
 }
 
-async function checkApprovalStatus() {
-    try {
-        const res = await fetch(`/api/devices/check-status/?device_id=${encodeURIComponent(deviceId)}`);
-        const data = await res.json();
-        if (data.is_approved || data.status === 'APPROVED') {
-            // Automatically unlocked by Admin!
-            window.location.href = "{{ next_url|default:'/dashboard/' }}";
-        } else if (data.status === 'REJECTED' && "{{ device_status }}" !== 'REJECTED') {
-            location.reload();
-        }
-    } catch (e) {
-        console.error("Status check failed", e);
-    }
-}
+async function submitMasterKeyUnlock() {
+    const masterKey = document.getElementById('masterKeyInput').value.trim();
+    const errorEl = document.getElementById('unlockErrorMsg');
+    const btn = document.getElementById('btnMasterUnlock');
+    const deviceName = document.getElementById('deviceNameInput') ? document.getElementById('deviceNameInput').value.trim() : '';
 
-async function quickTrustDevDevice() {
+    errorEl.style.display = 'none';
+
+    if (!masterKey) {
+        errorEl.innerText = 'Please enter your Master Recovery Key.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = 'Verifying Key...';
+
     try {
-        const res = await fetch('/api/devices/quick-trust/', {
+        const res = await fetch('/api/devices/master-key-unlock/', {
             method: 'POST',
-            body: JSON.stringify({ device_id: deviceId }),
+            body: JSON.stringify({
+                device_id: deviceId,
+                master_key: masterKey,
+                device_name: deviceName
+            }),
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken') || ''
             }
         });
+
         const data = await res.json();
-        if (data.status === 'success') {
-            window.location.href = "{{ next_url|default:'/dashboard/' }}";
+        if (res.ok && data.status === 'success') {
+            btn.innerText = '✓ Authorized! Unlocking...';
+            btn.style.background = '#10b981';
+            setTimeout(() => {
+                window.location.href = "{{ next_url|default:'/dashboard/' }}";
+            }, 600);
         } else {
-            alert(data.error || 'Failed to trust device');
+            errorEl.innerText = data.error || 'Invalid recovery key.';
+            errorEl.style.display = 'block';
+            btn.disabled = false;
+            btn.innerText = 'Authorize & Unlock Device';
         }
     } catch (e) {
-        alert("Error connecting to server.");
+        errorEl.innerText = 'Network error while attempting unlock.';
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.innerText = 'Authorize & Unlock Device';
     }
 }
 
-// Poll every 3 seconds for 1-click auto-unlock
+async function checkApprovalStatus() {
+    try {
+        const res = await fetch(`/api/devices/check-status/?device_id=${encodeURIComponent(deviceId)}`);
+        const data = await res.json();
+        if (data.is_approved || data.status === 'APPROVED') {
+            window.location.href = "{{ next_url|default:'/dashboard/' }}";
+        } else if (data.status === 'REJECTED' && "{{ device_status }}" !== 'REJECTED') {
+            location.reload();
+        }
+    } catch (e) {
+        // silent fail on polling error
+    }
+}
+
+// Poll every 3 seconds for 1-click auto-unlock from desktop
 setInterval(checkApprovalStatus, 3000);
 </script>
 

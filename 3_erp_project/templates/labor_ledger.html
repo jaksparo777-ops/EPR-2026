@@ -41,15 +41,21 @@
     }
 
     .attendance-cell {
-        cursor: pointer;
-        transition: all 0.15s ease;
+        cursor: pointer !important;
+        user-select: none !important;
+        transition: all 0.1s ease;
     }
     .attendance-cell:hover {
-        background: rgba(255, 255, 255, 0.06) !important;
+        background: rgba(59, 130, 246, 0.2) !important;
+        outline: 1.5px solid #3b82f6 !important;
+        outline-offset: -1.5px !important;
+    }
+    .attendance-cell:active {
+        transform: scale(0.95);
     }
     .attendance-cell.active-editing {
-        background: rgba(59, 130, 246, 0.15) !important;
-        box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.4);
+        background: rgba(59, 130, 246, 0.25) !important;
+        box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.6);
     }
 
     .attendance-cell.success-pulse {
@@ -1863,14 +1869,15 @@
             Labor Ledger
             <span class="header-info-badge" tabindex="0" data-tooltip="Internal staff payroll & external job worker ledger tracking earnings, advances, loans, and monthly attendance sheets." data-tooltip-pos="right" aria-label="Labor Ledger Info">ℹ️</span>
             <select id="ledger-month-picker" onchange="changeLedgerMonth(this.value)" style="background:var(--card-dark); border:1px solid var(--border-soft); color:white; font-size:14px; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold; outline:none; -webkit-appearance:none; -moz-appearance:none; appearance:none; padding-right:24px; background-image:url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat:no-repeat; background-position:right 8px top 50%; background-size:10px auto;">
+                {% for m in available_months %}
+                <option value="{{ m.val }}" {% if month_val == m.val %}selected{% endif %} style="background:#1e293b; color:white;">{{ m.name }}</option>
+                {% empty %}
+                <option value="2026-09" {% if month_val == '2026-09' %}selected{% endif %} style="background:#1e293b; color:white;">September 2026</option>
                 <option value="2026-08" {% if month_val == '2026-08' %}selected{% endif %} style="background:#1e293b; color:white;">August 2026</option>
                 <option value="2026-07" {% if month_val == '2026-07' %}selected{% endif %} style="background:#1e293b; color:white;">July 2026</option>
                 <option value="2026-06" {% if month_val == '2026-06' %}selected{% endif %} style="background:#1e293b; color:white;">June 2026</option>
                 <option value="2026-05" {% if month_val == '2026-05' %}selected{% endif %} style="background:#1e293b; color:white;">May 2026</option>
-                <option value="2026-04" {% if month_val == '2026-04' %}selected{% endif %} style="background:#1e293b; color:white;">April 2026</option>
-                <option value="2026-03" {% if month_val == '2026-03' %}selected{% endif %} style="background:#1e293b; color:white;">March 2026</option>
-                <option value="2026-02" {% if month_val == '2026-02' %}selected{% endif %} style="background:#1e293b; color:white;">February 2026</option>
-                <option value="2026-01" {% if month_val == '2026-01' %}selected{% endif %} style="background:#1e293b; color:white;">January 2026</option>
+                {% endfor %}
             </select>
             <a href="?month={{ current_month_val }}" 
                title="Jump directly to current month ({{ current_month_val }})"
@@ -1977,9 +1984,8 @@
 </div>
 
 <div class="tab-nav">
-    <a id="btn-staff" href="?tab=staff&month={{ month_val }}" class="{% if active_tab == 'staff' or not active_tab %}active{% endif %}" onclick="showSection('staff');">Staff Payroll</a>
-    <a id="btn-jw" href="?tab=jw&month={{ month_val }}" class="{% if active_tab == 'jw' %}active{% endif %}" onclick="showSection('jw');">Job Work Ledger</a>
-    <a id="btn-sheet" href="?tab=sheet&month={{ month_val }}" class="{% if active_tab == 'sheet' %}active{% endif %}" onclick="showSection('sheet');">Attendance Sheet</a>
+    <button type="button" id="btn-staff" class="{% if active_tab == 'staff' or not active_tab %}active{% endif %}" onclick="showSection('staff');">Staff Payroll</button>
+    <button type="button" id="btn-jw" class="{% if active_tab == 'jw' %}active{% endif %}" onclick="showSection('jw');">Job Work Ledger</button>
 </div>
 
 <!-- STAFF SECTION -->
@@ -2073,6 +2079,9 @@
                         {% else %}
                         ₹{{ entry.balance|floatformat:0 }}
                         {% endif %}
+                        {% if entry.advance_surplus > 0.99 %}
+                        <div style="font-size:10px; color:#34d399; font-weight:700; margin-top:2px;">(-₹{{ entry.advance_surplus|floatformat:0 }} Surplus)</div>
+                        {% endif %}
                     </td>
                     <td style="text-align:center;">
                         {% if entry.status_code == 'FULLY_PAID' %}
@@ -2104,8 +2113,15 @@
                             {% endif %}
                         </div>
                         {% elif entry.status_code == 'ADVANCE_PAID' %}
-                        <div style="margin-bottom:4px;"><span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">🟡 ADVANCE PAID (₹{{ entry.total_paid|floatformat:0 }})</span></div>
-                        <button type="button" onclick="openQuickSettlementModal('w_{{ entry.worker.id }}', '{{ entry.worker.name|escapejs }}', {{ entry.balance }}, false, '{{ month_name }}')" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; cursor:pointer; white-space:nowrap;">💰 Pay Salary</button>
+                        <div style="margin-bottom:4px;">
+                            <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">🟡 ADVANCE PAID (₹{{ entry.total_paid|floatformat:0 }})</span>
+                            {% if entry.advance_surplus > 0.99 %}
+                            <div style="font-size:10px; color:#34d399; font-weight:700; margin-top:3px;">🟢 Extra Advance: ₹{{ entry.advance_surplus|floatformat:0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% if entry.balance > 0.99 %}
+                        <button type="button" onclick="openQuickSettlementModal('w_{{ entry.worker.id }}', '{{ entry.worker.name|escapejs }}', {{ entry.balance }}, false, '{{ month_name }}')" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; cursor:pointer; white-space:nowrap;">💰 Pay Remaining (₹{{ entry.balance|floatformat:0 }})</button>
+                        {% endif %}
                         {% elif entry.status_code == 'PARTIAL' %}
                         <div style="margin-bottom:4px;"><span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">🟡 PARTIAL (Paid ₹{{ entry.total_paid|floatformat:0 }})</span></div>
                         <button type="button" onclick="openQuickSettlementModal('w_{{ entry.worker.id }}', '{{ entry.worker.name|escapejs }}', {{ entry.balance }}, false, '{{ month_name }}')" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; cursor:pointer; white-space:nowrap;">💰 Pay Remaining (₹{{ entry.balance|floatformat:0 }})</button>
@@ -2115,6 +2131,9 @@
                         {% else %}
                         <span style="color:var(--text-secondary); font-size:11px;">⚪ No Activity</span>
                         {% endif %}
+                        <div style="margin-top:4px;">
+                            <a href="{% url 'worker_monthly_report' entry.worker.id %}?month={{ month_val }}&autoprint=1" target="_blank" style="background:rgba(255, 255, 255, 0.05); color:#94a3b8; border:1px solid rgba(255, 255, 255, 0.1); padding:2px 8px; border-radius:6px; font-size:10px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:3px;" onmouseover="this.style.color='#60a5fa'; this.style.borderColor='#60a5fa';" onmouseout="this.style.color='#94a3b8'; this.style.borderColor='rgba(255, 255, 255, 0.1)';">🖨️ Print Slip</a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -2206,6 +2225,9 @@
                         {% else %}
                         ₹{{ entry.balance|floatformat:0 }}
                         {% endif %}
+                        {% if entry.advance_surplus > 0.99 %}
+                        <div style="font-size:10px; color:#34d399; font-weight:700; margin-top:2px;">(-₹{{ entry.advance_surplus|floatformat:0 }} Surplus)</div>
+                        {% endif %}
                     </td>
                     <td style="text-align:center;">
                         {% if entry.status_code == 'FULLY_PAID' %}
@@ -2216,8 +2238,15 @@
                             {% endif %}
                         </div>
                         {% elif entry.status_code == 'ADVANCE_PAID' %}
-                        <div style="margin-bottom:4px;"><span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">🟡 ADVANCE PAID (₹{{ entry.total_paid|floatformat:0 }})</span></div>
-                        <button type="button" onclick="openQuickSettlementModal('jw_{{ entry.jw.id }}', '{{ entry.jw.name|escapejs }}', {{ entry.balance }}, true, '{{ month_name }}')" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; cursor:pointer; white-space:nowrap;">💰 Pay Job Work</button>
+                        <div style="margin-bottom:4px;">
+                            <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">🟡 ADVANCE PAID (₹{{ entry.total_paid|floatformat:0 }})</span>
+                            {% if entry.advance_surplus > 0.99 %}
+                            <div style="font-size:10px; color:#34d399; font-weight:700; margin-top:3px;">🟢 Extra Advance: ₹{{ entry.advance_surplus|floatformat:0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% if entry.balance > 0.99 %}
+                        <button type="button" onclick="openQuickSettlementModal('jw_{{ entry.jw.id }}', '{{ entry.jw.name|escapejs }}', {{ entry.balance }}, true, '{{ month_name }}')" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; cursor:pointer; white-space:nowrap;">💰 Pay Remaining (₹{{ entry.balance|floatformat:0 }})</button>
+                        {% endif %}
                         {% elif entry.status_code == 'PARTIAL' %}
                         <div style="margin-bottom:4px;"><span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">🟡 PARTIAL (Paid ₹{{ entry.total_paid|floatformat:0 }})</span></div>
                         <button type="button" onclick="openQuickSettlementModal('jw_{{ entry.jw.id }}', '{{ entry.jw.name|escapejs }}', {{ entry.balance }}, true, '{{ month_name }}')" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); padding:4px 8px; font-size:10px; font-weight:800; border-radius:6px; cursor:pointer; white-space:nowrap;">💰 Pay Remaining (₹{{ entry.balance|floatformat:0 }})</button>
@@ -2227,84 +2256,16 @@
                         {% else %}
                         <span style="color:var(--text-secondary); font-size:11px;">⚪ No Activity</span>
                         {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- MONTHLY SHEET SECTION -->
-<div id="section-sheet" class="ledger-section {% if active_tab == 'sheet' %}active{% endif %}">
-    <div class="card" style="padding:0; overflow-x:auto;">
-        <table style="border-collapse:collapse; min-width:1400px; width:100%;">
-            <thead>
-                <tr style="background:rgba(255,255,255,0.02); position:sticky; top:0; z-index:10;">
-                    <th style="position:sticky; left:0; background:var(--card-dark); z-index:11; min-width:180px; padding:20px; border-right:2px solid var(--border-soft); text-align:left;">Staff Member</th>
-                    {% for d in days_range %}
-                    <th style="text-align:center; padding:10px; font-size:11px; min-width:40px; border-right:1px solid rgba(255,255,255,0.05); color:var(--text-secondary);">{{ d }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in attendance_matrix %}
-                <tr style="border-bottom:1px solid var(--border-soft);">
-                    <td style="position:sticky; left:0; background:var(--card-dark); z-index:5; padding:15px 20px; font-weight:bold; border-right:2px solid var(--border-soft); color:var(--accent-blue); cursor:pointer;">
-                        <a href="?tab=staff&drawer=worker_profile&worker_id={{ row.worker.id }}&month={{ month_val }}" onclick="openWorkerProfile('{{ row.worker.id }}'); return false;" style="font-weight:bold; color:var(--accent-blue); text-decoration:none; display:block;">
-                            {{ row.worker.name }}
-                        </a>
-                        <div style="font-size:9px; font-weight:normal; color:var(--text-secondary); text-transform:uppercase;">{{ row.worker.get_process_display }}</div>
-                    </td>
-                    {% for day in row.days %}
-                    <td class="attendance-cell"
-                        data-worker-id="{{ row.worker.id }}"
-                        data-worker-name="{{ row.worker.name }}"
-                        data-date="{{ day.date_str }}"
-                        data-day="{{ day.day }}"
-                        data-status="{% if day.status %}{{ day.status }}{% else %}NONE{% endif %}"
-                        data-ot="{{ day.ot }}"
-                        {% if day.holiday_name %}
-                        title="{{ day.holiday_name }} ({% if day.is_paid_holiday %}Paid{% else %}Unpaid{% endif %})"
-                        style="text-align:center; padding:10px; font-size:16px; border-right:1px solid rgba(255,255,255,0.05); position:relative; background: rgba(245, 158, 11, 0.12); box-shadow: inset 0 0 4px rgba(245, 158, 11, 0.2);"
-                        {% else %}
-                        style="text-align:center; padding:10px; font-size:16px; border-right:1px solid rgba(255,255,255,0.05); position:relative;"
-                        {% endif %}
-                        onclick="handleCellClick(this, event)"
-                        oncontextmenu="event.preventDefault(); activateInlineOvertimeInput(this); return false;"
-                        onmouseenter="setHoveredCell(this)"
-                        onmouseleave="clearHoveredCell(this)">
-                        <div class="cell-status-container">
-                            {% if day.status == 'PRESENT' %}
-                            <span style="color:#10b981;">✓</span>
-                            {% elif day.status == 'HALF_DAY' %}
-                            <span style="color:#f59e0b;">=</span>
-                            {% elif day.status == 'ABSENT' %}
-                            <span style="color:#ef4444;">✕</span>
-                            {% elif day.status == 'HOLIDAY' %}
-                            <span style="color:#fb923c; font-weight:800;" title="{{ day.holiday_name }}">H</span>
-                            {% else %}
-                            <span style="color:var(--text-secondary); opacity:0.2;">·</span>
-                            {% endif %}
+                        <div style="margin-top:4px;">
+                            <a href="{% url 'job_worker_report' entry.jw.id %}?month={{ month_val }}&autoprint=1" target="_blank" style="background:rgba(255, 255, 255, 0.05); color:#94a3b8; border:1px solid rgba(255, 255, 255, 0.1); padding:2px 8px; border-radius:6px; font-size:10px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:3px;" onmouseover="this.style.color='#60a5fa'; this.style.borderColor='#60a5fa';" onmouseout="this.style.color='#94a3b8'; this.style.borderColor='rgba(255, 255, 255, 0.1)';">🖨️ Print Slip</a>
                         </div>
-
-                        <div class="cell-ot-indicator" style="position:absolute; top:2px; right:2px; width:4px; height:4px; background:var(--accent-blue); border-radius:50%; {% if day.ot == 0 %}display:none;{% endif %}" title="OT: {{ day.ot }}h"></div>
                     </td>
-                    {% endfor %}
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    <div style="margin-top:20px; display:flex; gap:20px; font-size:12px; color:var(--text-secondary); justify-content:center;">
-        <div style="display:flex; align-items:center; gap:8px;"><span style="color:#10b981; font-weight:bold;">✓</span> Present</div>
-        <div style="display:flex; align-items:center; gap:8px;"><span style="color:#f59e0b; font-weight:bold;">=</span> Half Day</div>
-        <div style="display:flex; align-items:center; gap:8px;"><span style="color:#ef4444; font-weight:bold;">✕</span> Absent</div>
-        <div style="display:flex; align-items:center; gap:8px;"><span style="color:#fb923c; font-weight:bold;">H</span> Holiday</div>
-        <div style="display:flex; align-items:center; gap:8px;"><div style="width:4px; height:4px; background:var(--accent-blue); border-radius:50%;"></div> Overtime Recorded</div>
-    </div>
 </div>
-
 
 <!-- DRAWER BACKDROP -->
 <div id="drawerBackdrop" class="drawer-backdrop" onclick="closeAllDrawers()"></div>
@@ -2483,6 +2444,7 @@
                 </div>
 
                 <button id="generate-report-btn" onclick="openReportModal()" style="background:#10b981; color:white; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer;">Monthly Report</button>
+                <button type="button" onclick="printJobWorkerSlip(currentProfileWorkerId)" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); padding:8px 14px; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">🖨️ Print Slip</button>
             </div>
         </div>
 
@@ -2560,7 +2522,7 @@
 
 <script>
     function showSection(section) {
-        const sections = ['staff', 'jw', 'sheet'];
+        const sections = ['staff', 'jw'];
         for (var i = 0; i < sections.length; i++) {
             var s = sections[i];
             var sec = document.getElementById('section-' + s);
@@ -2606,248 +2568,6 @@
         window.location.href = `/ledger/?tab=${currentTab}&month=${monthStr}`;
     }
     window.changeLedgerMonth = changeLedgerMonth;
-
-    let activeEditingCell = null;
-    let hoveredCell = null;
-    let clickTimeout = null;
-    let clickCount = 0;
-
-    // Track active hovered cell for keyboard hotkeys
-    function setHoveredCell(cell) {
-        hoveredCell = cell;
-    }
-
-    function clearHoveredCell(cell) {
-        if (hoveredCell === cell) {
-            hoveredCell = null;
-        }
-    }
-
-    // Keyboard Hotkey Listener
-    document.addEventListener('keydown', async function(event) {
-        if (!hoveredCell) return;
-
-        const key = event.key.toLowerCase();
-        const cell = hoveredCell;
-
-        // If typing a digit in inline OT input, let input handle it
-        if (document.activeElement && document.activeElement.classList.contains('inline-ot-input')) {
-            if (/^[0-9.]$/.test(event.key) || event.key === 'Enter' || event.key === 'Tab' || event.key === 'Escape') {
-                return;
-            }
-            // Blur inline input first if user presses hotkeys (P, A, H, Y, C)
-            document.activeElement.blur();
-        }
-
-        if (key === 'o') {
-            event.preventDefault();
-            const status = cell.getAttribute('data-status') || 'PRESENT';
-            if (status !== 'PRESENT' && status !== 'HALF_DAY') {
-                await saveAttendanceState(cell.getAttribute('data-worker-id'), 'PRESENT', cell.getAttribute('data-date'), cell.getAttribute('data-ot') || '0');
-                updateCellUI(cell, 'PRESENT', cell.getAttribute('data-ot') || '0');
-            }
-            activateInlineOvertimeInput(cell);
-            return;
-        }
-
-        let newStatus = null;
-        if (key === 'p') newStatus = 'PRESENT';
-        else if (key === 'a') newStatus = 'ABSENT';
-        else if (key === 'h') newStatus = 'HALF_DAY';
-        else if (key === 'y') newStatus = 'HOLIDAY';
-        else if (key === 'c' || event.key === 'Backspace' || event.key === 'Delete') newStatus = 'NONE';
-
-        if (newStatus !== null) {
-            event.preventDefault();
-            const workerId = cell.getAttribute('data-worker-id');
-            const date = cell.getAttribute('data-date');
-            const ot = cell.getAttribute('data-ot') || '0';
-
-            // Visual feedback pulse instantly
-            cell.classList.remove('success-pulse', 'error-pulse');
-            
-            try {
-                const updated = await saveAttendanceState(workerId, newStatus, date, ot);
-                if (updated) {
-                    updateCellUI(cell, newStatus, ot);
-                    cell.classList.add('success-pulse');
-                } else {
-                    cell.classList.add('error-pulse');
-                }
-            } catch (err) {
-                console.error(err);
-                cell.classList.add('error-pulse');
-            }
-        }
-    });
-
-    // Multi-click Detector (1 click = Toggle Present/Absent, 2 clicks = Inline OT input)
-    function handleCellClick(cell, event) {
-        event.stopPropagation();
-        
-        // If an inline OT input is already active inside this cell, ignore click
-        if (cell.querySelector('.inline-ot-input')) {
-            return;
-        }
-
-        const ot = cell.getAttribute('data-ot') || '0';
-
-        clickCount++;
-        if (clickTimeout) {
-            clearTimeout(clickTimeout);
-        }
-
-        clickTimeout = setTimeout(async () => {
-            const currentClicks = clickCount;
-            clickCount = 0;
-            clickTimeout = null;
-
-            const currentStatus = cell.getAttribute('data-status') || 'NONE';
-            const workerId = cell.getAttribute('data-worker-id');
-            const date = cell.getAttribute('data-date');
-
-            let newStatus = 'PRESENT';
-            if (currentClicks === 1) {
-                // 1 click: if PRESENT -> ABSENT, if not PRESENT -> PRESENT
-                newStatus = (currentStatus === 'PRESENT') ? 'ABSENT' : 'PRESENT';
-            } else if (currentClicks === 2) {
-                // 2 clicks (Double click): ABSENT
-                newStatus = 'ABSENT';
-            } else if (currentClicks >= 3) {
-                // 3 clicks: HALF_DAY
-                newStatus = 'HALF_DAY';
-            }
-
-            cell.classList.remove('success-pulse', 'error-pulse');
-            try {
-                const updated = await saveAttendanceState(workerId, newStatus, date, ot);
-                if (updated) {
-                    updateCellUI(cell, newStatus, ot);
-                    cell.classList.add('success-pulse');
-                } else {
-                    cell.classList.add('error-pulse');
-                }
-            } catch (err) {
-                console.error(err);
-                cell.classList.add('error-pulse');
-            }
-        }, 220);
-    }
-
-    // Activate the inline OT input directly inside the cell
-    function activateInlineOvertimeInput(cell) {
-        // Close any other open inline OT inputs first
-        document.querySelectorAll('.inline-ot-input').forEach(input => {
-            input.blur();
-        });
-
-        const statusContainer = cell.querySelector('.cell-status-container');
-        const currentOt = cell.getAttribute('data-ot') || '0';
-
-        // Save current HTML to restore in case of failure or blur
-        const originalHTML = statusContainer.innerHTML;
-
-        statusContainer.innerHTML = `<input type="number" step="0.5" min="0" max="24" class="inline-ot-input" value="${currentOt}">`;
-        
-        const input = statusContainer.querySelector('.inline-ot-input');
-        input.focus();
-        input.select();
-
-        let isSaving = false;
-
-        async function saveInlineOtValue() {
-            if (isSaving) return;
-            isSaving = true;
-
-            const newOt = parseFloat(input.value || '0');
-            const status = cell.getAttribute('data-status') || 'PRESENT';
-            const workerId = cell.getAttribute('data-worker-id');
-            const date = cell.getAttribute('data-date');
-
-            cell.classList.remove('success-pulse', 'error-pulse');
-            try {
-                const updated = await saveAttendanceState(workerId, status, date, newOt);
-                if (updated) {
-                    cell.setAttribute('data-ot', newOt);
-                    // Restore UI checkmark/symbol
-                    updateCellUI(cell, status, newOt);
-                    cell.classList.add('success-pulse');
-                } else {
-                    statusContainer.innerHTML = originalHTML;
-                    cell.classList.add('error-pulse');
-                }
-            } catch (err) {
-                console.error(err);
-                statusContainer.innerHTML = originalHTML;
-                cell.classList.add('error-pulse');
-            }
-        }
-
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                input.blur(); // Triggers saveInlineOtValue
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                isSaving = true; // prevent saving
-                statusContainer.innerHTML = originalHTML; // restore
-            }
-        });
-
-        input.addEventListener('blur', function() {
-            saveInlineOtValue();
-        });
-    }
-
-    // AJAX helper to submit attendance state changes
-    async function saveAttendanceState(workerId, status, date, otHours) {
-        const formData = new FormData();
-        formData.append('worker_id', workerId);
-        formData.append('status', status);
-        formData.append('date', date);
-        formData.append('ot_hours', otHours);
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-        try {
-            const response = await fetch('{% url "mark_attendance" %}', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            return data.status === 'success';
-        } catch (err) {
-            console.error(err);
-            return false;
-        }
-    }
-
-    // Helper to update grid cell visually in-place
-    function updateCellUI(cell, status, ot) {
-        cell.setAttribute('data-status', status);
-        cell.setAttribute('data-ot', ot);
-
-        const container = cell.querySelector('.cell-status-container');
-        if (status === 'PRESENT') {
-            container.innerHTML = '<span style="color:#10b981;">✓</span>';
-        } else if (status === 'HALF_DAY') {
-            container.innerHTML = '<span style="color:#f59e0b;">=</span>';
-        } else if (status === 'ABSENT') {
-            container.innerHTML = '<span style="color:#ef4444;">✕</span>';
-        } else if (status === 'HOLIDAY') {
-            container.innerHTML = '<span style="color:#fb923c; font-weight:800;">H</span>';
-        } else {
-            container.innerHTML = '<span style="color:var(--text-secondary); opacity:0.2;">·</span>';
-        }
-
-        const indicator = cell.querySelector('.cell-ot-indicator');
-        const parsedOt = parseFloat(ot || '0');
-        if (parsedOt > 0 && (status === 'PRESENT' || status === 'HALF_DAY')) {
-            indicator.style.display = 'block';
-            indicator.setAttribute('title', `OT: ${parsedOt}h`);
-        } else {
-            indicator.style.display = 'none';
-        }
-    }
 
     function switchTeam(team) {
         const params = new URLSearchParams(window.location.search);
@@ -2924,239 +2644,10 @@
         });
     }
 
-    function openPaymentDrawer(e) {
-        if (e && e.preventDefault) e.preventDefault();
-        closeAllDrawers();
-        const drawer = document.getElementById('paymentDrawer');
-        const backdrop = document.getElementById('drawerBackdrop');
-        if (drawer) {
-            drawer.style.setProperty('display', 'block', 'important');
-            drawer.style.setProperty('right', '0px', 'important');
-            drawer.style.setProperty('z-index', '100005', 'important');
-            drawer.classList.add('active');
-        }
-        if (backdrop) {
-            backdrop.style.setProperty('display', 'block', 'important');
-            backdrop.style.setProperty('z-index', '100004', 'important');
-            backdrop.classList.add('active');
-        }
-        try {
-            updateRecipientLoanDeductionSection();
-        } catch(err) {
-            console.error('Error updating payment loan deduction section:', err);
-        }
-        return false;
-    }
-    window.openPaymentDrawer = openPaymentDrawer;
-
-    function closePaymentDrawer() {
-        closeAllDrawers();
-    }
-    window.closePaymentDrawer = closePaymentDrawer;
-
-    function closeAllDrawers() {
-        const backdrop = document.getElementById('drawerBackdrop');
-        if (backdrop) {
-            backdrop.style.setProperty('display', 'none', 'important');
-            backdrop.classList.remove('active');
-        }
-        document.querySelectorAll('.drawer').forEach(d => {
-            d.style.setProperty('right', '-100vw', 'important');
-            d.style.setProperty('display', 'none', 'important');
-            d.classList.remove('active');
-        });
-        if (typeof currentProfileWorkerId !== 'undefined') currentProfileWorkerId = null;
-    }
-    window.closeAllDrawers = closeAllDrawers;
-
-    let currentDuesData = {
-        targetId: null,
-        targetName: '',
-        monthlyDue: 0,
-        runningDue: 0,
-        isJobWorker: false,
-        selectedScope: 'MONTHLY',
-        selectedMonth: '{{ month_val }}'
-    };
-
-    function populateSettlementMonths(selectedMonth) {
-        const sel = document.getElementById('scope-target-month');
-        if (!sel) return;
-        sel.innerHTML = '';
-        
-        const today = new Date();
-        const curYear = today.getFullYear();
-        const curMonth = today.getMonth();
-        const monthsNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        
-        for (let i = 0; i < 6; i++) {
-            let d = new Date(curYear, curMonth - i, 1);
-            let yyyy = d.getFullYear();
-            let mm = String(d.getMonth() + 1).padStart(2, '0');
-            let mVal = `${yyyy}-${mm}`;
-            let mLabel = `${monthsNames[d.getMonth()]} ${yyyy}`;
-            if (i === 0) mLabel += " (Current)";
-            else if (i === 1) mLabel += " (Last Month)";
-            
-            let opt = document.createElement('option');
-            opt.value = mVal;
-            opt.textContent = mLabel;
-            if (mVal === selectedMonth) opt.selected = true;
-            sel.appendChild(opt);
-        }
-    }
-
-    function onSettlementMonthChange(monthVal) {
-        document.getElementById('q-settlement-period').value = monthVal;
-        currentDuesData.selectedMonth = monthVal;
-        
-        fetch(`/api/labor/get-recipient-dues/?target_id=${encodeURIComponent(currentDuesData.targetId)}&month=${monthVal}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    currentDuesData.monthlyDue = data.monthly_due;
-                    const sel = document.getElementById('scope-target-month');
-                    const selText = (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) ? sel.options[sel.selectedIndex].text.split('(')[0].trim() : monthVal;
-                    
-                    const mSub = document.getElementById('scope-monthly-sub');
-                    if (mSub) mSub.textContent = `Clears ${selText} (₹${data.monthly_due})`;
-                    
-                    selectSettlementScope('MONTHLY');
-                }
-            })
-            .catch(err => console.error("Error changing settlement month:", err));
-    }
-
-    function selectSettlementScope(scope) {
-        currentDuesData.selectedScope = scope;
-        const monthlyCard = document.getElementById('scope-card-monthly');
-        const todayCard = document.getElementById('scope-card-today');
-        const monthlyRadio = document.getElementById('scope-radio-monthly');
-        const todayRadio = document.getElementById('scope-radio-today');
-        const amountInput = document.querySelector('#paymentDrawer input[name="amount"]');
-        const notesInput = document.getElementById('q-payment-notes');
-
-        if (scope === 'MONTHLY') {
-            if (monthlyRadio) monthlyRadio.checked = true;
-            if (monthlyCard) {
-                monthlyCard.style.background = 'rgba(99, 102, 241, 0.15)';
-                monthlyCard.style.border = '2px solid #6366f1';
-                if (monthlyCard.querySelector('div')) monthlyCard.querySelector('div').style.color = '#818cf8';
-            }
-            if (todayCard) {
-                todayCard.style.background = 'rgba(255, 255, 255, 0.03)';
-                todayCard.style.border = '1px solid rgba(255, 255, 255, 0.12)';
-                if (todayCard.querySelector('div')) todayCard.querySelector('div').style.color = '#94a3b8';
-            }
-            
-            if (amountInput) {
-                amountInput.value = currentDuesData.monthlyDue > 0 ? Math.round(currentDuesData.monthlyDue) : '';
-            }
-            if (notesInput) {
-                const sel = document.getElementById('scope-target-month');
-                const selText = (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) ? sel.options[sel.selectedIndex].text.split('(')[0].trim() : (currentDuesData.selectedMonth || '');
-                const settlementLabel = currentDuesData.isJobWorker ? 'Job Work Settlement' : 'Salary Settlement';
-                notesInput.value = `${selText} ${settlementLabel}`;
-            }
-        } else if (scope === 'TILL_TODAY') {
-            if (todayRadio) todayRadio.checked = true;
-            if (todayCard) {
-                todayCard.style.background = 'rgba(16, 185, 129, 0.15)';
-                todayCard.style.border = '2px solid #10b981';
-                if (todayCard.querySelector('div')) todayCard.querySelector('div').style.color = '#34d399';
-            }
-            if (monthlyCard) {
-                monthlyCard.style.background = 'rgba(255, 255, 255, 0.03)';
-                monthlyCard.style.border = '1px solid rgba(255, 255, 255, 0.12)';
-                if (monthlyCard.querySelector('div')) monthlyCard.querySelector('div').style.color = '#94a3b8';
-            }
-            
-            if (amountInput) {
-                amountInput.value = currentDuesData.runningDue > 0 ? Math.round(currentDuesData.runningDue) : '';
-            }
-            if (notesInput) {
-                const settlementLabel = currentDuesData.isJobWorker ? 'Job Work Settlement' : 'Salary Settlement';
-                notesInput.value = `${currentDuesData.targetName} Running ${settlementLabel} (Till Today)`;
-            }
-        }
-        recalculateSplitPayout();
-    }
-
-    function openQuickSettlementModal(targetId, targetName, amount, isJobWorker, periodName) {
-        if (typeof closeReportModal === 'function') {
-            closeReportModal();
-        }
-        closeAllDrawers();
-        openPaymentDrawer();
-
-        const select = document.querySelector('#paymentDrawer select[name="target_id"]');
-        if (select) {
-            select.value = targetId;
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
-        const typeSelect = document.getElementById('q-payment-type');
-        if (typeSelect) {
-            typeSelect.value = isJobWorker ? 'JOB_WORK' : 'SALARY';
-            if (typeof toggleLoanFields === 'function') toggleLoanFields(typeSelect.value);
-        }
-
-        const initialMonth = '{{ month_val }}';
-        populateSettlementMonths(initialMonth);
-
-        currentDuesData = {
-            targetId: targetId,
-            targetName: targetName || '',
-            monthlyDue: amount || 0,
-            runningDue: amount || 0,
-            isJobWorker: isJobWorker,
-            selectedScope: 'MONTHLY',
-            selectedMonth: initialMonth
-        };
-
-        const periodInput = document.getElementById('q-settlement-period');
-        if (periodInput) periodInput.value = initialMonth;
-
-        selectSettlementScope('MONTHLY');
-
-        // Fetch real-time dues comparison
-        fetch(`/api/labor/get-recipient-dues/?target_id=${encodeURIComponent(targetId)}&month=${initialMonth}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    if (data.monthly_due > 0 || !amount) {
-                        currentDuesData.monthlyDue = data.monthly_due;
-                    } else if (amount && amount > 0) {
-                        currentDuesData.monthlyDue = amount;
-                    }
-                    if (data.running_due > 0 || !amount) {
-                        currentDuesData.runningDue = data.running_due;
-                    } else if (amount && amount > 0) {
-                        currentDuesData.runningDue = amount;
-                    }
-                    if (data.recipient_name) currentDuesData.targetName = data.recipient_name;
-                    
-                    const mSub = document.getElementById('scope-monthly-sub');
-                    if (mSub) mSub.textContent = `Clears {{ month_name }} (₹${currentDuesData.monthlyDue})`;
-                    
-                    const tSub = document.getElementById('scope-today-sub');
-                    if (tSub) tSub.textContent = `Since last paid (₹${currentDuesData.runningDue})`;
-                    
-                    selectSettlementScope(currentDuesData.selectedScope);
-                }
-            })
-            .catch(err => console.error("Error fetching recipient dues:", err));
-
-        updateRecipientLoanDeductionSection();
-    }
-    window.openQuickSettlementModal = openQuickSettlementModal;
-
-    // JOB WORKER PROFILE LOGIC
-    let currentProfileWorkerId = null;
-    let drawerCurrentMode = 'monthly';
     function viewSettledVoucher(workerId, name, amount, monthName) {
         alert("📜 SETTLEMENT VOUCHER ARCHIVE\n-----------------------------------\nWorker / Unit: " + name + "\nMonth: " + monthName + "\nSettlement Amount Cleared: ₹" + amount + "\nStatus: CLOSED & ARCHIVED (Clean Slate Reset Active)\n-----------------------------------\nAll accounts for this cycle have been 100% settled.");
     }
+    window.viewSettledVoucher = viewSettledVoucher;
 
     function setAttendance(btn, status, workerId) {
         const container = document.getElementById('toggle-container-' + workerId);
@@ -3164,6 +2655,7 @@
         btn.classList.add('active');
         document.getElementById('input-' + workerId).value = status;
     }
+    window.setAttendance = setAttendance;
 
     async function saveAttendance() {
         const form = document.getElementById('attendanceForm');
@@ -3193,75 +2685,7 @@
         }
         location.reload();
     }
-
-
-    function toggleLoanFields(val) {
-        const emiBox = document.getElementById('q-emi-box');
-        const amountLabel = document.getElementById('label-amount');
-        
-        if (val === 'NEW_LOAN') {
-            emiBox.style.display = 'block';
-            amountLabel.innerText = "Total Loan Amount (₹)";
-        } else {
-            emiBox.style.display = 'none';
-            amountLabel.innerText = "Amount (₹)";
-        }
-    }
-
-    let isSavingPayment = false;
-    function savePayment(btn) {
-        if (isSavingPayment) return;
-
-        const form = document.getElementById('paymentForm');
-        const recipient = form.querySelector('[name="target_id"]').value;
-        const amount = form.querySelector('[name="amount"]').value;
-
-        if (!recipient) {
-            alert("⚠️ Please select a Staff or Job Worker recipient.");
-            return;
-        }
-        if (!amount || parseFloat(amount) <= 0) {
-            alert("⚠️ Please enter a valid payment amount greater than ₹0.");
-            return;
-        }
-
-        isSavingPayment = true;
-        const submitBtn = btn || form.querySelector('button[type="submit"], button[onclick*="savePayment"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.dataset.origText = submitBtn.innerText;
-            submitBtn.innerText = "Saving...";
-        }
-
-        const formData = new FormData(form);
-        
-        fetch("{% url 'record_labor_payment' %}", {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                location.reload();
-            } else {
-                alert('Error: ' + (data.error || 'Failed to record transaction'));
-                isSavingPayment = false;
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerText = submitBtn.dataset.origText || "SAVE PAYMENT";
-                }
-            }
-        })
-        .catch(err => {
-            alert("Error saving transaction: " + err.message);
-            isSavingPayment = false;
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerText = submitBtn.dataset.origText || "SAVE PAYMENT";
-            }
-        });
-    }
-    window.savePayment = savePayment;
+    window.saveAttendance = saveAttendance;
 
     function quickLoanRepayment(workerId, emiAmount) {
         if (!confirm(`Record EMI payment of ₹${emiAmount}?`)) return;
@@ -3410,6 +2834,7 @@
                 </div>
 
                 <a id="w-drawer-monthly-report-btn" href="#" style="background:#10b981; color:white; text-decoration:none; padding:8px 14px; border-radius:8px; font-weight:bold; font-size:12px; display:inline-flex; align-items:center; gap:6px;">Monthly Report</a>
+                <button type="button" onclick="printStaffSlip(currentInternalWorkerId)" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); padding:8px 14px; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">🖨️ Print Slip</button>
             </div>
         </div>
 
@@ -3488,11 +2913,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         const btnStaff = document.getElementById('btn-staff');
         const btnJw = document.getElementById('btn-jw');
-        const btnSheet = document.getElementById('btn-sheet');
 
         if (btnStaff) btnStaff.addEventListener('click', function(e) { showSection('staff'); });
         if (btnJw) btnJw.addEventListener('click', function(e) { showSection('jw'); });
-        if (btnSheet) btnSheet.addEventListener('click', function(e) { showSection('sheet'); });
 
         const targetSelect = document.querySelector('#paymentDrawer select[name="target_id"]');
         if (targetSelect) {
@@ -3506,6 +2929,13 @@
         openAttendanceDrawer();
         {% elif active_drawer == 'payment' %}
         openPaymentDrawer();
+        {% if drawer_target_id %}
+        const preSelect = document.querySelector('#paymentDrawer select[name="target_id"]');
+        if (preSelect) {
+            preSelect.value = '{{ drawer_target_id }}';
+            preSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        {% endif %}
         {% elif active_drawer == 'jw_profile' and drawer_jw_id %}
         openJobWorkerProfile('{{ drawer_jw_id }}');
         {% elif active_drawer == 'worker_profile' and drawer_worker_id %}
@@ -3527,47 +2957,7 @@
         });
     }
 
-    // Initialize Flatpickr for Month Picker
-    if (typeof flatpickr !== 'undefined' && document.getElementById('ledger-month-picker')) {
-        const monthPlugins = [];
-        if (typeof monthSelectPlugin !== 'undefined') {
-            monthPlugins.push(new monthSelectPlugin({
-                shorthand: true,
-                dateFormat: "Y-m",
-                altFormat: "F Y",
-                theme: "dark"
-            }));
-        }
-        flatpickr("#ledger-month-picker", {
-            plugins: monthPlugins,
-            defaultDate: "{{ month_val }}",
-            onChange: function(selectedDates, dateStr, instance) {
-                let val = dateStr;
-                if (selectedDates && selectedDates.length > 0) {
-                    const d = selectedDates[0];
-                    const yyyy = d.getFullYear();
-                    const mm = String(d.getMonth() + 1).padStart(2, '0');
-                    val = `${yyyy}-${mm}`;
-                }
-                if (val) changeLedgerMonth(val);
-            },
-            onOpen: function(selectedDates, dateStr, instance) {
-                setTimeout(() => {
-                    const container = instance.calendarContainer;
-                    if (!container) return;
-                    const months = container.querySelectorAll('.flatpickr-monthSelect-month');
-                    months.forEach((m, idx) => {
-                        m.onclick = function(e) {
-                            const yearInput = container.querySelector('.cur-year');
-                            const year = yearInput ? yearInput.value : (new Date()).getFullYear();
-                            const mm = String(idx + 1).padStart(2, '0');
-                            changeLedgerMonth(`${year}-${mm}`);
-                        };
-                    });
-                }, 50);
-            }
-        });
-    }
+
 
     // Initialize Flatpickr for Drawer Month Picker (Job Workers)
     if (typeof flatpickr !== 'undefined' && document.getElementById('drawer-month-picker')) {
@@ -3831,13 +3221,27 @@
 
     function openReportModal() {
         if (!currentProfileWorkerId) return;
-        const currentMonth = "{{ month_val }}";
+        const currentMonth = drawerCurrentMonth || "{{ month_val }}";
         const iframe = document.getElementById('inlineStatementIframe');
         iframe.src = `/ledger/job-worker/${currentProfileWorkerId}/report/?month=${currentMonth}`;
         if (typeof closeJobWorkerProfile === 'function') {
             closeJobWorkerProfile();
         }
         document.getElementById('inlineStatementModal').style.display = 'flex';
+    }
+
+    function printJobWorkerSlip(jwId, monthVal = null) {
+        const id = jwId || currentProfileWorkerId;
+        if (!id) return;
+        const month = monthVal || drawerCurrentMonth || "{{ month_val }}";
+        window.open(`/ledger/job-worker/${id}/report/?month=${month}&autoprint=1`, '_blank');
+    }
+
+    function printStaffSlip(wId, monthVal = null) {
+        const id = wId || currentInternalWorkerId;
+        if (!id) return;
+        const month = monthVal || drawerWorkerCurrentMonth || "{{ month_val }}";
+        window.open(`/ledger/worker/${id}/report/?month=${month}&autoprint=1`, '_blank');
     }
 
     function closeReportModal() {
@@ -4017,31 +3421,31 @@
     // Trigger action drawer from global search url queries on load & restore active tab
     function initLedgerTabAndAction() {
         const params = new URLSearchParams(window.location.search);
-        const savedTab = params.get('tab') || sessionStorage.getItem('ledger_active_tab');
-        if (savedTab && ['staff', 'jw', 'sheet'].includes(savedTab)) {
+        const action = params.get('action');
+        const targetId = params.get('target_id');
+        let tab = params.get('tab');
+        if (!tab && targetId) {
+            tab = targetId.startsWith('jw_') ? 'jw' : 'staff';
+        }
+        const savedTab = tab || sessionStorage.getItem('ledger_active_tab');
+        if (savedTab && ['staff', 'jw'].includes(savedTab)) {
             showSection(savedTab);
         }
 
         const drawerParam = params.get('drawer');
-        if (drawerParam === 'attendance') {
-            setTimeout(openAttendanceDrawer, 300);
-        } else if (drawerParam === 'payment') {
-            setTimeout(openPaymentDrawer, 300);
-        }
-
-        const action = params.get('action');
-        const targetId = params.get('target_id');
         const urlAmount = params.get('amount');
         const urlType = params.get('payment_type') || params.get('type');
         const urlNotes = params.get('notes');
         
-        if (action === 'payment' && targetId) {
+        if (action === 'payment' || drawerParam === 'payment') {
             setTimeout(() => {
                 openPaymentDrawer();
-                const select = document.querySelector('#paymentDrawer select[name="target_id"]');
-                if (select) {
-                    select.value = targetId;
-                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                if (targetId) {
+                    const select = document.querySelector('#paymentDrawer select[name="target_id"]');
+                    if (select) {
+                        select.value = targetId;
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
                 }
 
                 if (urlAmount) {
@@ -4053,7 +3457,7 @@
                 if (typeSelect) {
                     if (urlType) {
                         typeSelect.value = urlType;
-                    } else {
+                    } else if (targetId) {
                         typeSelect.value = targetId.startsWith('jw_') ? 'JOB_WORK' : 'SALARY';
                     }
                     if (typeof toggleLoanFields === 'function') toggleLoanFields(typeSelect.value);
@@ -4063,15 +3467,21 @@
                     const notesInput = document.getElementById('q-payment-notes');
                     if (notesInput) notesInput.value = urlNotes;
                 }
-            }, 400);
-        } else if (action === 'profile' && targetId) {
+            }, 300);
+        } else if ((action === 'profile' && targetId) || (drawerParam === 'jw_profile' && params.get('jw_id')) || (drawerParam === 'worker_profile' && params.get('worker_id'))) {
             setTimeout(() => {
-                if (targetId.startsWith('jw_')) {
+                if (drawerParam === 'jw_profile' && params.get('jw_id')) {
+                    openJobWorkerProfile(params.get('jw_id'));
+                } else if (drawerParam === 'worker_profile' && params.get('worker_id')) {
+                    openWorkerProfile(params.get('worker_id'));
+                } else if (targetId && targetId.startsWith('jw_')) {
                     openJobWorkerProfile(targetId.replace('jw_', ''));
-                } else if (targetId.startsWith('w_')) {
+                } else if (targetId && targetId.startsWith('w_')) {
                     openWorkerProfile(targetId.replace('w_', ''));
                 }
-            }, 400);
+            }, 300);
+        } else if (drawerParam === 'attendance') {
+            setTimeout(openAttendanceDrawer, 300);
         }
 
         try {

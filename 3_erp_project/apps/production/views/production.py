@@ -1,4 +1,6 @@
 import json
+import re
+from collections import defaultdict
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -707,89 +709,77 @@ def machining_entry(request):
     machining_stock_by_category = []
 
     wip_items = Item.objects.filter(company=active_company).distinct() if active_company else Item.objects.filter(company_id=2).distinct()
+    bulk_stock = services.get_all_items_stock(company=active_company)
+
+    # 1 Bulk query for all (item_code, worker) machining stats
+    machining_tx_stats = StockTransaction.objects.filter(
+        transaction_type__in=["machining_out", "machining_in"],
+        worker__isnull=False
+    ).values(
+        'item__code', 'worker_id', 'worker__name', 'worker__worker_type', 'worker__jw_code', 'transaction_type'
+    ).annotate(
+        total_qty=Sum('quantity'),
+        total_rej=Sum('rejection_quantity')
+    )
+
+    wip_by_item_worker = defaultdict(lambda: {'issued': 0, 'received': 0, 'rejected': 0, 'w_name': '', 'w_type': '', 'jw_code': ''})
+    worker_totals = defaultdict(lambda: {'issued': 0, 'received': 0, 'rejected': 0})
+
+    for s in machining_tx_stats:
+        icode = s['item__code']
+        wid = s['worker_id']
+        ttype = s['transaction_type']
+        qty = s['total_qty'] or 0
+        rej = s['total_rej'] or 0
+
+        d = wip_by_item_worker[(icode, wid)]
+        d['w_name'] = s['worker__name']
+        d['w_type'] = s['worker__worker_type']
+        d['jw_code'] = s['worker__jw_code']
+
+        wt = worker_totals[wid]
+        if ttype == "machining_out":
+            d['issued'] += qty
+            wt['issued'] += qty
+        elif ttype == "machining_in":
+            d['received'] += qty
+            d['rejected'] += rej
+            wt['received'] += qty
+            wt['rejected'] += rej
 
     for item in wip_items:
-        item_stock = services.get_stock_by_item(item)
-        available_qty = item_stock.get('machining', 0)
+        available_qty = bulk_stock.get(item.id, {}).get('machining', 0)
+        for (icode, wid), val in wip_by_item_worker.items():
+            if icode == item.code:
+                under_process = val['issued'] - val['received'] - val['rejected']
+                if under_process > 0:
+                    is_jw = (val['w_type'] == 'JOB_WORKER')
+                    target_id = f"jw_{wid}" if is_jw else f"w_{wid}"
+                    display_name = val['w_name'] if is_jw else f"{val['w_name']} (INT)"
 
-        # 1. Workers (In-House & Unified Job Workers) WIP for this item
-        worker_wip_rows = StockTransaction.objects.filter(
-            item__code=item.code, 
-            transaction_type="machining_out", 
-            worker__isnull=False
-        ).values('worker', 'worker__name', 'worker__worker_type', 'worker__jw_code').annotate(issued=Sum('quantity'))
-
-        for row in worker_wip_rows:
-            w_id = row['worker']
-            w_name = row['worker__name']
-            w_type = row['worker__worker_type']
-            jw_code = row['worker__jw_code']
-            
-            q_filter = Q(worker_id=w_id)
-                
-            received = StockTransaction.objects.filter(
-                Q(item__code=item.code, transaction_type="machining_in") & q_filter
-            ).aggregate(total=Sum('quantity'))['total'] or 0
-            
-            rejected = StockTransaction.objects.filter(
-                Q(item__code=item.code, transaction_type="machining_in") & q_filter
-            ).aggregate(total=Sum('rejection_quantity'))['total'] or 0
-            
-            under_process = row['issued'] - received - rejected
-            if under_process > 0:
-                is_jw = (w_type == 'JOB_WORKER')
-                if is_jw:
-                    jw_obj = None
-                    if jw_code:
-                        jw_obj = Worker.objects.filter(worker_type=WorkerType.JOB_WORKER, jw_code=jw_code).first()
-                    if not jw_obj and w_name:
-                        jw_obj = Worker.objects.filter(worker_type=WorkerType.JOB_WORKER, name__iexact=w_name).first()
-                    target_id = f"jw_{jw_obj.id}" if jw_obj else f"jw_{w_id}"
-                    display_name = w_name
-                else:
-                    target_id = f"w_{w_id}"
-                    display_name = f"{w_name} (INT)"
-
-                machining_stock.append({
-                    "item_id": item.id,
-                    "item_name": f"{item.code} - {item.name}",
-                    "item_category": item.category,
-                    "item_uom": item.uom,
-                    "is_raw_material": item.is_raw_material,
-                    "worker_id": target_id,
-                    "worker_name": display_name,
-                    "under_process": under_process,
-                    "available_qty": available_qty
-                })
+                    machining_stock.append({
+                        "item_id": item.id,
+                        "item_name": f"{item.code} - {item.name}",
+                        "item_category": item.category,
+                        "item_uom": item.uom,
+                        "is_raw_material": item.is_raw_material,
+                        "worker_id": target_id,
+                        "worker_name": display_name,
+                        "under_process": under_process,
+                        "available_qty": available_qty
+                    })
 
     worker_wip = []
-
-    # Internal Workers
-    for worker in workers:
-        issued = StockTransaction.objects.filter(worker=worker, transaction_type="machining_out").aggregate(total=Sum("quantity"))["total"] or 0
-        received = StockTransaction.objects.filter(worker=worker, transaction_type="machining_in").aggregate(total=Sum("quantity"))["total"] or 0
-        rejected = StockTransaction.objects.filter(worker=worker, transaction_type="machining_in").aggregate(total=Sum("rejection_quantity"))["total"] or 0
-        
+    for worker in list(workers) + list(job_workers):
+        wt = worker_totals.get(worker.id, {'issued': 0, 'received': 0, 'rejected': 0})
+        issued = wt['issued']
+        received = wt['received']
+        rejected = wt['rejected']
         pending = issued - received - rejected
         if issued > 0 or received > 0:
+            w_label = f"{worker.name} (EXT)" if worker.worker_type == WorkerType.JOB_WORKER else worker.name
             worker_wip.append({
-                "name": worker.name,
-                "issued": issued,
-                "received": received,
-                "rejected": rejected,
-                "pending": pending
-            })
-
-    # External Job Workers
-    for jw in job_workers:
-        issued = StockTransaction.objects.filter(worker=jw, transaction_type="machining_out").aggregate(total=Sum("quantity"))["total"] or 0
-        received = StockTransaction.objects.filter(worker=jw, transaction_type="machining_in").aggregate(total=Sum("quantity"))["total"] or 0
-        rejected = StockTransaction.objects.filter(worker=jw, transaction_type="machining_in").aggregate(total=Sum("rejection_quantity"))["total"] or 0
-        
-        pending = issued - received - rejected
-        if issued > 0 or received > 0:
-            worker_wip.append({
-                "name": f"{jw.name} (EXT)",
+                "name": w_label,
                 "issued": issued,
                 "received": received,
                 "rejected": rejected,
@@ -797,7 +787,6 @@ def machining_entry(request):
             })
 
     # Prepare Worker-wise Ledger
-    from collections import defaultdict
     worker_ledger = defaultdict(list)
     for r in recent:
         if r.worker:
@@ -843,9 +832,9 @@ def machining_entry(request):
                 if performer not in smart_allocations[comp_id]:
                     smart_allocations[comp_id].append(performer)
 
-    # Calculate casting stock for each item
+    # Calculate casting stock for each item from bulk stock map
     for item in items:
-        st = services.get_stock_by_item(item)
+        st = bulk_stock.get(item.id, {})
         item.casting_stock = st.get('casting', 0)
 
     # Build worker_wip_by_item lookup map
@@ -859,7 +848,7 @@ def machining_entry(request):
     wip_item_ids = {row["item_id"] for row in machining_stock}
     for item in items:
         if item.id not in wip_item_ids:
-            st = services.get_stock_by_item(item)
+            st = bulk_stock.get(item.id, {})
             available_qty = st.get('machining', 0)
             if available_qty > 0:
                 machining_stock_by_category.append({
@@ -925,8 +914,10 @@ def polishing_entry(request):
     piece_stock = {}
     set_capacity = {}
 
+    bulk_stock = services.get_all_items_stock(company=active_company)
+
     for item in items:
-        stock = services.get_stock_by_item(item)
+        stock = bulk_stock.get(item.id, {})
         current_machining_stock = stock.get('machining', 0)
         
         # Store individual piece stock
@@ -993,13 +984,14 @@ def polishing_entry(request):
         item_id = request.GET.get("item_id")
         rejections = int(request.GET.get("rejections") or 0)
         
-        worker_obj = None
-        job_worker_obj = None
+        target_worker = None
         if worker_str:
-            if worker_str.startswith("w_"):
-                worker_obj = Worker.objects.filter(id=worker_str.replace("w_", "")).first()
-            elif worker_str.startswith("jw_"):
-                job_worker_obj = Worker.objects.filter(id=worker_str.replace("jw_", ""), worker_type=WorkerType.JOB_WORKER).first()
+            clean_id = worker_str
+            if clean_id.startswith("jw_"):
+                clean_id = clean_id[3:]
+            elif clean_id.startswith("w_"):
+                clean_id = clean_id[2:]
+            target_worker = Worker.objects.filter(id=clean_id).first()
                 
         if item_id:
             try:
@@ -1014,9 +1006,9 @@ def polishing_entry(request):
                     transaction_type="polishing_in"
                 )
                 
-                if worker_obj:
-                    out_txs = out_txs.filter(worker=worker_obj)
-                    in_txs = in_txs.filter(worker=worker_obj)
+                if target_worker:
+                    out_txs = out_txs.filter(worker=target_worker)
+                    in_txs = in_txs.filter(worker=target_worker)
                 else:
                     out_txs = out_txs.none()
                     in_txs = in_txs.none()
@@ -1447,65 +1439,91 @@ def polishing_entry(request):
 
     completed_ids = []
 
-    for row in recent:
-        if row.transaction_type == "polishing_out":
-            done = StockTransaction.objects.filter(
-                notes=f"IN for OUT #{row.id}"
-            ).exists()
-            if done:
-                completed_ids.append(row.id)
+    recent_out_ids = [row.id for row in recent if row.transaction_type == "polishing_out"]
+    completed_ids = []
+    if recent_out_ids:
+        in_notes = StockTransaction.objects.filter(
+            transaction_type="polishing_in",
+            notes__contains="IN for OUT #"
+        ).values_list('notes', flat=True)
+        completed_set = set()
+        pattern = re.compile(r'IN for OUT #(\d+)')
+        for note in in_notes:
+            m = pattern.search(note or '')
+            if m:
+                completed_set.add(int(m.group(1)))
 
-    # Calculate Polishing WIP Stock - Grouped by Worker
-    polishing_stock = {}
-    for item in items:
-        # 1. Workers (In-House & Unified Job Workers) WIP for this item
-        worker_wip_rows = StockTransaction.objects.filter(
-            item=item, 
-            transaction_type="polishing_out", 
+        auto_issued_ids = set(StockTransaction.objects.filter(
+            transaction_type="polishing_out",
+            notes__contains="Auto-issued"
+        ).values_list('id', flat=True))
+
+        all_outs = StockTransaction.objects.filter(
+            transaction_type="polishing_out",
             worker__isnull=False
-        ).values('worker', 'worker__name', 'worker__worker_type', 'worker__jw_code').annotate(issued=Sum('quantity'))
+        ).order_by('id')
 
-        for row in worker_wip_rows:
-            w_id = row['worker']
-            w_name = row['worker__name']
-            w_type = row['worker__worker_type']
-            jw_code = row['worker__jw_code']
-            
-            q_filter = Q(worker_id=w_id)
-                
-            received = StockTransaction.objects.filter(
-                Q(item=item, transaction_type="polishing_in") & q_filter
-            ).aggregate(total=Sum('quantity'))['total'] or 0
-            
-            rejected = StockTransaction.objects.filter(
-                Q(item=item, transaction_type="polishing_in") & q_filter
-            ).aggregate(total=Sum('rejection_quantity'))['total'] or 0
-            
-            under_process = row['issued'] - received - rejected
-            if under_process > 0:
-                is_jw = (w_type == 'JOB_WORKER')
-                if is_jw:
-                    jw_obj = None
-                    if jw_code:
-                        jw_obj = Worker.objects.filter(worker_type=WorkerType.JOB_WORKER, jw_code=jw_code).first()
-                    if not jw_obj and w_name:
-                        jw_obj = Worker.objects.filter(worker_type=WorkerType.JOB_WORKER, name__iexact=w_name).first()
-                    target_id = f"jw_{jw_obj.id}" if jw_obj else f"jw_{w_id}"
-                    display_name = w_name
-                else:
-                    target_id = f"w_{w_id}"
-                    display_name = f"{w_name} (INT)"
-                
-                if display_name not in polishing_stock:
-                    polishing_stock[display_name] = []
-                    
-                polishing_stock[display_name].append({
-                    "item_id": item.id,
-                    "item_code": item.code,
-                    "item_name": item.name,
-                    "worker_id": target_id,
-                    "under_process": under_process,
-                })
+        all_ins_map = defaultdict(int)
+        for s in StockTransaction.objects.filter(
+            transaction_type="polishing_in",
+            worker__isnull=False
+        ).values('item_id', 'worker_id').annotate(tot=Sum('quantity'), rej=Sum('rejection_quantity')):
+            all_ins_map[(s['item_id'], s['worker_id'])] = (s['tot'] or 0) + (s['rej'] or 0)
+
+        fifo_completed = set(completed_set) | auto_issued_ids
+        worker_consumed_in = defaultdict(int)
+
+        for out_tx in all_outs:
+            key = (out_tx.item_id, out_tx.worker_id)
+            avail_in = all_ins_map[key] - worker_consumed_in[key]
+            if avail_in >= out_tx.quantity:
+                fifo_completed.add(out_tx.id)
+                worker_consumed_in[key] += out_tx.quantity
+            elif out_tx.id in completed_set or out_tx.id in auto_issued_ids:
+                fifo_completed.add(out_tx.id)
+
+        completed_ids = [oid for oid in recent_out_ids if oid in fifo_completed]
+
+    # Calculate Polishing WIP Stock - Grouped by Worker in 1 Bulk Query
+    polishing_stock = defaultdict(list)
+    polishing_tx_stats = StockTransaction.objects.filter(
+        transaction_type__in=["polishing_out", "polishing_in"],
+        worker__isnull=False
+    ).values(
+        'item_id', 'item__code', 'item__name', 'worker_id', 'worker__name', 'worker__worker_type', 'worker__jw_code', 'transaction_type'
+    ).annotate(
+        total_qty=Sum('quantity'),
+        total_rej=Sum('rejection_quantity')
+    )
+
+    wip_by_pol_item_worker = defaultdict(lambda: {'issued': 0, 'received': 0, 'rejected': 0, 'item_code': '', 'item_name': '', 'w_name': '', 'w_type': '', 'jw_code': ''})
+    for s in polishing_tx_stats:
+        key = (s['item_id'], s['worker_id'])
+        d = wip_by_pol_item_worker[key]
+        d['item_code'] = s['item__code']
+        d['item_name'] = s['item__name']
+        d['w_name'] = s['worker__name']
+        d['w_type'] = s['worker__worker_type']
+        d['jw_code'] = s['worker__jw_code']
+        if s['transaction_type'] == "polishing_out":
+            d['issued'] += s['total_qty'] or 0
+        elif s['transaction_type'] == "polishing_in":
+            d['received'] += s['total_qty'] or 0
+            d['rejected'] += s['total_rej'] or 0
+
+    for (item_id, wid), val in wip_by_pol_item_worker.items():
+        under_process = val['issued'] - val['received'] - val['rejected']
+        if under_process > 0:
+            is_jw = (val['w_type'] == 'JOB_WORKER')
+            target_id = f"jw_{wid}" if is_jw else f"w_{wid}"
+            display_name = val['w_name'] if is_jw else f"{val['w_name']} (INT)"
+            polishing_stock[display_name].append({
+                "item_id": item_id,
+                "item_code": val['item_code'],
+                "item_name": val['item_name'],
+                "worker_id": target_id,
+                "under_process": under_process,
+            })
 
     allocations = ItemWorkerAllocation.objects.filter(
         worker__process='polishing'
@@ -1553,7 +1571,7 @@ def polishing_entry(request):
         "completed_ids": completed_ids,
         "allocations": resolved_allocations,
         "smart_allocations": json.dumps(smart_allocations),
-        "polishing_stock": polishing_stock,
+        "polishing_stock": dict(polishing_stock),
         "worker_wip_by_item_json": json.dumps(worker_wip_by_item),
         "selected_date": query_date.strftime("%Y-%m-%d"),
     }
@@ -1583,22 +1601,35 @@ def packaging_view(request):
             pass
     query_date = selected_date.date() if selected_date else timezone.now().date()
 
+    import re
+    packed_txs = StockTransaction.objects.filter(
+        transaction_type="packaging_in",
+        notes__contains="PACKED #"
+    ).values('notes').annotate(total=Sum('quantity'))
+    
+    packed_map = defaultdict(int)
+    pattern = re.compile(r'PACKED\s*#(\d+)')
+    for pt in packed_txs:
+        notes = pt.get('notes') or ''
+        qty = pt.get('total') or 0
+        match = pattern.search(notes)
+        if match:
+            eid = int(match.group(1))
+            packed_map[eid] += qty
+
     def get_polishing_entry_remaining_qty(entry):
-        packed_qty = StockTransaction.objects.filter(
-            transaction_type="packaging_in",
-            notes__contains=f"PACKED #{entry.id}"
-        ).aggregate(total=Sum('quantity'))['total'] or 0
+        packed_qty = packed_map.get(entry.id, 0)
         remaining_qty = entry.quantity - packed_qty - (entry.rejection_quantity or 0)
         return max(0, remaining_qty)
 
     items = Item.objects.all()
+    bulk_stock = services.get_all_items_stock(company=request.company)
 
     # Calculate live Polishing WIP Stock/Capacity for each item
     piece_stock = {}
     for item in items:
-        # Fetch current polishing stock using service
-        stock_stats = services.get_stock_by_item(item)
-        piece_stock[item.id] = stock_stats.get('polishing', 0)
+        # Fetch current polishing stock from bulk memory map
+        piece_stock[item.id] = bulk_stock.get(item.id, {}).get('polishing', 0)
         item.available_polishing = piece_stock[item.id]
         
         if item.item_type == 'SET':
@@ -1625,7 +1656,7 @@ def packaging_view(request):
 
     polishing_in_entries = StockTransaction.objects.filter(
         transaction_type="polishing_in"
-    ).order_by("-created_at")
+    ).select_related('item', 'worker').order_by("-created_at")
 
     for entry in polishing_in_entries:
         remaining_qty = get_polishing_entry_remaining_qty(entry)
@@ -1643,7 +1674,7 @@ def packaging_view(request):
 
     purchase_entries = StockTransaction.objects.filter(
         transaction_type="purchase_entry"
-    ).order_by("-created_at")
+    ).select_related('item', 'worker').order_by("-created_at")
 
     for entry in purchase_entries:
         remaining_qty = get_polishing_entry_remaining_qty(entry)
@@ -2502,7 +2533,7 @@ def packaging_view(request):
     
     # Fetch Cartons and Spares
     if active_tab == "ready":
-        cartons = Carton.objects.filter(status='READY', created_at__date__lte=query_date).order_by("-created_at")
+        cartons = Carton.objects.filter(status='READY', created_at__date__lte=query_date).select_related('sales_order', 'client').prefetch_related('items__item').order_by("-created_at")
         spares = []
     elif active_tab == "buffer":
         cartons = []
@@ -2511,19 +2542,19 @@ def packaging_view(request):
                 transaction_type="packaging_in",
                 notes__contains="[DEDICATED BUFFER]",
                 created_at__date=query_date
-            ).order_by("-created_at")
+            ).select_related('item').order_by("-created_at")
         else:
             spares = StockTransaction.objects.filter(
                 transaction_type="packaging_in",
                 notes__contains="[DEDICATED BUFFER]"
-            ).order_by("-created_at")
+            ).select_related('item').order_by("-created_at")
     else:
-        cartons = Carton.objects.filter(created_at__date=query_date).order_by("-created_at")
+        cartons = Carton.objects.filter(created_at__date=query_date).select_related('sales_order', 'client').prefetch_related('items__item').order_by("-created_at")
         spares = StockTransaction.objects.filter(
             transaction_type="packaging_in",
             notes__contains="[DEDICATED BUFFER]",
             created_at__date=query_date
-        ).order_by("-created_at")
+        ).select_related('item').order_by("-created_at")
     
     ready_stock = []
     for c in cartons:
@@ -2581,7 +2612,7 @@ def packaging_view(request):
     completed_ids = []
 
     # Rich Ready Stock Analytics - Grouped logically by physical Cartons
-    ready_cartons = Carton.objects.filter(status='READY', created_at__date__lte=query_date).prefetch_related('items__item').order_by("-created_at")
+    ready_cartons = Carton.objects.filter(status='READY', created_at__date__lte=query_date).select_related('sales_order', 'client').prefetch_related('items__item').order_by("-created_at")
         
     ready_analytics = []
     total_pieces = 0
@@ -2589,7 +2620,6 @@ def packaging_view(request):
     total_cartons = 0
     
     # Aggregating ready cartons by Carton Label/Name to keep view neat
-    from collections import defaultdict
     cartons_grouped = defaultdict(list)
     for carton in ready_cartons:
         lbl = carton.carton_label if carton.carton_label else carton.carton_number
@@ -2635,6 +2665,12 @@ def packaging_view(request):
             
         # Get list of specific physical carton numbers in the group
         carton_numbers_list = [c.carton_number for c in group_cartons]
+        first_c_items = list(first_c.items.all())
+        first_item = first_c_items[0].item if first_c_items else None
+        if first_item:
+            lot_size = first_item.lot_with_box if (first_c.carton_type == 'SET' and first_item.lot_with_box) else (first_item.lot_size or 0)
+        else:
+            lot_size = 0
             
         ready_analytics.append({
             'carton_label': lbl,
@@ -2650,7 +2686,7 @@ def packaging_view(request):
             'steps_str': ", ".join(steps) if steps else "None",
             'sales_order_number': first_c.sales_order.order_number if first_c.sales_order else None,
             'client_name': first_c.client.name if first_c.client else None,
-            'lot_size': first_c.items.first().item.lot_with_box if (first_c.carton_type == 'SET' and first_c.items.exists()) else (first_c.items.first().item.lot_size if first_c.items.exists() else 0)
+            'lot_size': lot_size
         })
         
         total_pieces += total_group_qty
@@ -2956,9 +2992,11 @@ def log_casting_weight(request):
     except Exception:
         return JsonResponse({"status": "error", "message": "Invalid date format"}, status=400)
         
-    worker = None
-    job_worker = None
-    w_id = caster_id.replace("w_", "").replace("jw_", "")
+    w_id = caster_id
+    if str(w_id).startswith("jw_"):
+        w_id = w_id[3:]
+    elif str(w_id).startswith("w_"):
+        w_id = w_id[2:]
     worker = get_object_or_404(Worker, id=int(w_id))
     if worker.worker_type == WorkerType.JOB_WORKER:
         job_worker = worker

@@ -1263,10 +1263,55 @@
         }
     }
 
-    function toggleItemTypeFilter(id, type) {
+    let lastUserPreferredType = 'set';
+
+    function getPreferredItemTypeForWorker(workerId) {
+        if (!workerId) return lastUserPreferredType;
+        const cleanId = workerId.replace(/^(w_|jw_)/, '');
+
+        // 1. Prioritize worker's direct allocations
+        const workerDirectAllocs = allocationsMaster.filter(a => {
+            const aClean = a.worker_id.replace(/^(w_|jw_)/, '');
+            return aClean === cleanId;
+        });
+
+        if (workerDirectAllocs.length > 0) {
+            let directSetCount = 0;
+            let directSingleCount = 0;
+            workerDirectAllocs.forEach(a => {
+                const item = itemsMaster.find(it => it.id.toString() === a.item_id.toString());
+                if (item) {
+                    if (item.is_set) {
+                        directSetCount++;
+                    } else {
+                        directSingleCount++;
+                    }
+                }
+            });
+
+            if (directSetCount === 0 && directSingleCount > 0) return 'single';
+            if (directSetCount > 0 && directSingleCount === 0) return 'set';
+            if (directSetCount > 0) return 'set';
+        }
+
+        // 2. Fallback: check allowedItems
+        const allowedItems = getAllowedItemsForWorker(workerId);
+        const setCount = allowedItems.filter(it => it.is_set).length;
+        const singleCount = allowedItems.filter(it => !it.is_set).length;
+        
+        if (setCount === 0 && singleCount > 0) return 'single';
+        if (singleCount === 0 && setCount > 0) return 'set';
+        return lastUserPreferredType;
+    }
+
+    function toggleItemTypeFilter(id, type, isUserAction = true) {
         rowItemTypeFilters[id] = type;
+        if (isUserAction) {
+            lastUserPreferredType = type;
+        }
         const btnSet = document.getElementById(`type-set-${id}`);
         const btnSingle = document.getElementById(`type-single-${id}`);
+        const row = document.getElementById(`row-${id}`);
 
         if (type === 'set') {
             if (btnSet) {
@@ -1277,6 +1322,9 @@
                 btnSingle.style.background = 'transparent';
                 btnSingle.style.color = 'var(--text-secondary)';
             }
+            if (row) {
+                row.style.borderLeftColor = '#fbbf24';
+            }
         } else {
             if (btnSingle) {
                 btnSingle.style.background = '#3b82f6';
@@ -1286,6 +1334,9 @@
                 btnSet.style.background = 'transparent';
                 btnSet.style.color = 'var(--text-secondary)';
             }
+            if (row) {
+                row.style.borderLeftColor = '#3b82f6';
+            }
         }
 
         const workerId = workerTS ? workerTS.getValue() : '';
@@ -1293,23 +1344,42 @@
     }
 
     function filterPolishingItemsByWorker(workerId) {
+        const preferredType = getPreferredItemTypeForWorker(workerId);
         Object.keys(rowTomSelects).forEach(id => {
-            const typeFilter = rowItemTypeFilters[id] || 'set';
-            updateRowItemOptions(id, workerId, typeFilter);
+            const ts = rowTomSelects[id];
+            const currentVal = ts ? ts.getValue() : null;
+            
+            if (!currentVal) {
+                toggleItemTypeFilter(id, preferredType, false);
+            } else {
+                const currentItem = itemsMaster.find(it => it.id == currentVal);
+                if (currentItem) {
+                    const itemType = currentItem.is_set ? 'set' : 'single';
+                    toggleItemTypeFilter(id, itemType, false);
+                } else {
+                    toggleItemTypeFilter(id, preferredType, false);
+                }
+            }
         });
     }
 
     function addItemRow() {
         const id = rowCount++;
-        rowItemTypeFilters[id] = 'set';
-
         const workerId = workerTS ? workerTS.getValue() : '';
-        let allowedItems = getAllowedItemsForWorker(workerId).filter(it => it.is_set);
+        const initialType = getPreferredItemTypeForWorker(workerId);
+        rowItemTypeFilters[id] = initialType;
 
-        console.log(`Adding dynamic item row. SET items count: ${allowedItems.length}`);
+        let allowedItems = getAllowedItemsForWorker(workerId).filter(it => (initialType === 'set' ? it.is_set : !it.is_set));
+
+        const isSetMode = initialType === 'set';
+        const borderColor = isSetMode ? '#fbbf24' : '#3b82f6';
+        const setBtnBg = isSetMode ? '#fbbf24' : 'transparent';
+        const setBtnColor = isSetMode ? '#000' : 'var(--text-secondary)';
+        const singleBtnBg = !isSetMode ? '#3b82f6' : 'transparent';
+        const singleBtnColor = !isSetMode ? '#fff' : 'var(--text-secondary)';
 
         const html = `
-            <div class="item-row" id="row-${id}" style="border-left: 4px solid #fbbf24; padding: 20px;">
+            <div class="item-row" id="row-${id}" style="border-left: 4px solid ${borderColor}; padding: 20px;">
                 <div class="remove-row-btn" onclick="removeRow(${id})" style="top: 10px; right: 10px;">×</div>
                 
                 <!-- Row 1: SELECT ITEM / SET with SET vs SINGLE Toggle Pill -->
@@ -1317,8 +1387,8 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
                         <label class="stat-label" style="margin-bottom:0;">SELECT ITEM / SET</label>
                         <div class="item-type-toggle-pill" style="display:flex; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:8px; padding:2px; height:28px; align-items:center;">
-                            <button type="button" class="type-btn active" id="type-set-${id}" onclick="toggleItemTypeFilter(${id}, 'set')" style="padding:2px 10px; height:24px; border-radius:6px; font-size:10px; font-weight:800; border:none; background:#fbbf24; color:#000; cursor:pointer; transition:0.2s;">📦 SET</button>
-                            <button type="button" class="type-btn" id="type-single-${id}" onclick="toggleItemTypeFilter(${id}, 'single')" style="padding:2px 10px; height:24px; border-radius:6px; font-size:10px; font-weight:800; border:none; background:transparent; color:var(--text-secondary); cursor:pointer; transition:0.2s;">🧩 SINGLE</button>
+                            <button type="button" class="type-btn" id="type-set-${id}" onclick="toggleItemTypeFilter(${id}, 'set', true)" style="padding:2px 10px; height:24px; border-radius:6px; font-size:10px; font-weight:800; border:none; background:${setBtnBg}; color:${setBtnColor}; cursor:pointer; transition:0.2s;">📦 SET</button>
+                            <button type="button" class="type-btn" id="type-single-${id}" onclick="toggleItemTypeFilter(${id}, 'single', true)" style="padding:2px 10px; height:24px; border-radius:6px; font-size:10px; font-weight:800; border:none; background:${singleBtnBg}; color:${singleBtnColor}; cursor:pointer; transition:0.2s;">🧩 SINGLE</button>
                         </div>
                     </div>
                     <select name="item[]" class="item-select" onchange="handleItemChange(${id}, this)">
@@ -2091,10 +2161,12 @@
                 if (alloc) {
                     let itemId = alloc.item_id;
 
-                    // Parent Set Lookup: If the allocated item is a component of a SET, prefer selecting that SET in Polishing!
-                    const parentSet = itemsMaster.find(it => it.is_set && it.components && it.components.some(c => c.id == itemId));
-                    if (parentSet) {
-                        itemId = parentSet.id;
+                    const prefType = getPreferredItemTypeForWorker(val);
+                    if (prefType === 'set') {
+                        const parentSet = itemsMaster.find(it => it.is_set && it.components && it.components.some(c => c.id == itemId));
+                        if (parentSet) {
+                            itemId = parentSet.id;
+                        }
                     }
 
                     lastAllocatedItemId = itemId;

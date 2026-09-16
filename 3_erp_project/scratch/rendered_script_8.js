@@ -4,9 +4,9 @@
         const btnJw = document.getElementById('btn-jw');
         const btnSheet = document.getElementById('btn-sheet');
 
-        if (btnStaff) btnStaff.addEventListener('click', function(e) { e.preventDefault(); showSection('staff'); });
-        if (btnJw) btnJw.addEventListener('click', function(e) { e.preventDefault(); showSection('jw'); });
-        if (btnSheet) btnSheet.addEventListener('click', function(e) { e.preventDefault(); showSection('sheet'); });
+        if (btnStaff) btnStaff.addEventListener('click', function(e) { showSection('staff'); });
+        if (btnJw) btnJw.addEventListener('click', function(e) { showSection('jw'); });
+        if (btnSheet) btnSheet.addEventListener('click', function(e) { showSection('sheet'); });
 
         const targetSelect = document.querySelector('#paymentDrawer select[name="target_id"]');
         if (targetSelect) {
@@ -14,6 +14,9 @@
                 updateRecipientLoanDeductionSection();
             });
         }
+
+        // Server-Side Auto-Open Drawer Fallback
+        
     });
 
     // Initialize Flatpickr for the attendance date
@@ -30,27 +33,9 @@
         });
     }
 
-    // Initialize Flatpickr for Month Picker
-    if (typeof flatpickr !== 'undefined' && document.getElementById('ledger-month-picker')) {
-        const monthPlugins = [];
-        if (typeof monthSelectPlugin !== 'undefined') {
-            monthPlugins.push(new monthSelectPlugin({
-                shorthand: true,
-                dateFormat: "Y-m",
-                altFormat: "F Y",
-                theme: "dark"
-            }));
-        }
-        flatpickr("#ledger-month-picker", {
-            plugins: monthPlugins,
-            defaultDate: ""django_var"",
-            onChange: function(selectedDates, dateStr, instance) {
-                changeLedgerMonth(dateStr);
-            }
-        });
-    }
 
-    // Initialize Flatpickr for Drawer Month Picker
+
+    // Initialize Flatpickr for Drawer Month Picker (Job Workers)
     if (typeof flatpickr !== 'undefined' && document.getElementById('drawer-month-picker')) {
         const drawerMonthPlugins = [];
         if (typeof monthSelectPlugin !== 'undefined') {
@@ -63,13 +48,37 @@
         }
         drawerMonthPicker = flatpickr("#drawer-month-picker", {
             plugins: drawerMonthPlugins,
-            defaultDate: ""django_var"",
+            defaultDate: "2026-09",
             onChange: function(selectedDates, dateStr, instance) {
                 drawerCurrentMonth = dateStr;
                 drawerCurrentMode = 'monthly';
                 const modeSelect = document.getElementById('drawer-mode-selector');
                 if (modeSelect) modeSelect.value = 'monthly';
                 loadJobWorkerProfileLedger();
+            }
+        });
+    }
+
+    // Initialize Flatpickr for Worker Drawer Month Picker (Staff / Internal Workers)
+    if (typeof flatpickr !== 'undefined' && document.getElementById('w-drawer-month-picker')) {
+        const wDrawerMonthPlugins = [];
+        if (typeof monthSelectPlugin !== 'undefined') {
+            wDrawerMonthPlugins.push(new monthSelectPlugin({
+                shorthand: true,
+                dateFormat: "Y-m",
+                altFormat: "F Y",
+                theme: "dark"
+            }));
+        }
+        drawerWorkerMonthPicker = flatpickr("#w-drawer-month-picker", {
+            plugins: wDrawerMonthPlugins,
+            defaultDate: "2026-09",
+            onChange: function(selectedDates, dateStr, instance) {
+                drawerWorkerCurrentMonth = dateStr;
+                drawerWorkerCurrentMode = 'monthly';
+                const modeSelect = document.getElementById('w-drawer-mode-selector');
+                if (modeSelect) modeSelect.value = 'monthly';
+                loadWorkerProfileLedger();
             }
         });
     }

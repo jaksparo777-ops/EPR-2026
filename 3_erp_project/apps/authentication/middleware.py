@@ -1,6 +1,54 @@
+import time
+from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.urls import resolve, Resolver404
 from apps.master_data.models import LegalEntity
+
+
+class SessionInactivityMiddleware:
+    """
+    Enforces per-user inactivity timeout on the server side.
+    Exempts static assets, login/logout, and automatic telemetry heartbeats (/api/heartbeat/)
+    so that background pings do not falsely keep an idle session alive.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return self.get_response(request)
+
+        path = request.path
+        exempt_prefixes = [
+            '/static/',
+            '/media/',
+            '/login/',
+            '/logout/',
+            '/api/heartbeat/',  # Background telemetry does NOT count as user activity
+        ]
+        if any(path.startswith(prefix) for prefix in exempt_prefixes):
+            return self.get_response(request)
+
+        now = time.time()
+        timeout_minutes = getattr(user, 'session_timeout_minutes', 60) or 60
+        timeout_seconds = timeout_minutes * 60
+
+        last_activity = request.session.get('last_user_activity')
+        if last_activity:
+            try:
+                idle_seconds = now - float(last_activity)
+                if idle_seconds > timeout_seconds:
+                    # Inactivity limit exceeded -> flush session and log out
+                    logout(request)
+                    return redirect('/login/?reason=timeout')
+            except (ValueError, TypeError):
+                pass
+
+        # Update last user activity on legitimate interactive requests
+        request.session['last_user_activity'] = now
+        return self.get_response(request)
+
 
 class CompanyScopeMiddleware:
     def __init__(self, get_response):
@@ -20,7 +68,9 @@ class CompanyScopeMiddleware:
             '/media/',
             '/login/',
             '/logout/',
-            '/select-company/'
+            '/select-company/',
+            '/device-approval-required/',
+            '/api/'
         ]
         
         if any(path.startswith(prefix) for prefix in exempt_prefixes):
@@ -39,19 +89,20 @@ class CompanyScopeMiddleware:
         # Multi-company or Global user: check active session company selection
         active_company_id = request.session.get('active_company_id')
         if not active_company_id:
+            can_access_global = user.is_superuser or user.role == 'ADMIN' or user.is_global_access
             if hasattr(user, 'company') and user.company:
                 first_comp = user.company
-            else:
-                first_comp = allowed_qs.first()
-
-            if first_comp:
                 active_company_id = first_comp.id
                 request.session['active_company_id'] = first_comp.id
-            elif user.is_superuser or user.role == 'ADMIN' or user.is_global_access:
-                active_company_id = 'global'
-                request.session['active_company_id'] = 'global'
-            else:
+            elif can_access_global or allowed_count > 1:
                 return redirect('select_company')
+            else:
+                first_comp = allowed_qs.first()
+                if first_comp:
+                    active_company_id = first_comp.id
+                    request.session['active_company_id'] = first_comp.id
+                else:
+                    return redirect('select_company')
 
         if active_company_id == 'global':
             if user.is_superuser or user.role == 'ADMIN' or user.is_global_access:
@@ -190,7 +241,9 @@ class DeviceSecurityMiddleware:
             '/static/',
             '/media/',
             '/device-approval-required/',
-            '/api/devices/'
+            '/api/devices/',
+            '/api/admin/',
+            '/logout/',
         ]
         if any(path.startswith(prefix) for prefix in exempt_prefixes):
             return self.get_response(request)
@@ -211,24 +264,34 @@ class DeviceSecurityMiddleware:
                 ua_meta['icon'] = '💻'
                 ua_meta['brand_model'] = 'Computer'
 
-        device_token = request.COOKIES.get('device_token')
-        new_token_created = False
+        device_token = request.COOKIES.get('device_token') or request.META.get('HTTP_X_DEVICE_ID') or request.GET.get('device_token')
+        device_obj = None
+        created = False
 
-        if not device_token:
-            # Prevent duplicate pending devices from same IP & user agent
-            existing_pending = AuthorizedDevice.objects.filter(
-                status='PENDING',
+        if device_token:
+            device_obj = AuthorizedDevice.objects.filter(device_id=device_token).first()
+
+        if not device_obj:
+            # Check if there is already an existing device registered with the same IP and user agent or OS/browser
+            # Prefer active approved device first, otherwise latest active
+            existing_dev = AuthorizedDevice.objects.filter(
                 last_ip=client_ip,
                 user_agent=user_agent
-            ).order_by('-created_at').first()
+            ).order_by('-is_approved', '-last_used_at', '-created_at').first()
 
-            if existing_pending:
-                device_token = existing_pending.device_id
-                device_obj = existing_pending
+            if not existing_dev and ua_meta['os_info'] != 'Unknown OS':
+                existing_dev = AuthorizedDevice.objects.filter(
+                    last_ip=client_ip,
+                    os_info=ua_meta['os_info'],
+                    browser_info=ua_meta['browser_info']
+                ).order_by('-is_approved', '-last_used_at', '-created_at').first()
+
+            if existing_dev:
+                device_token = existing_dev.device_id
+                device_obj = existing_dev
                 created = False
-            else:
+            elif not ua_meta.get('is_bot'):
                 device_token = f"DEV-{uuid.uuid4().hex[:8].upper()}"
-                new_token_created = True
                 created = True
                 device_obj = AuthorizedDevice.objects.create(
                     device_id=device_token,
@@ -242,37 +305,36 @@ class DeviceSecurityMiddleware:
                     is_approved=False,
                     status='PENDING'
                 )
-        else:
-            # Lookup existing device by cookie token
-            device_obj, created = AuthorizedDevice.objects.get_or_create(
-                device_id=device_token,
-                defaults={
-                    'name': ua_meta['default_name'],
-                    'user_agent': user_agent,
-                    'device_type': ua_meta['device_type'],
-                    'brand_model': ua_meta['brand_model'],
-                    'os_info': ua_meta['os_info'],
-                    'browser_info': ua_meta['browser_info'],
-                    'last_ip': client_ip,
-                    'is_approved': False,
-                    'status': 'PENDING'
-                }
-            )
+            else:
+                # Ephemeral device for automated scrapers/bots/crawlers without creating DB record
+                device_token = f"DEV-BOT-{uuid.uuid4().hex[:6].upper()}"
+                device_obj = AuthorizedDevice(
+                    device_id=device_token,
+                    name=f"Automated / Scraper ({client_ip})",
+                    user_agent=user_agent,
+                    last_ip=client_ip,
+                    status='APPROVED',
+                    is_approved=True
+                )
 
         # Check if current mode permits auto-approving this device
         from django.conf import settings
         should_auto_approve = False
-        if sec_mode == 'DEV_AUTO_APPROVE':
-            if is_local_factory_ip(client_ip) or getattr(settings, 'DEBUG', False):
-                should_auto_approve = True
-        elif sec_mode == 'FACTORY_LOCAL_AUTO_APPROVE':
-            if is_local_factory_ip(client_ip):
-                should_auto_approve = True
+
+        # CRITICAL FIX: NEVER auto-approve a device that was explicitly REJECTED by an Administrator
+        if device_obj.status != 'REJECTED':
+            if sec_mode == 'DEV_AUTO_APPROVE':
+                if is_local_factory_ip(client_ip) or getattr(settings, 'DEBUG', False):
+                    should_auto_approve = True
+            elif sec_mode == 'FACTORY_LOCAL_AUTO_APPROVE':
+                if is_local_factory_ip(client_ip):
+                    should_auto_approve = True
 
         if should_auto_approve and (not device_obj.is_approved or device_obj.status != 'APPROVED'):
             device_obj.is_approved = True
             device_obj.status = 'APPROVED'
-            device_obj.save(update_fields=['is_approved', 'status'])
+            device_obj.rejection_reason = None
+            device_obj.save(update_fields=['is_approved', 'status', 'rejection_reason'])
 
         if created and not should_auto_approve:
             # Trigger high-priority System Notification for Admins
@@ -301,43 +363,56 @@ class DeviceSecurityMiddleware:
                 device_obj.name = ua_meta['default_name']
             device_obj.save(update_fields=['last_ip', 'user_agent', 'device_type', 'brand_model', 'os_info', 'browser_info', 'name', 'last_used_at'])
 
+        # Update last_used_at for real-time live/online device tracking
+        if device_obj.pk and not path.startswith('/static/') and not path.startswith('/media/'):
+            from django.utils import timezone
+            now_dt = timezone.now()
+            if not device_obj.last_used_at or (now_dt - device_obj.last_used_at).total_seconds() > 20:
+                device_obj.last_used_at = now_dt
+                device_obj.save(update_fields=['last_used_at'])
+
         request.device = device_obj
 
         # 2. Check Role & Network Exemption for Owner / Super Admin
         user = request.user
         is_owner_admin = user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == 'ADMIN')
 
-        # Update Live Activity Stream for authenticated users (ignore API requests)
-        if user.is_authenticated and not path.startswith('/api/'):
+        # Update Live Activity Stream for authenticated users (throttled with cache)
+        if user.is_authenticated and not path.startswith('/api/') and not path.startswith('/static/'):
             try:
                 from apps.authentication.models import UserLiveActivity
                 from apps.authentication.utils import classify_network_scope
+                from django.core.cache import cache
                 
-                page_name = 'Dashboard'
-                if path.startswith('/casting') or path.startswith('/casting-stock'): page_name = 'Casting Department'
-                elif path.startswith('/machin') or path.startswith('/issue-machining') or path.startswith('/machined-stock'): page_name = 'Machining Department'
-                elif path.startswith('/polish') or path.startswith('/polished-stock'): page_name = 'Polishing Department'
-                elif path.startswith('/packag') or path.startswith('/ready-stock') or path.startswith('/assembly'): page_name = 'Packaging & Stock'
-                elif path.startswith('/purchases'): page_name = 'Purchase Orders'
-                elif path.startswith('/orders'): page_name = 'Sales Orders'
-                elif path.startswith('/dispatch'): page_name = 'Dispatch & Sales'
-                elif path.startswith('/master-data'): page_name = 'Master Data Hub'
-                elif path.startswith('/ledger') or path.startswith('/worker'): page_name = 'Labor & HR Ledger'
-                elif path.startswith('/attendance'): page_name = 'Attendance Register'
-                elif path.startswith('/sql-explorer'): page_name = 'SQL Explorer & Data Flow'
-                elif path.startswith('/users'): page_name = 'User Control & Permissions'
+                cache_key = f"live_act_{user.id}"
+                last_path = cache.get(cache_key)
+                if last_path != path:
+                    cache.set(cache_key, path, timeout=30)
+                    page_name = 'Dashboard'
+                    if path.startswith('/casting') or path.startswith('/casting-stock'): page_name = 'Casting Department'
+                    elif path.startswith('/machin') or path.startswith('/issue-machining') or path.startswith('/machined-stock'): page_name = 'Machining Department'
+                    elif path.startswith('/polish') or path.startswith('/polished-stock'): page_name = 'Polishing Department'
+                    elif path.startswith('/packag') or path.startswith('/ready-stock') or path.startswith('/assembly'): page_name = 'Packaging & Stock'
+                    elif path.startswith('/purchases'): page_name = 'Purchase Orders'
+                    elif path.startswith('/orders'): page_name = 'Sales Orders'
+                    elif path.startswith('/dispatch'): page_name = 'Dispatch & Sales'
+                    elif path.startswith('/master-data'): page_name = 'Master Data Hub'
+                    elif path.startswith('/ledger') or path.startswith('/worker'): page_name = 'Labor & HR Ledger'
+                    elif path.startswith('/attendance'): page_name = 'Attendance Register'
+                    elif path.startswith('/sql-explorer'): page_name = 'SQL Explorer & Data Flow'
+                    elif path.startswith('/users'): page_name = 'User Control & Permissions'
 
-                net_scope = classify_network_scope(client_ip)
-                UserLiveActivity.objects.update_or_create(
-                    user=user,
-                    defaults={
-                        'device': device_obj,
-                        'current_page': page_name,
-                        'current_path': path,
-                        'ip_address': client_ip,
-                        'network_scope': net_scope
-                    }
-                )
+                    net_scope = classify_network_scope(client_ip)
+                    UserLiveActivity.objects.update_or_create(
+                        user=user,
+                        defaults={
+                            'device': device_obj,
+                            'current_page': page_name,
+                            'current_path': path,
+                            'ip_address': client_ip,
+                            'network_scope': net_scope
+                        }
+                    )
             except Exception:
                 pass
 
@@ -358,8 +433,8 @@ class DeviceSecurityMiddleware:
                 from django.shortcuts import render
                 return render(request, '403_network_restricted.html', {'client_ip': client_ip}, status=403)
 
-        # 4. Device Authorization Token Check (Applies to non-admin staff logins)
-        if user.is_authenticated and not is_owner_admin and (not device_obj.is_approved or device_obj.status != 'APPROVED'):
+        # 4. Device Authorization Token Check (Enforced for ALL accounts, including Admins)
+        if user.is_authenticated and (not device_obj.is_approved or device_obj.status != 'APPROVED'):
             from apps.authentication.utils import log_system_audit_event
             log_system_audit_event(
                 user=user,
@@ -367,7 +442,7 @@ class DeviceSecurityMiddleware:
                 ip_address=client_ip,
                 event_type='SECURITY_REJECTED' if device_obj.status == 'REJECTED' else 'SECURITY_BLOCKED',
                 module_name='Device Security',
-                object_repr=f"Device {device_obj.name} ({device_obj.get_status_display()}) attempted access",
+                object_repr=f"Device {device_obj.name} ({device_obj.get_status_display()}) attempted access by {user.username}",
                 changes_json={'rejection_reason': device_obj.rejection_reason or ''},
                 request_path=path,
                 user_agent_summary=user_agent
@@ -378,13 +453,14 @@ class DeviceSecurityMiddleware:
                 'device_name': device_obj.name,
                 'device_status': device_obj.status,
                 'rejection_reason': device_obj.rejection_reason or '',
-                'next_url': path
+                'next_url': path,
+                'is_admin_user': is_owner_admin
             })
-            if new_token_created:
-                response.set_cookie('device_token', device_token, max_age=365*24*60*60, httponly=False)
+            if request.COOKIES.get('device_token') != device_token:
+                response.set_cookie('device_token', device_token, max_age=365*24*60*60, httponly=False, samesite='Lax', path='/')
             return response
 
         response = self.get_response(request)
-        if new_token_created:
-            response.set_cookie('device_token', device_token, max_age=365*24*60*60, httponly=False)
+        if request.COOKIES.get('device_token') != device_token:
+            response.set_cookie('device_token', device_token, max_age=365*24*60*60, httponly=False, samesite='Lax', path='/')
         return response

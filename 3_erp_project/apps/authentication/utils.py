@@ -131,13 +131,25 @@ def parse_user_agent_details(ua_string):
 
     default_name = f"{brand_model} ({os_info} • {browser_info})".strip()
 
+    is_bot = bool(
+        not ua or 
+        'curl' in ua.lower() or 
+        'python' in ua.lower() or 
+        'norton' in ua.lower() or 
+        'bot' in ua.lower() or 
+        'crawler' in ua.lower() or 
+        'spider' in ua.lower() or
+        'headless' in ua.lower()
+    )
+
     return {
         'device_type': device_type,
         'brand_model': brand_model,
         'os_info': os_info,
         'browser_info': browser_info,
         'default_name': default_name,
-        'icon': icon
+        'icon': icon,
+        'is_bot': is_bot
     }
 
 

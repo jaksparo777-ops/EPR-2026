@@ -23,6 +23,7 @@ def dashboard(request):
     active_company = request.company
     # Use optimized service for overall stock metrics scoped by company
     stock = services.get_overall_stock(company=active_company)
+    bulk_stock = services.get_all_items_stock(company=active_company)
 
     if active_company:
         items = Item.objects.filter(company=active_company)
@@ -33,9 +34,8 @@ def dashboard(request):
     stock_rows = []
 
     for item in items:
-        # Get stock for each item at READY stage
-        item_stock = services.get_stock_by_item(item)
-        ready_qty = item_stock['ready']
+        # Get stock for each item at READY stage from bulk memory map
+        ready_qty = bulk_stock.get(item.id, {}).get('ready', 0)
 
         if ready_qty > 0:
             cartons, loose_pieces = item.calculate_cartons_and_loose(ready_qty)
@@ -282,12 +282,12 @@ def casting_stock(request):
     all_warehouses = Warehouse.objects.all().order_by('name')
 
     overall_stock = services.get_overall_stock(company=active_company)
+    bulk_stock = services.get_all_items_stock(company=active_company)
 
     # Calculate item-wise warehouse available stock
     warehouse_rows = []
     for item in all_items:
-        stock = services.get_stock_by_item(item)
-        qty = stock['casting']
+        qty = bulk_stock.get(item.id, {}).get('casting', 0)
         if qty != 0: # Show items with active stock or transaction history
             warehouse_rows.append({
                 "code": item.code,
@@ -333,7 +333,7 @@ def machined_stock(request):
     # Fetch all machining transactions
     txs = StockTransaction.objects.filter(
         transaction_type__in=["machining_out", "machining_in"]
-    ).select_related("worker", "job_worker", "item")
+    ).select_related("worker", "item")
 
     grouped = defaultdict(lambda: {
         "issued_qty": 0,
@@ -436,12 +436,12 @@ def machined_stock(request):
     all_warehouses = Warehouse.objects.all().order_by('name')
 
     overall_stock = services.get_overall_stock(company=active_company)
+    bulk_stock = services.get_all_items_stock(company=active_company)
 
     # Calculate item-wise warehouse available stock
     warehouse_rows = []
     for item in all_items:
-        stock = services.get_stock_by_item(item)
-        qty = stock['machining']
+        qty = bulk_stock.get(item.id, {}).get('machining', 0)
         if qty != 0: # Show items with active stock or transaction history
             warehouse_rows.append({
                 "code": item.code,
@@ -483,7 +483,7 @@ def polished_stock(request):
     # Fetch all polishing transactions
     txs = StockTransaction.objects.filter(
         transaction_type__in=["polishing_out", "polishing_in"]
-    ).select_related("worker", "job_worker", "item")
+    ).select_related("worker", "item")
 
     grouped = defaultdict(lambda: {
         "issued_qty": 0,
@@ -586,12 +586,12 @@ def polished_stock(request):
     all_warehouses = Warehouse.objects.all().order_by('name')
 
     overall_stock = services.get_overall_stock(company=active_company)
+    bulk_stock = services.get_all_items_stock(company=active_company)
 
     # Calculate item-wise warehouse available stock
     warehouse_rows = []
     for item in all_items:
-        stock = services.get_stock_by_item(item)
-        qty = stock['polishing']
+        qty = bulk_stock.get(item.id, {}).get('polishing', 0)
         if qty != 0: # Show items with active stock or transaction history
             warehouse_rows.append({
                 "code": item.code,
@@ -769,11 +769,10 @@ def ready_stock(request):
         all_items = Item.objects.filter(active=True).order_by('code')
     all_warehouses = Warehouse.objects.all().order_by('name')
     # Detailed Component and Loose Piece Stock Breakdown
-    from apps.production import services
+    bulk_stock = services.get_all_items_stock(company=active_company)
     piece_rows = []
     for item in all_items:
-        stk = services.get_stock_by_item(item)
-        r_qty = stk.get('ready', 0)
+        r_qty = bulk_stock.get(item.id, {}).get('ready', 0)
         unit_wt = float(item.machining_weight or item.casting_weight or 0.0)
         r_wt = round(r_qty * unit_wt, 3)
         piece_rows.append({
